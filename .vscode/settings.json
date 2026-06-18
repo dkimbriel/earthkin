@@ -1,0 +1,51 @@
+{
+    "editor.insertSpaces": false,
+    "editor.tabSize": 4,
+    "editor.detectIndentation": false,
+    "[ruby]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "misogi.ruby-rubocop"
+    },
+    "[javascript]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[javascriptreact]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[typescript]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[typescriptreact]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[json]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[yaml]": {
+        "editor.insertSpaces": true,
+        "editor.tabSize": 2
+    },
+    "[html]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[erb]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[css]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    },
+    "[scss]": {
+        "editor.insertSpaces": false,
+        "editor.tabSize": 4
+    }
+}

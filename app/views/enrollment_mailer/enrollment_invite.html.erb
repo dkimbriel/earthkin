@@ -1,0 +1,30 @@
+<p style="margin: 0 0 20px 0;">Hi <%= @recipient_name %>,</p>
+
+<p style="margin: 0 0 20px 0;">
+  Thank you for your interest in Earthkin's Nature Preschool drop-off program! Our 100% outdoor program runs
+  <%= @program.start_date.strftime('%B %d, %Y') %>–<%= @program.end_date.strftime('%B %d, %Y') %>,
+  meeting weekly on <%= @program.class_days.presence || 'select days' %><% if @program.formatted_time_range.present? %> from <%= @program.formatted_time_range %><% end %> at <%= @location&.name || 'our outdoor classroom' %>.
+  We maintain a low teacher-to-student ratio, capping the class at <%= @program.capacity %> students with two teachers
+  to engage in meaningful child-led, play- and nature-based early learning.
+</p>
+
+<p style="margin: 0 0 20px 0;">
+  Enrollment is for the full school year<% if @program.tuition_amount.present? %>, and tuition is $<%= number_with_precision(@program.tuition_amount, precision: 0, delimiter: ',') %><% end %>, with flexible payment plan options available.
+  If you are interested in enrolling more than one child, ask us about our sibling discount!
+</p>
+
+<p style="margin: 0 0 10px 0;">The enrollment process includes the following steps:</p>
+<ul style="margin: 0 0 20px 20px; padding: 0;">
+  <li style="margin-bottom: 8px;">Submission of an enrollment application for each child</li>
+  <li style="margin-bottom: 8px;">A meet-and-greet with Earthkin co-founders</li>
+  <li style="margin-bottom: 8px;">Payment of the non-refundable enrollment fee to reserve your child(ren)'s spot</li>
+  <li style="margin-bottom: 8px;">Completion of final enrollment forms</li>
+</ul>
+
+<p style="margin: 0 0 20px 0;">
+  Please fill out the <a href="<%= @enrollment_url %>" style="color: #2e7d32; text-decoration: underline;">Enrollment Application</a>
+  for each child you are interested in enrolling and we'll follow up soon with next steps!
+</p>
+
+<p style="margin: 0 0 5px 0;">Kindly,</p>
+<p style="margin: 0;">The Earthkin Team</p>

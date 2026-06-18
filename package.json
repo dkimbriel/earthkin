@@ -1,0 +1,30 @@
+{
+  "name": "earthkin",
+  "private": true,
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@fullcalendar/core": "^6.1.19",
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/lab": "^9.0.0-beta.3",
+    "@mui/material": "^7.3.5",
+    "@mui/x-date-pickers": "^9.1.0",
+    "@rails/activestorage": "^6.0.0",
+    "@rails/ujs": "^6.0.0",
+    "date-fns": "^4.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.10.1",
+    "turbolinks": "^5.2.0"
+  },
+  "version": "0.1.0",
+  "scripts": {
+    "build": "esbuild app/javascript/application.js --bundle --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets --loader:.js=jsx --loader:.jsx=jsx --jsx=automatic"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}

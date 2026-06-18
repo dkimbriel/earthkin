@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= @subject || 'Earthkin Nature School' %></title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: Helvetica, Arial, sans-serif;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f5f5f5;">
+      <tr>
+        <td align="center" style="padding: 40px 20px;">
+          <!-- Email Container -->
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+
+            <!-- Header -->
+            <tr>
+              <td style="background-color: #2e7d32; padding: 30px 40px; border-radius: 8px 8px 0 0; text-align: center;">
+                <%= image_tag attachments['logo.png'].url, alt: 'Earthkin Nature School', style: 'max-width: 280px; height: auto;' %>
+              </td>
+            </tr>
+
+            <!-- Main Content -->
+            <tr>
+              <td style="background-color: #ffffff; padding: 40px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="color: #333333; font-size: 16px; line-height: 1.6;">
+                      <%= yield %>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background-color: #fafafa; padding: 30px 40px; border-radius: 0 0 8px 8px; border-top: 1px solid #eeeeee;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    <td style="color: #666666; font-size: 14px; line-height: 1.5;">
+                      <p style="margin: 0 0 10px 0;">
+                        <strong style="font-family: 'Comfortaa', Helvetica, Arial, sans-serif;">Earthkin Nature School</strong><br>
+                        Richmond, VA
+                      </p>
+                      <p style="margin: 0; color: #888888; font-size: 12px;">
+                        Questions? Reply to this email or contact us at
+                        <a href="mailto:earthkinnatureschool@gmail.com" style="color: #2e7d32; text-decoration: none;">earthkinnatureschool@gmail.com</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+          </table>
+
+          <!-- Email Footer Text -->
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%;">
+            <tr>
+              <td style="padding: 20px 40px; text-align: center;">
+                <p style="margin: 0; color: #999999; font-size: 12px;">
+                  &copy; <%= Date.current.year %> Earthkin Nature School. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -1,0 +1,50 @@
+Payment Receipt
+
+Dear <%= @family.name %>,
+
+Thank you for your payment! This email confirms we've received your payment for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.
+
+PAYMENT DETAILS
+---------------
+Amount: $<%= sprintf('%.2f', @payment.amount) %>
+Payment Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
+Payment Method: <%= @payment.payment_method.titleize %>
+<% if @payment.payment_type == 'enrollment_fee' -%>
+Type: Non-refundable Enrollment Fee
+<% elsif @payment.payment_type == 'tuition' -%>
+Type: Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %>
+<% end -%>
+
+<% if @payment.notes.present? -%>
+Notes: <%= @payment.notes %>
+
+<% end -%>
+A detailed receipt is attached to this email as a PDF.
+
+<% if @payment.program_enrollment.enrollment_payment_plan -%>
+<% plan = @payment.program_enrollment.enrollment_payment_plan -%>
+<% total_paid = plan.total_paid + (plan.enrollment_fee_paid? ? plan.enrollment_fee : 0) -%>
+<% remaining = plan.total_amount - plan.total_paid -%>
+PAYMENT PLAN STATUS
+-------------------
+Plan: <%= plan.payment_plan.name %>
+Total Tuition: $<%= sprintf('%.2f', plan.total_amount) %>
+Total Paid: $<%= sprintf('%.2f', total_paid) %>
+Remaining Balance: $<%= sprintf('%.2f', remaining) %>
+
+<% if remaining > 0 -%>
+<% next_installment = plan.next_installment -%>
+<% if next_installment -%>
+Next Payment: $<%= sprintf('%.2f', next_installment['amount']) %> due on <%= Date.parse(next_installment['due_date']).strftime('%B %d, %Y') %>
+<% end -%>
+<% else -%>
+Your account is paid in full!
+<% end -%>
+<% end -%>
+
+If you have any questions about this payment or your account, please don't hesitate to contact us.
+
+Thank you for being part of the Earthkin community!
+
+Warmly,
+The Earthkin Team

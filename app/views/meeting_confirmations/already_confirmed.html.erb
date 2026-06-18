@@ -1,0 +1,27 @@
+<% content_for :title do %>Meeting Already Scheduled - Earthkin Nature School<% end %>
+
+<div style="text-align: center;">
+  <div class="success-icon">&#128197;</div>
+  <h2>Meeting Already Scheduled</h2>
+</div>
+
+<p>Hi <%= @application.parent_first_name %>,</p>
+
+<p>It looks like your meet-and-greet has already been scheduled!</p>
+
+<% if @event.scheduled_at %>
+<div class="highlight">
+  <h3 style="margin-top: 0;">Your Scheduled Meeting</h3>
+  <ul style="list-style: none; padding-left: 0;">
+    <li><strong>Date & Time:</strong> <%= @event.scheduled_at.in_time_zone('Eastern Time (US & Canada)').strftime('%A, %B %d, %Y at %I:%M %p ET') %></li>
+    <li><strong>Location:</strong> <%= @location&.name || 'Forest Hill Park' %></li>
+    <% if @location&.address %>
+    <li><strong>Address:</strong> <%= @location.address %></li>
+    <% end %>
+  </ul>
+</div>
+<% end %>
+
+<p>If you need to make changes to your meeting, please email us at <a href="mailto:earthkinnatureschool@gmail.com">earthkinnatureschool@gmail.com</a>.</p>
+
+<p>We look forward to seeing you!</p>

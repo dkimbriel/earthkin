@@ -1,0 +1,30 @@
+<% content_for :title, "Enrollment Confirmed - Earthkin Nature School" %>
+
+<div style="text-align: center;">
+  <div class="success-icon">&#127793;</div>
+
+  <h2>Welcome to Earthkin!</h2>
+
+  <p>
+    Thank you, <%= @application.parent_first_name %>! Your enrollment fee has been received and
+    <strong><%= @application.full_child_name %></strong>'s spot in <%= @program.name %> is now secured.
+  </p>
+
+  <div class="highlight">
+    <h3 style="margin-top: 0;">What's Next?</h3>
+    <ul style="text-align: left;">
+      <li>You'll receive a confirmation email shortly with all the details</li>
+      <li>Review the Family Handbook we sent earlier</li>
+      <li>Your first tuition installment will be due according to your selected payment plan</li>
+      <li>We'll be in touch with more information as the program start date approaches</li>
+    </ul>
+  </div>
+
+  <p>
+    We're so excited to welcome <%= @application.child_first_name %> to our nature-based learning community!
+  </p>
+
+  <p style="color: #666; font-size: 14px; margin-top: 30px;">
+    Questions? Contact us at <a href="mailto:earthkinnatureschool@gmail.com">earthkinnatureschool@gmail.com</a>
+  </p>
+</div>

@@ -1,0 +1,50 @@
+<h2>Schedule A Meet-n-Greet</h2>
+
+<p>Hi <%= @application.parent_first_name %>,</p>
+
+<p>I hope this email finds you in good health and spirits! Thank you for taking the time to thoughtfully fill out the enrollment application for our <%= @program.start_date.year %>–<%= (@program.start_date + 1.year).strftime('%y') %> Nature Preschool program. <strong>We would love to welcome <%= @application.child_first_name %> and your family to move forward with the next phase of enrollment.</strong></p>
+
+<h3>Program Details</h3>
+<ul>
+  <li><%= @program.class_days.presence || 'Days TBD' %>, <%= @program.start_date.strftime('%b %d, %Y') %>–<%= @program.end_date.strftime('%b %d, %Y') %></li>
+  <% if @program.formatted_time_range.present? %>
+  <li><%= @program.formatted_time_range %></li>
+  <% end %>
+  <% tuition = @application.effective_tuition_amount || @program.tuition_amount %>
+  <% if tuition.present? %>
+  <li>Tuition: $<%= number_with_precision(tuition, precision: 0, delimiter: ',') %></li>
+  <% end %>
+</ul>
+
+<% if @payment_plans.any? %>
+<h3>Payment Options</h3>
+<ul>
+  <% @application.payment_plan_options.each_with_index do |plan, index| %>
+  <li><strong>Option <%= index + 1 %>: <%= plan[:name] %></strong> - <%= plan[:description] %></li>
+  <% end %>
+</ul>
+<% end %>
+
+<p>A <strong>$<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> non-refundable enrollment fee</strong> is due upon enrollment to reserve your child's spot in the program. Enrollment is for the full school year.</p>
+
+<p>If you'd like to continue the enrollment process, <strong>the next step is gathering together for a meet-and-greet at <%= @location&.name || 'Forest Hill Park' %></strong> with me and my fellow co-founder, Elena Johnson/Sydney Gary. Spending time together in the space will give us all an opportunity to explore the environment, answer questions, and make sure the nature preschool feels like a good fit for your family.</p>
+
+<p><strong>Please select one of the following dates that works best for you:</strong></p>
+
+<table cellpadding="0" cellspacing="0" border="0" style="margin: 20px 0;">
+  <% @event.proposed_dates_as_times.each do |date| %>
+  <tr>
+    <td style="padding: 8px 0;">
+      <a href="<%= @base_url %>/meetings/<%= @event.confirmation_token %>/confirm?date=<%= date.to_i %>"
+         style="display: inline-block; padding: 12px 24px; background-color: #4a7c59; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">
+        <%= date.in_time_zone('Eastern Time (US & Canada)').strftime('%A, %B %d at %I:%M %p') %>
+      </a>
+    </td>
+  </tr>
+  <% end %>
+</table>
+
+<p>Please don't hesitate to reach out with any questions and/or to schedule your visit. We look forward to connecting further!</p>
+
+<p>Warmly,<br>
+The Nature Preschool Team</p>

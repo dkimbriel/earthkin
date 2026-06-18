@@ -1,0 +1,53 @@
+<h2>Payment Invoice</h2>
+
+<p>Dear <%= @family.name %>,</p>
+
+<p>Please find attached the invoice for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.</p>
+
+<h3>Payment Details</h3>
+<ul>
+  <li><strong>Amount:</strong> $<%= sprintf('%.2f', @payment.amount) %></li>
+  <li><strong>Payment Date:</strong> <%= @payment.payment_date.strftime('%B %d, %Y') %></li>
+  <li><strong>Payment Method:</strong> <%= @payment.payment_method.titleize %></li>
+  <% if @payment.payment_type == 'enrollment_fee' %>
+  <li><strong>Type:</strong> Non-refundable Enrollment Fee</li>
+  <% elsif @payment.payment_type == 'tuition' %>
+  <li><strong>Type:</strong> Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %></li>
+  <% end %>
+</ul>
+
+<% if @payment.notes.present? %>
+<p><strong>Notes:</strong> <%= @payment.notes %></p>
+<% end %>
+
+<p><strong>A detailed invoice is attached to this email as a PDF.</strong></p>
+
+<% if @payment.program_enrollment.enrollment_payment_plan %>
+  <% plan = @payment.program_enrollment.enrollment_payment_plan %>
+  <% total_paid = plan.total_paid + (plan.enrollment_fee_paid? ? plan.enrollment_fee : 0) %>
+  <% remaining = plan.total_amount - plan.total_paid %>
+
+  <h3>Payment Plan Status</h3>
+  <ul>
+    <li><strong>Plan:</strong> <%= plan.payment_plan.name %></li>
+    <li><strong>Total Tuition:</strong> $<%= sprintf('%.2f', plan.total_amount) %></li>
+    <li><strong>Total Paid:</strong> $<%= sprintf('%.2f', total_paid) %></li>
+    <li><strong>Remaining Balance:</strong> $<%= sprintf('%.2f', remaining) %></li>
+  </ul>
+
+  <% if remaining > 0 %>
+    <% next_installment = plan.next_installment %>
+    <% if next_installment %>
+      <p><strong>Next Payment:</strong> $<%= sprintf('%.2f', next_installment['amount']) %> due on <%= Date.parse(next_installment['due_date']).strftime('%B %d, %Y') %></p>
+    <% end %>
+  <% else %>
+    <p style="color: green;"><strong>Your account is paid in full!</strong></p>
+  <% end %>
+<% end %>
+
+<p>If you have any questions about this payment or your account, please don't hesitate to contact us.</p>
+
+<p>Thank you for being part of the Earthkin community!</p>
+
+<p>Warmly,<br>
+The Earthkin Team</p>

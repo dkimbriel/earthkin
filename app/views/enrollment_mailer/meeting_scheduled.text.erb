@@ -1,0 +1,27 @@
+🌿 Meet-n-Greet Scheduled!
+
+Hi <%= @application.parent_first_name %>,
+
+Thank you for filling out the enrollment application! We would love to welcome <%= @application.child_first_name %> and your family to the next phase of enrollment.
+
+MEETING DETAILS
+Date & Time: <%= @event.scheduled_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+Location: <%= @location&.name || 'Forest Hill Park' %>
+<% if @location&.address %>Address: <%= @location.address %><% end %>
+
+Spending time together will give us a chance to explore the environment, answer questions, and make sure the nature preschool feels like a good fit for your family.
+
+PROGRAM DETAILS
+- <%= @program.class_days.presence || 'Days TBD' %>, <%= @program.start_date.strftime('%b %d, %Y') %>–<%= @program.end_date.strftime('%b %d, %Y') %>
+<% if @program.formatted_time_range.present? %>- <%= @program.formatted_time_range %>
+<% end %><% tuition = @application.effective_tuition_amount || @program.tuition_amount %><% if tuition.present? %>- Tuition: $<%= number_with_precision(tuition, precision: 0, delimiter: ',') %>
+<% end %>
+<% if @payment_plans.any? %>PAYMENT OPTIONS
+<% @application.payment_plan_options.each_with_index do |plan, index| %>- Option <%= index + 1 %>: <%= plan[:name] %> - <%= plan[:description] %>
+<% end %><% end %>
+A $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> non-refundable enrollment fee is due upon enrollment to reserve your child's spot.
+
+We look forward to connecting with you!
+
+Warmly,
+The Nature Preschool Team

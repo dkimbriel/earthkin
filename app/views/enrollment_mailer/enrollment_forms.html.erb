@@ -1,0 +1,43 @@
+<h2>Enrollment Forms</h2>
+
+<p>Hi <%= @application.parent_first_name %>,</p>
+
+<p>Thank you for your enrollment fee payment! <%= @application.child_first_name %>'s spot in <%= @program.name %> is now secured.</p>
+
+<p>To complete the enrollment process, please review and sign the following forms:</p>
+
+<h3>Required Forms</h3>
+<ul>
+  <li><strong>Family Agreement & Waiver</strong> - Our policies and liability waiver</li>
+  <li><strong>Parent/Guardian Contact Form</strong> - Emergency contacts and pickup authorization</li>
+  <li><strong>Medication Administration Form</strong> - If your child requires any medication</li>
+  <li><strong>Health & Medical Care Form</strong> - Medical history and care preferences</li>
+</ul>
+
+<p>Please complete and return these forms by responding to this email or bringing them to your first day.</p>
+
+<% enrollment_plan = @enrollment&.enrollment_payment_plan %>
+<% if enrollment_plan %>
+<h3>Payment Plan Selected</h3>
+<p>
+  <strong><%= enrollment_plan.payment_plan.name %></strong><br>
+  Total Tuition: $<%= number_with_precision(enrollment_plan.total_amount, precision: 2) %><br>
+  Enrollment Fee: $<%= number_with_precision(enrollment_plan.enrollment_fee, precision: 2) %> (paid)<br>
+  <%= enrollment_plan.payment_plan.installment_count %> tuition payment(s) of $<%= number_with_precision(enrollment_plan.total_amount / enrollment_plan.payment_plan.installment_count, precision: 2) %>
+</p>
+<% end %>
+
+<h3>What's Next?</h3>
+<ol>
+  <li>Complete and return the enrollment forms</li>
+  <li>We'll confirm your enrollment once forms are received</li>
+  <li>Your first tuition installment will be due according to your payment plan</li>
+  <li>Mark your calendar for the first day of <%= @program.name %>!</li>
+</ol>
+
+<p>If you have any questions about the forms or the program, please don't hesitate to reach out.</p>
+
+<p>We're so excited to welcome <%= @application.child_first_name %> to our nature-based learning community!</p>
+
+<p>Warmly,<br>
+The Nature Preschool Team</p>

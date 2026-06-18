@@ -1,0 +1,32 @@
+<h2>Next Steps: Enrollment Fee</h2>
+
+<p>Hi <%= @application.parent_first_name %>,</p>
+
+<p>Thank you again for meeting with us<% if @location %> at <%= @location.name %><% end %>! We really enjoyed spending time with your family and getting to know <%= @application.child_first_name %> a bit more. It was wonderful to connect and share more about Earthkin together.</p>
+
+<p>We're excited to move forward with the next steps for enrollment!</p>
+
+<h3>To Reserve Your Spot</h3>
+<p>To reserve <%= @application.child_first_name %>'s spot, please select your preferred payment plan and submit the <strong>non-refundable $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee</strong>.</p>
+
+<p style="text-align: center; margin: 30px 0;">
+  <%= link_to "Select Payment Plan & Pay Enrollment Fee", @application.payment_selection_url, class: "btn btn-large" %>
+</p>
+
+<h3>Before Completing Final Forms</h3>
+<p>Please review our Family Handbook to familiarize yourself with our policies and procedures.</p>
+
+<p>The first tuition installment payment will be due according to the payment plan you select.</p>
+
+<p>Once the enrollment fee is submitted and the handbook has been reviewed, we'll send over the final enrollment forms including:</p>
+<ul>
+  <li>Family Agreement & Waiver</li>
+  <li>Parent/Guardian Contact</li>
+  <li>Medication Administration Form</li>
+  <li>Health & Medical Care Form</li>
+</ul>
+
+<p>Feel free to reach out anytime with questions. We're so grateful for your interest in Earthkin and look forward to the possibility of having your family in our community!</p>
+
+<p>Warmly,<br>
+The Nature Preschool Team</p>

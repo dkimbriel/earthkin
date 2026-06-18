@@ -1,0 +1,29 @@
+<% content_for :title do %>Confirm Your Meet-n-Greet - Earthkin Nature School<% end %>
+
+<h2>Confirm Your Meet-n-Greet</h2>
+
+<p>Hi <%= @application.parent_first_name %>,</p>
+
+<p>You've selected the following date and time for your meet-and-greet with Earthkin Nature School:</p>
+
+<div class="highlight">
+  <h3 style="margin-top: 0;">Meeting Details</h3>
+  <ul style="list-style: none; padding-left: 0;">
+    <li><strong>Date & Time:</strong> <%= @selected_date.in_time_zone('Eastern Time (US & Canada)').strftime('%A, %B %d, %Y at %I:%M %p ET') %></li>
+    <li><strong>Location:</strong> <%= @location&.name || 'Forest Hill Park' %></li>
+    <% if @location&.address %>
+    <li><strong>Address:</strong> <%= @location.address %></li>
+    <% end %>
+  </ul>
+</div>
+
+<p>Please confirm this is the date that works best for you and <%= @application.child_first_name %>.</p>
+
+<%= form_tag meeting_confirmation_confirm_path(params[:token]), method: :post, style: 'margin-top: 30px;' do %>
+  <%= hidden_field_tag :date, params[:date] %>
+  <%= submit_tag 'Confirm This Date', class: 'btn btn-large' %>
+<% end %>
+
+<p style="margin-top: 30px; color: #666; font-size: 14px;">
+  Need a different time? Please reply to the meeting invite email and we'll work out another option.
+</p>

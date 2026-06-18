@@ -1,0 +1,254 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Box, Typography, Button, Paper, Chip } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import DataTable from "../shared/DataTable";
+import FormDialog from "../shared/FormDialog";
+import ConfirmDialog from "../shared/ConfirmDialog";
+import PageHeader from "../shared/PageHeader";
+import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi } from "../../utils/api";
+
+const parentColumns = [
+	{
+		key: "name",
+		label: "Name",
+		render: (row) => `${row.first_name} ${row.last_name}`,
+	},
+	{ key: "email", label: "Email" },
+	{ key: "phone", label: "Phone" },
+];
+
+const childColumns = [
+	{
+		key: "name",
+		label: "Name",
+		render: (row) => `${row.first_name} ${row.last_name}`,
+	},
+];
+
+const enrollmentColumns = [
+	{
+		key: "child",
+		label: "Child",
+		render: (row) => row.child ? `${row.child.first_name} ${row.child.last_name}` : "—",
+	},
+	{
+		key: "program",
+		label: "Program",
+		render: (row) => row.program?.name || "—",
+	},
+	{
+		key: "status",
+		label: "Status",
+		render: (row) => (
+			<Chip
+				label={row.status}
+				color={row.status === "confirmed" ? "success" : row.status === "pending" ? "warning" : "default"}
+				size="small"
+			/>
+		),
+	},
+	{
+		key: "rate_per_class",
+		label: "Rate/Class",
+		render: (row) => `$${parseFloat(row.rate_per_class || 0).toFixed(2)}`,
+	},
+	{
+		key: "balance_due",
+		label: "Balance Due",
+		render: (row) => {
+			const balance = parseFloat(row.balance_due) || 0;
+			return (
+				<Chip
+					label={`$${balance.toFixed(2)}`}
+					color={balance > 0 ? "warning" : "success"}
+					size="small"
+				/>
+			);
+		},
+	},
+];
+
+export default function FamilyDetailPage() {
+	const { id } = useParams();
+	const navigate = useNavigate();
+	const [family, setFamily] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [enrollments, setEnrollments] = useState([]);
+	const [enrollmentsLoading, setEnrollmentsLoading] = useState(false);
+	const [showParentForm, setShowParentForm] = useState(false);
+	const [showChildForm, setShowChildForm] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState(null);
+
+	const loadFamily = async () => {
+		setLoading(true);
+		try {
+			const data = await familiesApi.get(id);
+			setFamily(data);
+			return data;
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const loadEnrollments = async (familyData) => {
+		if (!familyData?.children?.length) {
+			setEnrollments([]);
+			return;
+		}
+		setEnrollmentsLoading(true);
+		try {
+			const enrollmentPromises = familyData.children.map((child) =>
+				programEnrollmentsApi.list({ childId: child.id })
+			);
+			const results = await Promise.all(enrollmentPromises);
+			const allEnrollments = results.flat();
+			setEnrollments(allEnrollments);
+		} finally {
+			setEnrollmentsLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		const load = async () => {
+			const familyData = await loadFamily();
+			await loadEnrollments(familyData);
+		};
+		load();
+	}, [id]);
+
+	const handleCreateParent = async (formData) => {
+		await parentsApi.create({ ...formData, family_id: id });
+		loadFamily();
+	};
+
+	const handleCreateChild = async (formData) => {
+		await childrenApi.create({ ...formData, family_id: id });
+		loadFamily();
+	};
+
+	const handleDeleteParent = async () => {
+		if (deleteTarget?.type === "parent") {
+			await parentsApi.delete(deleteTarget.item.id);
+			setDeleteTarget(null);
+			loadFamily();
+		}
+	};
+
+	const handleDeleteChild = async () => {
+		if (deleteTarget?.type === "child") {
+			await childrenApi.delete(deleteTarget.item.id);
+			setDeleteTarget(null);
+			loadFamily();
+		}
+	};
+
+	const parentFormFields = [
+		{ name: "first_name", label: "First Name", required: true },
+		{ name: "last_name", label: "Last Name", required: true },
+		{ name: "email", label: "Email", type: "email", required: true },
+		{ name: "phone", label: "Phone" },
+	];
+
+	const childFormFields = [
+		{ name: "first_name", label: "First Name", required: true },
+		{ name: "last_name", label: "Last Name", required: true },
+	];
+
+	if (loading) {
+		return <Typography>Loading...</Typography>;
+	}
+
+	if (!family) {
+		return <Typography>Family not found</Typography>;
+	}
+
+	return (
+		<Box>
+			<Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/families")} sx={{ mb: 2 }}>
+				Back to Families
+			</Button>
+
+			<Typography variant="h4" gutterBottom>
+				{family.name}
+			</Typography>
+
+			<Paper sx={{ p: 3, mb: 3 }}>
+				<PageHeader
+					title="Parents"
+					onAdd={() => setShowParentForm(true)}
+					addLabel="Add Parent"
+				/>
+				<DataTable
+					columns={parentColumns}
+					data={family.parents}
+					loading={false}
+					onDelete={(item) => setDeleteTarget({ type: "parent", item })}
+					onRowClick={(row) => navigate(`/parents/${row.id}/edit`)}
+					emptyMessage="No parents added yet."
+				/>
+			</Paper>
+
+			<Paper sx={{ p: 3, mb: 3 }}>
+				<PageHeader
+					title="Children"
+					onAdd={() => setShowChildForm(true)}
+					addLabel="Add Child"
+				/>
+				<DataTable
+					columns={childColumns}
+					data={family.children}
+					loading={false}
+					onDelete={(item) => setDeleteTarget({ type: "child", item })}
+					onRowClick={(row) => navigate(`/children/${row.id}`)}
+					emptyMessage="No children added yet."
+				/>
+			</Paper>
+
+			<Paper sx={{ p: 3 }}>
+				<Typography variant="h6" gutterBottom>
+					Enrollments
+				</Typography>
+				<DataTable
+					columns={enrollmentColumns}
+					data={enrollments}
+					loading={enrollmentsLoading}
+					onRowClick={(row) => navigate(`/enrollments/${row.id}`, { state: { from: `/families/${id}` } })}
+					emptyMessage="No enrollments for this family."
+				/>
+			</Paper>
+
+			<FormDialog
+				open={showParentForm}
+				onClose={() => setShowParentForm(false)}
+				onSubmit={handleCreateParent}
+				title="Add Parent"
+				fields={parentFormFields}
+			/>
+
+			<FormDialog
+				open={showChildForm}
+				onClose={() => setShowChildForm(false)}
+				onSubmit={handleCreateChild}
+				title="Add Child"
+				fields={childFormFields}
+			/>
+
+			<ConfirmDialog
+				open={deleteTarget?.type === "parent"}
+				onClose={() => setDeleteTarget(null)}
+				onConfirm={handleDeleteParent}
+				title="Delete Parent"
+				message={`Are you sure you want to delete ${deleteTarget?.item?.first_name} ${deleteTarget?.item?.last_name}?`}
+			/>
+
+			<ConfirmDialog
+				open={deleteTarget?.type === "child"}
+				onClose={() => setDeleteTarget(null)}
+				onConfirm={handleDeleteChild}
+				title="Delete Child"
+				message={`Are you sure you want to delete ${deleteTarget?.item?.first_name} ${deleteTarget?.item?.last_name}? This will also delete their program enrollments.`}
+			/>
+		</Box>
+	);
+}

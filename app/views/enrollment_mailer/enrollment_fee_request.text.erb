@@ -1,0 +1,29 @@
+Next Steps: Enrollment Fee
+
+Hi <%= @application.parent_first_name %>,
+
+Thank you again for meeting with us<% if @location %> at <%= @location.name %><% end %>! We really enjoyed spending time with your family and getting to know <%= @application.child_first_name %>. It was wonderful to connect!
+
+We're excited to move forward with enrollment!
+
+TO RESERVE YOUR SPOT
+Please submit the non-refundable $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee.
+
+PAYMENT OPTIONS:
+- Venmo: @earthkin
+- Check: Payable to "Earthkin"
+- Cash: Accepted in person
+
+NEXT STEPS
+1. Review our Family Handbook
+2. First tuition payment due according to your selected payment plan
+3. Complete final enrollment forms (we'll send these after fee is received):
+   - Family Agreement & Waiver
+   - Parent/Guardian Contact
+   - Medication Administration Form
+   - Health & Medical Care Form
+
+Feel free to reach out anytime with questions. We look forward to having your family in our community!
+
+Warmly,
+The Nature Preschool Team

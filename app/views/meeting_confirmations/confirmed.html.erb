@@ -1,0 +1,39 @@
+<% content_for :title do %>Meeting Confirmed - Earthkin Nature School<% end %>
+
+<div style="text-align: center;">
+  <div class="success-icon">&#10003;</div>
+  <h2>Your Meet-n-Greet is Confirmed!</h2>
+</div>
+
+<p>Thank you, <%= @application.parent_first_name %>! We're excited to meet you and <%= @application.child_first_name %>.</p>
+
+<div class="highlight">
+  <h3 style="margin-top: 0;">Meeting Details</h3>
+  <ul style="list-style: none; padding-left: 0;">
+    <li><strong>Date & Time:</strong> <%= @selected_date.in_time_zone('Eastern Time (US & Canada)').strftime('%A, %B %d, %Y at %I:%M %p ET') %></li>
+    <li><strong>Location:</strong> <%= @location&.name || 'Forest Hill Park' %></li>
+    <% if @location&.address %>
+    <li><strong>Address:</strong> <%= @location.address %></li>
+    <% end %>
+  </ul>
+</div>
+
+<h3>What to Expect</h3>
+<p>During our meet-and-greet, we'll:</p>
+<ul>
+  <li>Explore the outdoor classroom space together</li>
+  <li>Answer any questions you have about our program</li>
+  <li>Get to know <%= @application.child_first_name %> and your family</li>
+  <li>Discuss next steps in the enrollment process</li>
+</ul>
+
+<h3>What to Bring</h3>
+<ul>
+  <li>Weather-appropriate clothing and footwear</li>
+  <li>Any questions you'd like to ask</li>
+  <li>A sense of adventure!</li>
+</ul>
+
+<p style="margin-top: 30px;">If something comes up and you need to reschedule, please email us at <a href="mailto:earthkinnatureschool@gmail.com">earthkinnatureschool@gmail.com</a>.</p>
+
+<p>We look forward to seeing you!</p>
