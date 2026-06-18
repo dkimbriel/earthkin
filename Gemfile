@@ -25,6 +25,10 @@ gem 'devise'
 gem 'prawn' # PDF generation
 gem 'prawn-table' # Table support for PDFs
 
+# Gmail integration: OAuth2 token handling + Gmail API client for sending mail
+gem 'googleauth' # Signet OAuth2 client + token refresh
+gem 'google-apis-gmail_v1' # Gmail API client
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: %i[mri mingw x64_mingw]

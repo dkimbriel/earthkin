@@ -120,6 +120,14 @@ export const reportsApi = {
 	weeklyRevenue: () => api.get("/api/reports/weekly_revenue"),
 };
 
+export const integrationsApi = {
+	// Gmail connection status: { connected, configured, email, connected_at, connected_by }
+	gmailStatus: () => api.get("/api/admin/integrations/gmail"),
+	disconnectGmail: () => api.delete("/api/admin/integrations/gmail"),
+	// Connecting is a full-page redirect through Google's consent screen.
+	gmailConnectUrl: "/admin/integrations/gmail/connect",
+};
+
 export const locationsApi = {
 	list: () => api.get("/api/locations"),
 	get: (id) => api.get(`/api/locations/${id}`),

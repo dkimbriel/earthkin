@@ -24,6 +24,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -44,10 +45,11 @@ import TeacherDetailPage from "./pages/TeacherDetailPage";
 import CalendarPage from "./pages/CalendarPage";
 import EnrollmentApplicationsPage from "./pages/EnrollmentApplicationsPage";
 import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetailPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 
 const drawerWidth = 220;
 
-const navItems = [
+const baseNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
     { path: "/enrollment-applications", label: "Enrollments", icon: <AssignmentIcon /> },
@@ -57,12 +59,20 @@ const navItems = [
     { path: "/locations", label: "Locations", icon: <LocationOnIcon /> },
 ];
 
+// Settings/Integrations is admin-only.
+const adminNavItems = [
+    { path: "/integrations", label: "Integrations", icon: <SettingsIcon /> },
+];
+
 export default function Dashboard() {
     const { user, logout } = useAuth();
 
     // For now, everyone sees the admin dashboard
     // In the future, you can add role checking here
     const isParent = false;
+    const navItems = user?.super_admin
+        ? [...baseNavItems, ...adminNavItems]
+        : baseNavItems;
 
     return (
         <Box sx={{ display: "flex" }}>
@@ -193,6 +203,12 @@ export default function Dashboard() {
                             path="/enrollment-applications/:id"
                             element={<EnrollmentApplicationDetailPage />}
                         />
+                        {user?.super_admin && (
+                            <Route
+                                path="/integrations"
+                                element={<IntegrationsPage />}
+                            />
+                        )}
                     </Routes>
                 </Box>
             </Box>

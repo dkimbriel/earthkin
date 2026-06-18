@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_13_201638) do
+ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -168,6 +168,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_13_201638) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "gmail_integrations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "email", null: false
+    t.text "access_token"
+    t.text "refresh_token"
+    t.datetime "token_expires_at"
+    t.string "status", default: "connected", null: false
+    t.uuid "connected_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["connected_by_id"], name: "index_gmail_integrations_on_connected_by_id"
+  end
+
   create_table "locations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "name"
     t.text "address"
@@ -322,6 +334,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_13_201638) do
   add_foreign_key "enrollment_payment_plans", "payment_plans"
   add_foreign_key "enrollment_payment_plans", "program_enrollments"
   add_foreign_key "events", "locations"
+  add_foreign_key "gmail_integrations", "users", column: "connected_by_id"
   add_foreign_key "parents", "families"
   add_foreign_key "parents", "users"
   add_foreign_key "payment_plans", "programs"

@@ -79,7 +79,20 @@ Rails.application.routes.draw do
 				post :record_installment_payment
 			end
 		end
+
+		# Admin integration settings (Gmail mailbox connection)
+		namespace :admin do
+			get 'integrations/gmail', to: 'integrations#gmail'
+			delete 'integrations/gmail', to: 'integrations#disconnect_gmail'
+		end
 	end
+
+	# Gmail OAuth connect/callback (full-page redirects, not JSON)
+	namespace :admin do
+		get 'integrations/gmail/connect', to: 'integrations#gmail_connect'
+		get 'integrations/gmail/callback', to: 'integrations#gmail_callback'
+	end
+
 	mount Sidekiq::Web => "/sidekiq"
 
 	# Public meeting confirmation (no auth required)
