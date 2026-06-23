@@ -53,9 +53,10 @@ Rails.application.configure do
 	# Use a different cache store in production.
 	# config.cache_store = :mem_cache_store
 
-	# Use a real queuing backend for Active Job (and separate queues per environment).
-	# config.active_job.queue_adapter     = :resque
-	# config.active_job.queue_name_prefix = "earthkin_production"
+	# Run background jobs (including deliver_later email) in-process via threads.
+	# Avoids needing Redis or a separate worker dyno. Note: jobs are not durable
+	# across dyno restarts — acceptable for this app's low email volume.
+	config.active_job.queue_adapter = :async
 
 	config.action_mailer.perform_caching = false
 
