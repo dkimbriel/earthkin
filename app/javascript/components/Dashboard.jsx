@@ -114,18 +114,19 @@ export default function Dashboard() {
         <Box sx={{ display: "flex" }}>
                 <AppBar
                     position="fixed"
-                    sx={{
-                        zIndex: (theme) => theme.zIndex.drawer + 1,
-                        // Descendant selector (.MuiAppBar .MuiToolbar) outranks
-                        // MUI's default Toolbar min-height rule, which otherwise
-                        // keeps the bar short and lets the logo overflow.
-                        "& .MuiToolbar-root": {
-                            minHeight: navHeight,
-                            height: navHeight,
-                        },
-                    }}
+                    sx={(theme) => ({ zIndex: theme.zIndex.drawer + 1 })}
                 >
-                    <Toolbar>
+                    <Toolbar
+                        sx={{
+                            // !important is required: MUI's built-in Toolbar
+                            // min-height rule otherwise wins and keeps the bar
+                            // short, letting the logo overflow below it.
+                            minHeight: {
+                                xs: "72px !important",
+                                sm: "104px !important",
+                            },
+                        }}
+                    >
                         <IconButton
                             color="inherit"
                             edge="start"
