@@ -58,7 +58,7 @@ export default function ForgotPassword() {
                 <Paper elevation={3} sx={{ p: 4 }}>
                     <Box sx={{ textAlign: "center", mb: 3 }}>
                         <img
-                            src="/assets/Earthkin Nature School Logo H-Grn.png"
+                            src="/logo-green.png"
                             alt="Earthkin Nature School"
                             style={{ maxWidth: "100%", height: "auto", maxHeight: 80 }}
                         />

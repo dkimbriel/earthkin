@@ -89,7 +89,7 @@ export default function Dashboard() {
                             }}
                         >
                             <img
-                                src="/assets/Earthkin Nature School Logo H-W.png"
+                                src="/logo.png"
                                 alt="Earthkin"
                                 style={{ height: 48 }}
                             />

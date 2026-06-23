@@ -91,7 +91,7 @@ export default function PublicEnrollmentPage() {
       <Paper sx={{ p: 4 }}>
         <Box sx={{ mb: 3 }}>
           <img
-            src="/assets/Earthkin Nature School Logo H-W.png"
+            src="/logo.png"
             alt="Earthkin Nature School"
             style={{ height: 60, marginBottom: 16 }}
           />
