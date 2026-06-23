@@ -1,0 +1,37 @@
+<h2>🎉 Enrollment Confirmed!</h2>
+
+<p>Hi <%= @family.parents.first&.first_name || 'there' %>,</p>
+
+<p>We're thrilled to officially welcome <strong><%= @child.first_name %></strong> to <%= @program.name %>! Your enrollment is now confirmed and your child's spot for the year is secured.</p>
+
+<h3>Enrollment Summary</h3>
+<ul>
+  <li><strong>Child:</strong> <%= @child.first_name %> <%= @child.last_name %></li>
+  <li><strong>Program:</strong> <%= @program.name %></li>
+  <li><strong>Dates:</strong> <%= @program.start_date.strftime('%b %d, %Y') %>&ndash;<%= @program.end_date.strftime('%b %d, %Y') %></li>
+  <% if @program.class_days.present? %>
+  <li><strong>Class Days:</strong> <%= @program.class_days %></li>
+  <% end %>
+</ul>
+
+<% if @payment_plan %>
+<h3>Your Payment Plan</h3>
+<p>
+  <strong><%= @payment_plan.payment_plan.name %></strong><br>
+  Total Tuition: $<%= number_with_precision(@payment_plan.total_amount, precision: 2) %><br>
+  Enrollment Fee: $<%= number_with_precision(@payment_plan.enrollment_fee, precision: 2) %> (paid)<br>
+  <%= @payment_plan.payment_plan.installment_count %> tuition payment(s) of $<%= number_with_precision(@payment_plan.total_amount / @payment_plan.payment_plan.installment_count, precision: 2) %>
+</p>
+<% end %>
+
+<h3>What's Next?</h3>
+<ol>
+  <li>Watch for details about your first day and what to bring</li>
+  <li>Your tuition installments will follow your selected payment plan</li>
+  <li>Reach out any time with questions &mdash; we're here to help</li>
+</ol>
+
+<p>We can't wait to explore, play, and learn with <%= @child.first_name %> in nature this year!</p>
+
+<p>Warmly,<br>
+The Nature Preschool Team</p>
