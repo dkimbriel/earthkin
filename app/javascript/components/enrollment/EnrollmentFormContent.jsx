@@ -306,7 +306,7 @@ export default function EnrollmentFormContent({ programId, applicationId, onSucc
             <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 'bold' }}>
               Parent/Guardian 1
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
               <TextField
                 label="First Name"
                 value={formData.parent_first_name}
@@ -353,7 +353,7 @@ export default function EnrollmentFormContent({ programId, applicationId, onSucc
             <Typography variant="subtitle2" sx={{ mt: 2, fontWeight: 'bold' }}>
               Parent/Guardian 2 <Typography component="span" variant="body2" color="text.secondary">(Optional)</Typography>
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
               <TextField
                 label="First Name"
                 value={formData.parent2_first_name}
@@ -489,7 +489,18 @@ export default function EnrollmentFormContent({ programId, applicationId, onSucc
         </Alert>
       )}
 
-      <Stepper activeStep={activeStep} sx={{ pt: 3, pb: 5 }}>
+      <Stepper
+        activeStep={activeStep}
+        alternativeLabel
+        sx={{
+          pt: 3,
+          pb: 4,
+          "& .MuiStepLabel-label": {
+            fontSize: { xs: "0.7rem", sm: "0.875rem" },
+            mt: { xs: 0.5, sm: 1 },
+          },
+        }}
+      >
         {steps.map((label) => (
           <Step key={label}>
             <StepLabel>{label}</StepLabel>

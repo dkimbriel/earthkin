@@ -53,9 +53,9 @@ export default function Login() {
     };
 
     return (
-        <Container maxWidth="sm">
-            <Box sx={{ mt: 8 }}>
-                <Paper elevation={3} sx={{ p: 4 }}>
+        <Container maxWidth="sm" sx={{ px: { xs: 2, sm: 3 } }}>
+            <Box sx={{ mt: { xs: 5, sm: 8 }, mb: 4 }}>
+                <Paper elevation={3} sx={{ p: { xs: 2.5, sm: 4 } }}>
                     <Box sx={{ textAlign: "center", mb: 3 }}>
                         <img
                             src="/logo-green.png"

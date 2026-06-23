@@ -87,15 +87,19 @@ export default function PublicEnrollmentPage() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 2 }}>
-      <Paper sx={{ p: 4 }}>
+    <Container maxWidth="md" sx={{ py: { xs: 1.5, sm: 3 }, px: { xs: 1.5, sm: 3 } }}>
+      <Paper sx={{ p: { xs: 2.5, sm: 4 } }}>
         <Box sx={{ mb: 3 }}>
           <img
             src="/logo.png"
             alt="Earthkin Nature School"
-            style={{ height: 60, marginBottom: 16 }}
+            style={{ height: 56, maxWidth: "100%", marginBottom: 16 }}
           />
-          <Typography variant="h4" gutterBottom>
+          <Typography
+            variant="h4"
+            gutterBottom
+            sx={{ fontSize: { xs: "1.6rem", sm: "2.125rem" }, fontWeight: 600 }}
+          >
             Program Enrollment Application
           </Typography>
           {program && (
