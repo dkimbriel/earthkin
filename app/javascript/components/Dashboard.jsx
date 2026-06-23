@@ -8,8 +8,6 @@ import { useState } from "react";
 import {
     Box,
     Button,
-    AppBar,
-    Toolbar,
     Typography,
     Drawer,
     List,
@@ -112,67 +110,66 @@ export default function Dashboard() {
 
     return (
         <Box sx={{ display: "flex" }}>
-                <AppBar
-                    position="fixed"
-                    sx={(theme) => ({ zIndex: theme.zIndex.drawer + 1 })}
+                <Box
+                    component="header"
+                    sx={(theme) => ({
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: navHeight,
+                        zIndex: theme.zIndex.drawer + 1,
+                        bgcolor: "primary.main",
+                        color: "common.white",
+                        display: "flex",
+                        alignItems: "center",
+                        px: { xs: 2, sm: 3 },
+                        gap: 1,
+                        boxShadow: 3,
+                        overflow: "hidden",
+                    })}
                 >
-                    <Toolbar
+                    <IconButton
+                        aria-label="open navigation"
+                        onClick={() => setMobileOpen(!mobileOpen)}
+                        sx={{ color: "common.white", display: { md: "none" } }}
+                    >
+                        <MenuIcon />
+                    </IconButton>
+                    <Box
                         sx={{
-                            // !important is required: MUI's built-in Toolbar
-                            // min-height rule otherwise wins and keeps the bar
-                            // short, letting the logo overflow below it.
-                            minHeight: {
-                                xs: "72px !important",
-                                sm: "104px !important",
-                            },
+                            flexGrow: 1,
+                            display: "flex",
+                            alignItems: "center",
+                            minWidth: 0,
                         }}
                     >
-                        <IconButton
-                            color="inherit"
-                            edge="start"
-                            aria-label="open navigation"
-                            onClick={() => setMobileOpen(!mobileOpen)}
-                            sx={{ mr: 1, display: { md: "none" } }}
-                        >
-                            <MenuIcon />
-                        </IconButton>
                         <Box
+                            component="img"
+                            src="/logo.png"
+                            alt="Earthkin Nature School"
                             sx={{
-                                flexGrow: 1,
-                                display: "flex",
-                                alignItems: "center",
-                                minWidth: 0,
+                                height: { xs: 48, sm: 72 },
+                                width: "auto",
+                                display: "block",
                             }}
-                        >
-                            <Box
-                                component="img"
-                                src="/logo.png"
-                                alt="Earthkin Nature School"
-                                sx={{
-                                    maxHeight: { xs: 52, sm: 76 },
-                                    width: "auto",
-                                    maxWidth: "100%",
-                                    display: "block",
-                                }}
-                            />
-                        </Box>
-                        <Typography
-                            noWrap
-                            sx={{
-                                mr: 2,
-                                display: { xs: "none", sm: "block" },
-                                maxWidth: 220,
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                            }}
-                        >
-                            {user.email}
-                        </Typography>
-                        <Button color="inherit" onClick={logout}>
-                            Logout
-                        </Button>
-                    </Toolbar>
-                </AppBar>
+                        />
+                    </Box>
+                    <Typography
+                        noWrap
+                        sx={{
+                            display: { xs: "none", sm: "block" },
+                            maxWidth: 240,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                        }}
+                    >
+                        {user.email}
+                    </Typography>
+                    <Button sx={{ color: "common.white" }} onClick={logout}>
+                        Logout
+                    </Button>
+                </Box>
 
                 <Box
                     component="nav"
