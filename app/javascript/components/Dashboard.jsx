@@ -71,6 +71,11 @@ export default function Dashboard() {
     const { user, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
 
+    // Single source of truth for the nav bar height so the AppBar and the two
+    // layout spacer Toolbars always match. Explicit height (not just minHeight)
+    // overrides MUI's default Toolbar min-height media query.
+    const navHeight = { xs: 72, sm: 104 };
+
     // For now, everyone sees the admin dashboard
     // In the future, you can add role checking here
     const isParent = false;
@@ -80,7 +85,7 @@ export default function Dashboard() {
 
     const drawerContent = (
         <>
-            <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }} />
+            <Toolbar sx={{ minHeight: navHeight, height: navHeight }} />
             <Box sx={{ overflow: "auto" }}>
                 <List>
                     {navItems.map((item) => (
@@ -111,7 +116,7 @@ export default function Dashboard() {
                     position="fixed"
                     sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
                 >
-                    <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }}>
+                    <Toolbar sx={{ minHeight: navHeight, height: navHeight }}>
                         <IconButton
                             color="inherit"
                             edge="start"
@@ -134,7 +139,7 @@ export default function Dashboard() {
                                 src="/logo.png"
                                 alt="Earthkin Nature School"
                                 sx={{
-                                    height: { xs: 44, sm: 64 },
+                                    maxHeight: { xs: 52, sm: 76 },
                                     width: "auto",
                                     maxWidth: "100%",
                                     display: "block",
@@ -203,7 +208,7 @@ export default function Dashboard() {
                         minWidth: 0,
                     }}
                 >
-                    <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }} />
+                    <Toolbar sx={{ minHeight: navHeight, height: navHeight }} />
                     <Routes>
                         <Route
                             path="/"
