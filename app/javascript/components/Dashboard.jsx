@@ -69,9 +69,8 @@ export default function Dashboard() {
     const { user, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
 
-    // Single source of truth for the nav bar height so the AppBar and the two
-    // layout spacer Toolbars always match. Explicit height (not just minHeight)
-    // overrides MUI's default Toolbar min-height media query.
+    // Single source of truth for the nav bar height, shared by the fixed header
+    // and the two layout spacers below it so they always line up.
     const navHeight = { xs: 72, sm: 104 };
 
     // For now, everyone sees the admin dashboard
