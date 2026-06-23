@@ -80,7 +80,7 @@ export default function Dashboard() {
 
     const drawerContent = (
         <>
-            <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }} />
+            <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }} />
             <Box sx={{ overflow: "auto" }}>
                 <List>
                     {navItems.map((item) => (
@@ -111,7 +111,7 @@ export default function Dashboard() {
                     position="fixed"
                     sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
                 >
-                    <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }}>
+                    <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }}>
                         <IconButton
                             color="inherit"
                             edge="start"
@@ -129,10 +129,16 @@ export default function Dashboard() {
                                 minWidth: 0,
                             }}
                         >
-                            <img
+                            <Box
+                                component="img"
                                 src="/logo.png"
-                                alt="Earthkin"
-                                style={{ height: 40, maxWidth: "100%" }}
+                                alt="Earthkin Nature School"
+                                sx={{
+                                    height: { xs: 44, sm: 64 },
+                                    width: "auto",
+                                    maxWidth: "100%",
+                                    display: "block",
+                                }}
                             />
                         </Box>
                         <Typography
@@ -197,7 +203,7 @@ export default function Dashboard() {
                         minWidth: 0,
                     }}
                 >
-                    <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }} />
+                    <Toolbar sx={{ minHeight: { xs: 64, sm: 88 } }} />
                     <Routes>
                         <Route
                             path="/"
