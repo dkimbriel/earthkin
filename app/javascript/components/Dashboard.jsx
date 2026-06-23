@@ -85,7 +85,7 @@ export default function Dashboard() {
 
     const drawerContent = (
         <>
-            <Toolbar sx={{ minHeight: navHeight, height: navHeight }} />
+            <Box sx={{ height: navHeight, flexShrink: 0 }} />
             <Box sx={{ overflow: "auto" }}>
                 <List>
                     {navItems.map((item) => (
@@ -114,9 +114,18 @@ export default function Dashboard() {
         <Box sx={{ display: "flex" }}>
                 <AppBar
                     position="fixed"
-                    sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+                    sx={{
+                        zIndex: (theme) => theme.zIndex.drawer + 1,
+                        // Descendant selector (.MuiAppBar .MuiToolbar) outranks
+                        // MUI's default Toolbar min-height rule, which otherwise
+                        // keeps the bar short and lets the logo overflow.
+                        "& .MuiToolbar-root": {
+                            minHeight: navHeight,
+                            height: navHeight,
+                        },
+                    }}
                 >
-                    <Toolbar sx={{ minHeight: navHeight, height: navHeight }}>
+                    <Toolbar>
                         <IconButton
                             color="inherit"
                             edge="start"
@@ -208,7 +217,7 @@ export default function Dashboard() {
                         minWidth: 0,
                     }}
                 >
-                    <Toolbar sx={{ minHeight: navHeight, height: navHeight }} />
+                    <Box sx={{ height: navHeight, flexShrink: 0 }} />
                     <Routes>
                         <Route
                             path="/"
