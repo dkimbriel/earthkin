@@ -66,7 +66,7 @@ ActiveRecord::Base.transaction do
 			c.date        = attrs[:date]
 			c.start_time  = attrs[:start_time]
 			c.end_time    = attrs[:end_time]
-			c.location    = attrs[:location]
+			c[:location]  = attrs[:location] # string column, shadowed by belongs_to :location
 			c.location_id = location.id
 		end
 	end
