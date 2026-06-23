@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Heroku release-phase script.
+#
+# On a brand-new (empty) database we load schema.rb directly instead of
+# replaying migrations — the historical migration order is not self-consistent
+# (ConvertToUuids runs before CreateFamilies), so a from-scratch `db:migrate`
+# fails. On an existing database we run migrations normally, so this is safe
+# for every future deploy and never drops data.
+set -euo pipefail
+
+has_migrations() {
+	bundle exec rails runner "
+		conn = ActiveRecord::Base.connection
+		loaded = conn.data_source_exists?('schema_migrations') &&
+		         conn.select_value('SELECT COUNT(*) FROM schema_migrations').to_i > 0
+		exit(loaded ? 0 : 1)
+	"
+}
+
+if has_migrations; then
+	echo '-----> Existing database detected: running migrations'
+	bundle exec rails db:migrate
+else
+	echo '-----> Fresh database detected: loading schema'
+	bundle exec rails db:schema:load
+fi
