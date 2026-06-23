@@ -4,6 +4,7 @@ import {
     NavLink,
     Navigate,
 } from "react-router-dom";
+import { useState } from "react";
 import {
     Box,
     Button,
@@ -16,7 +17,9 @@ import {
     ListItemButton,
     ListItemIcon,
     ListItemText,
+    IconButton,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import GroupsIcon from "@mui/icons-material/Groups";
 import SchoolIcon from "@mui/icons-material/School";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -66,6 +69,7 @@ const adminNavItems = [
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
+    const [mobileOpen, setMobileOpen] = useState(false);
 
     // For now, everyone sees the admin dashboard
     // In the future, you can add role checking here
@@ -74,77 +78,126 @@ export default function Dashboard() {
         ? [...baseNavItems, ...adminNavItems]
         : baseNavItems;
 
+    const drawerContent = (
+        <>
+            <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }} />
+            <Box sx={{ overflow: "auto" }}>
+                <List>
+                    {navItems.map((item) => (
+                        <ListItem key={item.path} disablePadding>
+                            <ListItemButton
+                                component={NavLink}
+                                to={item.path}
+                                onClick={() => setMobileOpen(false)}
+                                sx={{
+                                    "&.active": {
+                                        backgroundColor: "action.selected",
+                                    },
+                                }}
+                            >
+                                <ListItemIcon>{item.icon}</ListItemIcon>
+                                <ListItemText primary={item.label} />
+                            </ListItemButton>
+                        </ListItem>
+                    ))}
+                </List>
+            </Box>
+        </>
+    );
+
     return (
         <Box sx={{ display: "flex" }}>
                 <AppBar
                     position="fixed"
                     sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
                 >
-                    <Toolbar sx={{ minHeight: 80 }}>
+                    <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }}>
+                        <IconButton
+                            color="inherit"
+                            edge="start"
+                            aria-label="open navigation"
+                            onClick={() => setMobileOpen(!mobileOpen)}
+                            sx={{ mr: 1, display: { md: "none" } }}
+                        >
+                            <MenuIcon />
+                        </IconButton>
                         <Box
                             sx={{
                                 flexGrow: 1,
                                 display: "flex",
                                 alignItems: "center",
+                                minWidth: 0,
                             }}
                         >
                             <img
                                 src="/logo.png"
                                 alt="Earthkin"
-                                style={{ height: 48 }}
+                                style={{ height: 40, maxWidth: "100%" }}
                             />
                         </Box>
-                        <Typography sx={{ mr: 2 }}>{user.email}</Typography>
+                        <Typography
+                            noWrap
+                            sx={{
+                                mr: 2,
+                                display: { xs: "none", sm: "block" },
+                                maxWidth: 220,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                            }}
+                        >
+                            {user.email}
+                        </Typography>
                         <Button color="inherit" onClick={logout}>
                             Logout
                         </Button>
                     </Toolbar>
                 </AppBar>
 
-                <Drawer
-                    variant="permanent"
-                    sx={{
-                        width: drawerWidth,
-                        flexShrink: 0,
-                        "& .MuiDrawer-paper": {
-                            width: drawerWidth,
-                            boxSizing: "border-box",
-                        },
-                    }}
+                <Box
+                    component="nav"
+                    sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+                    aria-label="navigation"
                 >
-                    <Toolbar sx={{ minHeight: 80 }} />
-                    <Box sx={{ overflow: "auto" }}>
-                        <List>
-                            {navItems.map((item) => (
-                                <ListItem key={item.path} disablePadding>
-                                    <ListItemButton
-                                        component={NavLink}
-                                        to={item.path}
-                                        sx={{
-                                            "&.active": {
-                                                backgroundColor:
-                                                    "action.selected",
-                                            },
-                                        }}
-                                    >
-                                        <ListItemIcon>{item.icon}</ListItemIcon>
-                                        <ListItemText primary={item.label} />
-                                    </ListItemButton>
-                                </ListItem>
-                            ))}
-                        </List>
-                    </Box>
-                </Drawer>
+                    <Drawer
+                        variant="temporary"
+                        open={mobileOpen}
+                        onClose={() => setMobileOpen(false)}
+                        ModalProps={{ keepMounted: true }}
+                        sx={{
+                            display: { xs: "block", md: "none" },
+                            "& .MuiDrawer-paper": {
+                                width: drawerWidth,
+                                boxSizing: "border-box",
+                            },
+                        }}
+                    >
+                        {drawerContent}
+                    </Drawer>
+                    <Drawer
+                        variant="permanent"
+                        open
+                        sx={{
+                            display: { xs: "none", md: "block" },
+                            "& .MuiDrawer-paper": {
+                                width: drawerWidth,
+                                boxSizing: "border-box",
+                            },
+                        }}
+                    >
+                        {drawerContent}
+                    </Drawer>
+                </Box>
 
                 <Box
                     component="main"
                     sx={{
                         flexGrow: 1,
-                        p: 3,
-                        width: `calc(100% - ${drawerWidth}px)`,
+                        p: { xs: 2, sm: 3 },
+                        width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+                        minWidth: 0,
                     }}
                 >
-                    <Toolbar sx={{ minHeight: 80 }} />
+                    <Toolbar sx={{ minHeight: { xs: 64, sm: 80 } }} />
                     <Routes>
                         <Route
                             path="/"

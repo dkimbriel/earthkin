@@ -11,6 +11,9 @@ Rails.application.routes.draw do
 	get '/api/csrf_token', to: 'api#csrf_token'
 
 	namespace :api do
+		# Public (no auth) endpoint used by the enrollment application page
+		get 'public/programs/:id', to: 'programs#public_show'
+
 		resources :families, only: [:index, :show, :create, :update, :destroy]
 		resources :parents, only: [:index, :show, :create, :update, :destroy]
 		resources :children, only: [:index, :show, :create, :update, :destroy]

@@ -14,8 +14,18 @@ async function request(url, options = {}) {
 	});
 
 	if (response.status === 401) {
-		window.location.reload();
-		return;
+		// Never hard-reload here: on a public page that calls a protected
+		// endpoint, reloading re-triggers the 401 and produces an infinite
+		// reload loop (violent flashing). Inside the authenticated app, send the
+		// user to the login page once; on public pages, surface the error.
+		const path = window.location.pathname;
+		const publicPrefixes = ["/login", "/enroll", "/forgot-password", "/reset-password", "/meetings", "/payment"];
+		const onPublicPage = publicPrefixes.some((p) => path === p || path.startsWith(`${p}/`) || path.startsWith(p));
+		if (!onPublicPage) {
+			window.location.assign("/login");
+			return;
+		}
+		throw new Error("Unauthorized");
 	}
 
 	if (response.status === 422) {
@@ -76,6 +86,8 @@ export const childrenApi = {
 export const programsApi = {
 	list: () => api.get("/api/programs"),
 	get: (id) => api.get(`/api/programs/${id}`),
+	// Public (no auth) — used by the enrollment application page
+	getPublic: (id) => api.get(`/api/public/programs/${id}`),
 	create: (data) => api.post("/api/programs", { program: data }),
 	update: (id, data) => api.patch(`/api/programs/${id}`, { program: data }),
 	delete: (id) => api.delete(`/api/programs/${id}`),

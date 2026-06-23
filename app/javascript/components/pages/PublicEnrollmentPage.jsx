@@ -32,7 +32,7 @@ export default function PublicEnrollmentPage() {
       }
 
       try {
-        const data = await programsApi.get(programId);
+        const data = await programsApi.getPublic(programId);
         setProgram(data);
       } catch (err) {
         setError('Program not found');

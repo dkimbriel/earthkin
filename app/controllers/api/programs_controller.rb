@@ -2,6 +2,17 @@
 
 module Api
 	class ProgramsController < BaseController
+		# Public, unauthenticated endpoint for the enrollment application page.
+		# Returns only non-sensitive program fields (no enrollments/revenue).
+		skip_before_action :authenticate_user!, only: [:public_show]
+
+		def public_show
+			program = Program.find(params[:id])
+			render json: program.as_json(
+				only: %i[id name description start_date end_date class_days start_time end_time capacity enrollment_fee]
+			)
+		end
+
 		def index
 			programs = Program.includes(:program_classes, :teachers).order(:start_date)
 			render json: programs.as_json(
