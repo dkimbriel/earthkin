@@ -25,6 +25,7 @@ import {
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
+import EventRepeatIcon from "@mui/icons-material/EventRepeat";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LinkIcon from "@mui/icons-material/Link";
@@ -665,15 +666,16 @@ export default function ProgramDetailPage() {
                     title="Classes"
                     onAdd={() => setShowClassForm(true)}
                     addLabel="Add Class"
+                    actions={
+                        <Button
+                            variant="outlined"
+                            startIcon={<EventRepeatIcon />}
+                            onClick={() => setShowGenerateForm(true)}
+                        >
+                            Generate from Pattern
+                        </Button>
+                    }
                 />
-                <Button
-                    size="small"
-                    variant="outlined"
-                    sx={{ mb: 2 }}
-                    onClick={() => setShowGenerateForm(true)}
-                >
-                    Generate from Pattern
-                </Button>
                 <DataTable
                     columns={classColumns}
                     data={program.program_classes}
