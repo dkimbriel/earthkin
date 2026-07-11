@@ -45,7 +45,7 @@ class MeetingConfirmationsController < ApplicationController
 
       # Send confirmation email to parent
       email_service = EmailTrackingService.new(@application)
-      email_service.queue_email('EnrollmentMailer', 'meeting_scheduled', [@event.id], { event_id: @event.id })
+      email_service.send_email('EnrollmentMailer', 'meeting_scheduled', [@event.id], { event_id: @event.id })
 
       render :confirmed
     rescue ArgumentError => e

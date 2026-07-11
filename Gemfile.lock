@@ -306,8 +306,6 @@ GEM
       erb
       psych (>= 4.0.0)
       tsort
-    redis-client (0.26.1)
-      connection_pool
     regexp_parser (2.11.3)
     reline (0.6.3)
       io-console (~> 0.5)
@@ -370,12 +368,6 @@ GEM
     securerandom (0.4.1)
     shoulda-matchers (6.5.0)
       activesupport (>= 5.2.0)
-    sidekiq (8.0.10)
-      connection_pool (>= 2.5.0)
-      json (>= 2.9.0)
-      logger (>= 1.6.2)
-      rack (>= 3.1.0)
-      redis-client (>= 0.23.2)
     signet (0.22.0)
       addressable (~> 2.8)
       faraday (>= 0.17.5, < 3.a)
@@ -459,7 +451,6 @@ DEPENDENCIES
   rubocop-rails
   sass-rails (>= 6)
   shoulda-matchers
-  sidekiq
   simplecov
   spring
   tzinfo-data

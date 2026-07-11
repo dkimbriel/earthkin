@@ -21,9 +21,9 @@ class EnrollmentWorkflowService
 
     @application.schedule_meeting!
 
-    # Send email asynchronously with tracking
+    # Send tracked email
     email_service = EmailTrackingService.new(@application)
-    email_service.queue_email('EnrollmentMailer', 'meeting_scheduled', [event.id], { event_id: event.id })
+    email_service.send_email('EnrollmentMailer', 'meeting_scheduled', [event.id], { event_id: event.id })
 
     event
   end
@@ -40,9 +40,9 @@ class EnrollmentWorkflowService
       description: "Meet and greet for #{@application.full_parent_name} and #{@application.full_child_name}"
     )
 
-    # Queue the meeting invite email
+    # Send the meeting invite email
     email_service = EmailTrackingService.new(@application)
-    email_service.queue_email('EnrollmentMailer', 'meeting_invite', [event.id, base_url], { event_id: event.id })
+    email_service.send_email('EnrollmentMailer', 'meeting_invite', [event.id, base_url], { event_id: event.id })
 
     event
   end
@@ -61,7 +61,7 @@ class EnrollmentWorkflowService
   def request_enrollment_fee
     @application.request_enrollment_fee!
     email_service = EmailTrackingService.new(@application)
-    email_service.queue_email('EnrollmentMailer', 'enrollment_fee_request', [@application.id])
+    email_service.send_email('EnrollmentMailer', 'enrollment_fee_request', [@application.id])
     @application
   end
 
@@ -111,7 +111,7 @@ class EnrollmentWorkflowService
       @application.program_enrollment&.advance_workflow_to!('signing_docs')
 
       email_service = EmailTrackingService.new(@application)
-      email_service.queue_email('EnrollmentMailer', 'enrollment_forms', [@application.id])
+      email_service.send_email('EnrollmentMailer', 'enrollment_forms', [@application.id])
     end
     @application
   end
@@ -123,7 +123,7 @@ class EnrollmentWorkflowService
       @application.program_enrollment&.update!(status: 'confirmed')
 
       email_service = EmailTrackingService.new(@application)
-      email_service.queue_email('EnrollmentMailer', 'enrollment_confirmed', [@application.id])
+      email_service.send_email('EnrollmentMailer', 'enrollment_confirmed', [@application.id])
     end
     @application
   end

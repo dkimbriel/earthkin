@@ -260,10 +260,6 @@ RSpec.describe 'Comprehensive Model Behaviors', type: :model do
     describe '#create_user_account!' do
       let(:parent) { create(:parent, family: family, email: 'test@example.com', user: nil) }
 
-      before do
-        allow(ParentMailer).to receive_message_chain(:welcome_email, :deliver_later)
-      end
-
       it 'creates a user account for the parent' do
         expect {
           parent.create_user_account!('password123')
@@ -281,11 +277,13 @@ RSpec.describe 'Comprehensive Model Behaviors', type: :model do
       end
 
       it 'sends welcome email' do
-        expect(ParentMailer).to receive(:welcome_email)
-          .with(parent.id, kind_of(String))
-          .and_return(double(deliver_later: true))
+        expect {
+          parent.create_user_account!
+        }.to change { ActionMailer::Base.deliveries.count }.by(1)
 
-        parent.create_user_account!
+        email = parent.emails.order(:created_at).last
+        expect(email.email_type).to eq('welcome_email')
+        expect(email.status).to eq('sent')
       end
 
       it 'generates password if not provided' do

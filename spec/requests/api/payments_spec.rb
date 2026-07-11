@@ -50,13 +50,17 @@ RSpec.describe 'Api::Payments', type: :request do
     let(:payment) { create(:payment, program_enrollment: enrollment) }
 
     it 'sends receipt email for completed payment' do
-      expect(PaymentMailer).to receive_message_chain(:receipt, :deliver_later)
-
-      post "/api/payments/#{payment.id}/send_invoice"
+      expect {
+        post "/api/payments/#{payment.id}/send_invoice"
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
 
       expect(response).to have_http_status(:ok)
       json = JSON.parse(response.body)
       expect(json['message']).to eq('Receipt email sent successfully')
+
+      email = payment.emails.order(:created_at).last
+      expect(email.email_type).to eq('receipt')
+      expect(email.status).to eq('sent')
     end
   end
 

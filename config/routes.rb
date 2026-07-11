@@ -1,5 +1,3 @@
-require "sidekiq/web"
-
 Rails.application.routes.draw do
 	devise_for :users, skip: [:registrations], controllers: {
 		sessions: 'users/sessions',
@@ -95,8 +93,6 @@ Rails.application.routes.draw do
 		get 'integrations/gmail/connect', to: 'integrations#gmail_connect'
 		get 'integrations/gmail/callback', to: 'integrations#gmail_callback'
 	end
-
-	mount Sidekiq::Web => "/sidekiq"
 
 	# Public meeting confirmation (no auth required)
 	get '/meetings/:token/confirm', to: 'meeting_confirmations#show', as: :meeting_confirmation

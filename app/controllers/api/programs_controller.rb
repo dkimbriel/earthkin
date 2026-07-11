@@ -93,8 +93,8 @@ module Api
 				# Generate enrollment URL with application ID for tracking
 				enrollment_url = "#{request.base_url}/enroll?program_id=#{program.id}&application_id=#{application.id}"
 
-				# Queue the email using EmailTrackingService for proper tracking
-				EmailTrackingService.new(application).queue_email(
+				# Send the email using EmailTrackingService for proper tracking
+				EmailTrackingService.new(application).send_email(
 					'EnrollmentMailer',
 					'enrollment_invite',
 					[application.id, enrollment_url]

@@ -25,8 +25,8 @@ class Parent < ApplicationRecord
 
     update!(user: new_user)
 
-    # Send welcome email with login instructions
-    ParentMailer.welcome_email(id, generated_password).deliver_later
+    # Send welcome email with login instructions (tracked, delivered in-process)
+    EmailTrackingService.new(self).send_email('ParentMailer', 'welcome_email', [id, generated_password])
 
     new_user
   end

@@ -53,12 +53,14 @@ Rails.application.configure do
 	# Use a different cache store in production.
 	# config.cache_store = :mem_cache_store
 
-	# Run background jobs (including deliver_later email) in-process via threads.
-	# Avoids needing Redis or a separate worker dyno. Note: jobs are not durable
-	# across dyno restarts — acceptable for this app's low email volume.
-	config.active_job.queue_adapter = :async
-
 	config.action_mailer.perform_caching = false
+
+	# Mailer links (Devise password reset, parent login) need an absolute host.
+	# Set APPLICATION_HOST on Heroku if the app runs on a custom domain.
+	config.action_mailer.default_url_options = {
+		host: ENV.fetch("APPLICATION_HOST", "earthkin.herokuapp.com"),
+		protocol: "https"
+	}
 
 	# Ignore bad email addresses and do not raise email delivery errors.
 	# Set this to true and configure the email server for immediate delivery to raise delivery errors.

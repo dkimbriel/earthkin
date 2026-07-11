@@ -258,11 +258,11 @@ module Api
         []
       end
 
-      # Queue the email
+      # Send the email
       email_service = EmailTrackingService.new(application)
-      email_service.queue_email('EnrollmentMailer', email_type, mailer_args)
+      email_service.send_email('EnrollmentMailer', email_type, mailer_args)
 
-      render json: { message: "#{email_type.titleize} email queued successfully" }
+      render json: { message: "#{email_type.titleize} email sent successfully" }
     end
 
     def send_meeting_invite
@@ -297,7 +297,7 @@ module Api
       )
 
       render json: {
-        message: 'Meeting invite email queued successfully',
+        message: 'Meeting invite email sent successfully',
         event: event.as_json(include: :location)
       }
     end

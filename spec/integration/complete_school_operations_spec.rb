@@ -10,9 +10,6 @@ RSpec.describe 'Complete School Operations', type: :request do
 
   before do
     sign_in user
-    allow(EnrollmentEmailJob).to receive(:perform_async)
-    allow(PaymentMailer).to receive_message_chain(:invoice, :deliver_later)
-    allow(PaymentMailer).to receive_message_chain(:receipt, :deliver_later)
   end
 
   it 'handles a complete school year setup and enrollment process' do

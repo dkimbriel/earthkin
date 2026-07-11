@@ -32,10 +32,13 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
     end
 
     it 'sends meeting scheduled email' do
-      expect(EnrollmentEmailJob).to receive(:perform_async)
-        .with('meeting_scheduled', anything, anything) # email_id is now passed as 3rd arg
+      expect {
+        service.schedule_meeting(scheduled_at: scheduled_at, location_id: location.id)
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
 
-      service.schedule_meeting(scheduled_at: scheduled_at, location_id: location.id)
+      email = application.emails.order(:created_at).last
+      expect(email.email_type).to eq('meeting_scheduled')
+      expect(email.status).to eq('sent')
     end
   end
 
@@ -66,10 +69,13 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
     end
 
     it 'sends enrollment fee request email' do
-      expect(EnrollmentEmailJob).to receive(:perform_async)
-        .with('enrollment_fee_request', application.id, anything) # email_id is now passed as 3rd arg
+      expect {
+        service.request_enrollment_fee
+      }.to change { ActionMailer::Base.deliveries.count }.by(1)
 
-      service.request_enrollment_fee
+      email = application.emails.order(:created_at).last
+      expect(email.email_type).to eq('enrollment_fee_request')
+      expect(email.status).to eq('sent')
     end
   end
 

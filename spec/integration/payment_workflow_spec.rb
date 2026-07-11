@@ -12,8 +12,6 @@ RSpec.describe 'Payment Workflow', type: :request do
   before do
     sign_in user
     parent
-    allow(PaymentMailer).to receive_message_chain(:invoice, :deliver_later)
-    allow(PaymentMailer).to receive_message_chain(:receipt, :deliver_later)
   end
 
   it 'manages complete payment workflow' do
