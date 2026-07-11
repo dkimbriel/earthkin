@@ -1,6 +1,7 @@
 module Api
   class EnrollmentApplicationsController < BaseController
     skip_before_action :authenticate_user!, only: [:create] # Public application form
+    skip_before_action :require_staff!, only: [:create]
 
     def index
       applications = EnrollmentApplication.includes(:program, :child, :family, events: :location)
@@ -252,17 +253,62 @@ module Api
       when 'enrollment_invite'
         enrollment_url = "#{request.base_url}/enroll?program_id=#{application.program_id}&application_id=#{application.id}"
         [application.id, enrollment_url]
-      when 'enrollment_fee_request', 'enrollment_confirmed'
+      when 'enrollment_fee_request'
         [application.id]
+      when 'enrollment_confirmed'
+        return render json: { error: 'No enrollment yet' }, status: :unprocessable_entity unless application.program_enrollment
+        [application.program_enrollment.id]
       else
         []
       end
 
-      # Queue the email
+      # Send the email
       email_service = EmailTrackingService.new(application)
-      email_service.queue_email('EnrollmentMailer', email_type, mailer_args)
+      email_service.send_email('EnrollmentMailer', email_type, mailer_args)
 
-      render json: { message: "#{email_type.titleize} email queued successfully" }
+      render json: { message: "#{email_type.titleize} email sent successfully" }
+    end
+
+    # Prefill the manual composer with a workflow email, tokens resolved for
+    # this application, so an admin can edit before sending.
+    def email_draft
+      application = EnrollmentApplication.find(params[:id])
+      email_type = params[:email_type].to_s
+
+      EmailTemplate.ensure_defaults!
+      template = EmailTemplate.for(email_type)
+      return render json: { error: 'No template for this email type' }, status: :unprocessable_entity unless template
+
+      vars = case email_type
+      when 'enrollment_invite'
+        enrollment_url = "#{request.base_url}/enroll?program_id=#{application.program_id}&application_id=#{application.id}"
+        EnrollmentEmailVars.enrollment_invite(application, enrollment_url)
+      when 'meeting_invite'
+        event = application.events.where(event_type: 'meet_and_greet').order(:created_at).last
+        return render json: { error: 'No meeting invite has been created yet' }, status: :unprocessable_entity unless event&.proposed_dates.present?
+        EnrollmentEmailVars.meeting_invite(event, request.base_url)
+      when 'meeting_scheduled'
+        event = application.events.where(event_type: 'meet_and_greet').where.not(scheduled_at: nil).order(:created_at).last
+        return render json: { error: 'No meeting scheduled yet' }, status: :unprocessable_entity unless event
+        EnrollmentEmailVars.meeting_scheduled(event)
+      when 'enrollment_fee_request'
+        EnrollmentEmailVars.enrollment_fee_request(application)
+      when 'enrollment_forms'
+        EnrollmentEmailVars.enrollment_forms(application)
+      when 'enrollment_confirmed'
+        return render json: { error: 'No enrollment yet' }, status: :unprocessable_entity unless application.program_enrollment
+        EnrollmentEmailVars.enrollment_confirmed(application.program_enrollment)
+      else
+        return render json: { error: 'Unsupported email type' }, status: :unprocessable_entity
+      end
+
+      render json: {
+        recipient: application.parent_email,
+        email_type: email_type,
+        enrollment_application_id: application.id,
+        subject: template.rendered_subject(vars),
+        body: template.rendered_text(vars)
+      }
     end
 
     def send_meeting_invite
@@ -297,7 +343,7 @@ module Api
       )
 
       render json: {
-        message: 'Meeting invite email queued successfully',
+        message: 'Meeting invite email sent successfully',
         event: event.as_json(include: :location)
       }
     end

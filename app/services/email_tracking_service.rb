@@ -3,7 +3,10 @@ class EmailTrackingService
     @emailable = emailable
   end
 
-  def queue_email(mailer_class, email_type, mailer_args = [], metadata = {})
+  # Creates a tracked Email record and delivers it immediately, in-process.
+  # Delivery failures are recorded on the Email record (status "failed")
+  # rather than raised, so a mail outage never aborts the calling workflow.
+  def send_email(mailer_class, email_type, mailer_args = [], metadata = {})
     recipient = determine_recipient
     subject = generate_subject(mailer_class, email_type)
 
@@ -17,16 +20,45 @@ class EmailTrackingService
       metadata: metadata
     )
 
-    # Pass email_id as last positional argument (Sidekiq doesn't support keyword args)
-    EnrollmentEmailJob.perform_async(email_type, *mailer_args, email.id)
+    deliver(email, mailer_class, email_type, mailer_args)
 
     email
   end
 
   private
 
+  def deliver(email, mailer_class, email_type, mailer_args)
+    message = mailer_class.constantize.public_send(email_type, *mailer_args)
+
+    # The mailer (or an admin-edited template) owns the real subject.
+    email.update(html_body: capture_html_body(message), subject: message.subject.presence || email.subject)
+
+    message.deliver_now
+    email.mark_sent!
+  rescue StandardError => e
+    Rails.logger.error(
+      "Email delivery failed (#{mailer_class}##{email_type}, email #{email.id}): #{e.class}: #{e.message}"
+    )
+    email.mark_failed!(e)
+  end
+
+  def capture_html_body(message)
+    html_body = if message.html_part
+      message.html_part.body.decoded
+    elsif message.content_type&.include?('text/html')
+      message.body.decoded
+    else
+      plain_body = message.body.decoded
+      "<html><body><pre>#{plain_body}</pre></body></html>"
+    end
+
+    # Inline attachment (cid:) URLs only resolve inside a mail client, so
+    # point them at the public logo for the in-app preview.
+    html_body.gsub(/cid:[^"']*/, '/logo.png')
+  end
+
   def determine_recipient
-    case @emailable
+    recipient = case @emailable
     when EnrollmentApplication
       @emailable.parent_email
     when Payment
@@ -36,6 +68,8 @@ class EmailTrackingService
     else
       raise "Unknown emailable type: #{@emailable.class}"
     end
+
+    Array(recipient).join(', ')
   end
 
   def generate_subject(mailer_class, email_type)

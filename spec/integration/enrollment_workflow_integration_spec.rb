@@ -12,9 +12,6 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
   end
 
   before do
-    allow(EnrollmentEmailJob).to receive(:perform_async)
-    allow(PaymentMailer).to receive_message_chain(:invoice, :deliver_later)
-    allow(PaymentMailer).to receive_message_chain(:receipt, :deliver_later)
   end
 
   describe 'Complete enrollment workflow' do

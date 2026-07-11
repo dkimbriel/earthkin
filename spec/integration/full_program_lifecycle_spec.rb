@@ -7,9 +7,6 @@ RSpec.describe 'Full Program Lifecycle', type: :request do
 
   before do
     sign_in user
-    allow(EnrollmentEmailJob).to receive(:perform_async)
-    allow(PaymentMailer).to receive_message_chain(:invoice, :deliver_later)
-    allow(PaymentMailer).to receive_message_chain(:receipt, :deliver_later)
   end
 
   it 'manages a complete program lifecycle from creation to enrollment' do

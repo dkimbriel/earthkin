@@ -105,6 +105,7 @@ export default function FormDialog({
 									fullWidth
 									multiline={field.multiline}
 									rows={field.rows}
+									helperText={field.helperText}
 									slotProps={["date", "time"].includes(field.type) ? { inputLabel: { shrink: true } } : undefined}
 								/>
 							);

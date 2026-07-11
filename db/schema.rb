@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_10_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -52,9 +52,39 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
     t.index ["family_id"], name: "index_children_on_family_id"
   end
 
+  create_table "content_item_teachers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "content_item_id", null: false
+    t.uuid "teacher_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["content_item_id", "teacher_id"], name: "index_content_item_teachers_on_content_item_id_and_teacher_id", unique: true
+    t.index ["content_item_id"], name: "index_content_item_teachers_on_content_item_id"
+    t.index ["teacher_id"], name: "index_content_item_teachers_on_teacher_id"
+  end
+
+  create_table "content_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "title", null: false
+    t.string "url", null: false
+    t.text "description"
+    t.string "category", default: "general", null: false
+    t.string "visibility", default: "all_staff", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "email_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key"
+    t.string "name", null: false
+    t.string "subject", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_email_templates_on_key", unique: true, where: "(key IS NOT NULL)"
+  end
+
   create_table "emails", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "emailable_type", null: false
-    t.uuid "emailable_id", null: false
+    t.string "emailable_type"
+    t.uuid "emailable_id"
     t.string "mailer_class", null: false
     t.string "email_type", null: false
     t.string "recipient", null: false
@@ -123,6 +153,24 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
     t.index ["status"], name: "index_enrollment_applications_on_status"
   end
 
+  create_table "enrollment_form_signatures", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "child_id", null: false
+    t.uuid "form_template_id", null: false
+    t.uuid "enrollment_application_id"
+    t.string "status", default: "pending", null: false
+    t.string "signed_by_name"
+    t.string "signed_by_email"
+    t.string "signature_ip"
+    t.datetime "signed_at"
+    t.text "form_body_snapshot"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["child_id", "form_template_id", "enrollment_application_id"], name: "index_form_signatures_uniqueness", unique: true
+    t.index ["child_id"], name: "index_enrollment_form_signatures_on_child_id"
+    t.index ["enrollment_application_id"], name: "index_enrollment_form_signatures_on_enrollment_application_id"
+    t.index ["form_template_id"], name: "index_enrollment_form_signatures_on_form_template_id"
+  end
+
   create_table "enrollment_payment_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "program_enrollment_id", null: false
     t.uuid "payment_plan_id", null: false
@@ -138,8 +186,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
   end
 
   create_table "events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "eventable_type", null: false
-    t.uuid "eventable_id", null: false
+    t.string "eventable_type"
+    t.uuid "eventable_id"
     t.uuid "location_id"
     t.string "event_type", null: false
     t.string "title"
@@ -154,6 +202,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
     t.datetime "updated_at", null: false
     t.jsonb "proposed_dates", default: []
     t.string "confirmation_token"
+    t.boolean "published", default: false, null: false
     t.index ["confirmation_token"], name: "index_events_on_confirmation_token", unique: true
     t.index ["event_type"], name: "index_events_on_event_type"
     t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable"
@@ -166,6 +215,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "form_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_form_templates_on_key", unique: true
   end
 
   create_table "gmail_integrations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -319,6 +377,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "super_admin", default: false, null: false
+    t.string "role", default: "parent", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -326,11 +385,16 @@ ActiveRecord::Schema[7.2].define(version: 2026_06_17_000001) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "children", "families"
+  add_foreign_key "content_item_teachers", "content_items"
+  add_foreign_key "content_item_teachers", "teachers"
   add_foreign_key "enrollment_applications", "children"
   add_foreign_key "enrollment_applications", "families"
   add_foreign_key "enrollment_applications", "payment_plans", column: "selected_payment_plan_id"
   add_foreign_key "enrollment_applications", "program_enrollments"
   add_foreign_key "enrollment_applications", "programs"
+  add_foreign_key "enrollment_form_signatures", "children"
+  add_foreign_key "enrollment_form_signatures", "enrollment_applications"
+  add_foreign_key "enrollment_form_signatures", "form_templates"
   add_foreign_key "enrollment_payment_plans", "payment_plans"
   add_foreign_key "enrollment_payment_plans", "program_enrollments"
   add_foreign_key "events", "locations"

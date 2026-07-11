@@ -24,7 +24,7 @@ ActiveRecord::Base.transaction do
 	puts "✓ super-admin: #{admin.email}"
 
 	# --- Location -------------------------------------------------------------
-	location = Location.find_or_create_by!(name: 'The Stone House in Forest Hill Park') do |l|
+	location = Location.find_or_create_by!(name: 'Forest Hill Park') do |l|
 		l.address = '4021 Forest Hill Avenue, Richmond, VA 23225'
 		l.notes   = 'Lovely city park'
 	end

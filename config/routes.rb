@@ -1,5 +1,3 @@
-require "sidekiq/web"
-
 Rails.application.routes.draw do
 	devise_for :users, skip: [:registrations], controllers: {
 		sessions: 'users/sessions',
@@ -27,6 +25,14 @@ Rails.application.routes.draw do
 		end
 		resources :locations, only: [:index, :show, :create, :update, :destroy]
 		resources :teachers, only: [:index, :show, :create, :update, :destroy]
+		resources :users, only: [:index, :create, :update, :destroy]
+		resources :content_items, only: [:index, :create, :update, :destroy]
+		resources :email_templates, only: [:index, :create, :update, :destroy]
+		resources :emails, only: [:index, :create, :update, :destroy] do
+			member do
+				post :deliver
+			end
+		end
 
 		# Teacher assignments and enrollment invites
 		resources :programs, only: [] do
@@ -34,6 +40,7 @@ Rails.application.routes.draw do
 				post :assign_teacher
 				delete :unassign_teacher
 				post :send_enrollment_invite
+				post :generate_classes
 			end
 		end
 		resources :program_classes, only: [] do
@@ -62,6 +69,7 @@ Rails.application.routes.draw do
 				patch :update_parent_email
 				patch :update_custom_fees
 				post :send_email
+				get :email_draft
 				post :send_meeting_invite
 			end
 		end
@@ -83,6 +91,16 @@ Rails.application.routes.draw do
 			end
 		end
 
+		resources :form_templates, only: [:index, :update]
+		resources :enrollment_form_signatures, only: [:index, :create]
+
+		# Parent portal (parent role only, scoped to their family)
+		get 'portal/overview', to: 'portal#overview'
+		get 'portal/events', to: 'portal#events'
+		get 'portal/payments', to: 'portal#payments'
+		get 'portal/forms', to: 'portal#forms'
+		post 'portal/forms/:id/sign', to: 'portal#sign_form'
+
 		# Admin integration settings (Gmail mailbox connection)
 		namespace :admin do
 			get 'integrations/gmail', to: 'integrations#gmail'
@@ -95,8 +113,6 @@ Rails.application.routes.draw do
 		get 'integrations/gmail/connect', to: 'integrations#gmail_connect'
 		get 'integrations/gmail/callback', to: 'integrations#gmail_callback'
 	end
-
-	mount Sidekiq::Web => "/sidekiq"
 
 	# Public meeting confirmation (no auth required)
 	get '/meetings/:token/confirm', to: 'meeting_confirmations#show', as: :meeting_confirmation

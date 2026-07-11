@@ -30,17 +30,27 @@ export function AuthProvider({ children }) {
 	};
 
 	const logout = async () => {
-		try {
-			await fetch("/users/sign_out", {
+		const signOut = () =>
+			fetch("/users/sign_out", {
 				method: "DELETE",
 				headers: {
 					"X-CSRF-Token": getCsrfToken(),
 				},
 			});
-			setUser(null);
-			await refreshCsrfToken();
+		try {
+			let response = await signOut();
+			if (response.status === 422) {
+				// Devise rotates the CSRF token on sign-in, so the meta tag
+				// can be stale here; retry so the session is actually
+				// destroyed server-side, not just cleared in React state.
+				await refreshCsrfToken();
+				response = await signOut();
+			}
 		} catch (err) {
 			console.error("Logout failed");
+		} finally {
+			setUser(null);
+			await refreshCsrfToken();
 		}
 	};
 

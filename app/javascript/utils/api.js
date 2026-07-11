@@ -94,6 +94,7 @@ export const programsApi = {
 	assignTeacher: (id, teacherId) => api.post(`/api/programs/${id}/assign_teacher`, { teacher_id: teacherId }),
 	unassignTeacher: (id, teacherId) => api.delete(`/api/programs/${id}/unassign_teacher?teacher_id=${teacherId}`),
 	sendEnrollmentInvite: (id, recipients) => api.post(`/api/programs/${id}/send_enrollment_invite`, { recipients }),
+	generateClasses: (id, data) => api.post(`/api/programs/${id}/generate_classes`, data),
 };
 
 export const programClassesApi = {
@@ -156,6 +157,53 @@ export const teachersApi = {
 	delete: (id) => api.delete(`/api/teachers/${id}`),
 };
 
+export const emailsApi = {
+	list: (status) => api.get(`/api/emails${status ? `?status=${status}` : ""}`),
+	create: (data) => api.post("/api/emails", { email: data }),
+	update: (id, data) => api.patch(`/api/emails/${id}`, { email: data }),
+	deliver: (id) => api.post(`/api/emails/${id}/deliver`),
+	delete: (id) => api.delete(`/api/emails/${id}`),
+};
+
+export const emailTemplatesApi = {
+	list: () => api.get("/api/email_templates"),
+	create: (data) => api.post("/api/email_templates", { email_template: data }),
+	update: (id, data) => api.patch(`/api/email_templates/${id}`, { email_template: data }),
+	delete: (id) => api.delete(`/api/email_templates/${id}`),
+};
+
+export const portalApi = {
+	overview: () => api.get("/api/portal/overview"),
+	events: () => api.get("/api/portal/events"),
+	payments: () => api.get("/api/portal/payments"),
+	forms: () => api.get("/api/portal/forms"),
+	signForm: (id, signedByName) => api.post(`/api/portal/forms/${id}/sign`, { signed_by_name: signedByName }),
+};
+
+export const formTemplatesApi = {
+	list: () => api.get("/api/form_templates"),
+	update: (id, data) => api.patch(`/api/form_templates/${id}`, { form_template: data }),
+};
+
+export const formSignaturesApi = {
+	listByFamily: (familyId) => api.get(`/api/enrollment_form_signatures?family_id=${familyId}`),
+	issueForChild: (childId) => api.post("/api/enrollment_form_signatures", { child_id: childId }),
+};
+
+export const contentItemsApi = {
+	list: () => api.get("/api/content_items"),
+	create: (data) => api.post("/api/content_items", { content_item: data }),
+	update: (id, data) => api.patch(`/api/content_items/${id}`, { content_item: data }),
+	delete: (id) => api.delete(`/api/content_items/${id}`),
+};
+
+export const usersApi = {
+	list: () => api.get("/api/users"),
+	create: (data) => api.post("/api/users", { user: data }),
+	update: (id, data) => api.patch(`/api/users/${id}`, { user: data }),
+	delete: (id) => api.delete(`/api/users/${id}`),
+};
+
 // Enrollment workflow APIs
 export const enrollmentApplicationsApi = {
 	list: (filters = {}) => {
@@ -183,6 +231,7 @@ export const enrollmentApplicationsApi = {
 			custom_tuition_amount: customTuitionAmount,
 		}),
 	sendEmail: (id, emailType) => api.post(`/api/enrollment_applications/${id}/send_email`, { email_type: emailType }),
+	emailDraft: (id, emailType) => api.get(`/api/enrollment_applications/${id}/email_draft?email_type=${emailType}`),
 	sendMeetingInvite: (id, { locationId, proposedDates, notes }) =>
 		api.post(`/api/enrollment_applications/${id}/send_meeting_invite`, {
 			location_id: locationId,

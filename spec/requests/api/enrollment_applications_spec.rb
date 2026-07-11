@@ -77,8 +77,9 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
     end
 
     it 'does not send automatic email on submission' do
-      expect(EnrollmentEmailJob).not_to receive(:perform_async)
-      post '/api/enrollment_applications', params: valid_params
+      expect {
+        post '/api/enrollment_applications', params: valid_params
+      }.not_to change { ActionMailer::Base.deliveries.count }
     end
 
     it 'returns error with invalid params' do

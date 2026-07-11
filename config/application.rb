@@ -40,7 +40,5 @@ module Earthkin
 		g.orm :active_record, primary_key_type: :uuid
 	end
 
-	# Use Sidekiq for ActiveJob
-	config.active_job.queue_adapter = :sidekiq
 	end
 end

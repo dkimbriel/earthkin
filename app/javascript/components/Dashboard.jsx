@@ -3,12 +3,14 @@ import {
     Route,
     NavLink,
     Navigate,
+    useNavigate,
 } from "react-router-dom";
 import { useState } from "react";
 import {
+    Avatar,
     Box,
     Button,
-    Typography,
+    Chip,
     Drawer,
     List,
     ListItem,
@@ -26,6 +28,10 @@ import PersonIcon from "@mui/icons-material/Person";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SettingsIcon from "@mui/icons-material/Settings";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import EmailIcon from "@mui/icons-material/Email";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -47,6 +53,13 @@ import CalendarPage from "./pages/CalendarPage";
 import EnrollmentApplicationsPage from "./pages/EnrollmentApplicationsPage";
 import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetailPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
+import UsersPage from "./pages/UsersPage";
+import ContentPage from "./pages/ContentPage";
+import EmailsPage from "./pages/EmailsPage";
+import ParentCalendarPage from "./pages/ParentCalendarPage";
+import ParentPaymentsPage from "./pages/ParentPaymentsPage";
+import ParentFormsPage from "./pages/ParentFormsPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
 
 const drawerWidth = 220;
 
@@ -58,27 +71,66 @@ const baseNavItems = [
     { path: "/programs", label: "Programs", icon: <SchoolIcon /> },
     { path: "/teachers", label: "Teachers", icon: <PersonIcon /> },
     { path: "/locations", label: "Locations", icon: <LocationOnIcon /> },
+    { path: "/content", label: "Content", icon: <FolderSharedIcon /> },
 ];
 
-// Settings/Integrations is admin-only.
+// Admin-only pages.
 const adminNavItems = [
+    { path: "/emails", label: "Emails", icon: <EmailIcon /> },
+    { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
+];
+
+// Super-admin-only pages.
+const superAdminNavItems = [
     { path: "/integrations", label: "Integrations", icon: <SettingsIcon /> },
 ];
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
 
     // Single source of truth for the nav bar height, shared by the fixed header
     // and the two layout spacers below it so they always line up.
     const navHeight = { xs: 72, sm: 104 };
 
-    // For now, everyone sees the admin dashboard
-    // In the future, you can add role checking here
-    const isParent = false;
-    const navItems = user?.super_admin
-        ? [...baseNavItems, ...adminNavItems]
-        : baseNavItems;
+    const isParent = user?.role === "parent";
+    const isTeacher = user?.role === "teacher";
+
+    const displayName = user?.display_name || user?.email || "";
+    const initials = displayName
+        .split(/\s+/)
+        .map((part) => part[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+    // Parents land on their family home; the staff family pages 403 for them.
+    const profilePath = isParent
+        ? "/dashboard"
+        : isTeacher
+            ? user?.teacher_id && `/teachers/${user.teacher_id}`
+            : "/users";
+    const teacherNavItems = baseNavItems.filter((item) =>
+        ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
+    );
+    const helpNavItem = { path: "/help", label: "Help", icon: <HelpOutlineIcon /> };
+    const navItems = isParent
+        ? [
+            { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
+            { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
+            { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
+            { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
+            helpNavItem,
+        ]
+        : isTeacher
+            ? [...teacherNavItems, helpNavItem]
+            : [
+                ...baseNavItems,
+                ...(user?.role === "admin" ? adminNavItems : []),
+                ...(user?.super_admin ? superAdminNavItems : []),
+                helpNavItem,
+            ];
 
     const drawerContent = (
         <>
@@ -154,17 +206,25 @@ export default function Dashboard() {
                             }}
                         />
                     </Box>
-                    <Typography
-                        noWrap
+                    <Chip
+                        clickable={Boolean(profilePath)}
+                        onClick={profilePath ? () => navigate(profilePath) : undefined}
+                        avatar={<Avatar>{initials}</Avatar>}
+                        label={displayName}
                         sx={{
-                            display: { xs: "none", sm: "block" },
+                            display: { xs: "none", sm: "flex" },
                             maxWidth: 240,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            color: "common.white",
+                            bgcolor: "rgba(255, 255, 255, 0.15)",
+                            "&:hover, &.MuiChip-clickable:hover": {
+                                bgcolor: "rgba(255, 255, 255, 0.3)",
+                            },
+                            "& .MuiChip-avatar": {
+                                bgcolor: "primary.dark",
+                                color: "common.white",
+                            },
                         }}
-                    >
-                        {user.email}
-                    </Typography>
+                    />
                     <Button sx={{ color: "common.white" }} onClick={logout}>
                         Logout
                     </Button>
@@ -222,7 +282,15 @@ export default function Dashboard() {
                         />
                         <Route
                             path="/dashboard"
-                            element={isParent ? <ParentDashboardPage /> : <DashboardPage />}
+                            element={
+                                isParent ? (
+                                    <ParentDashboardPage />
+                                ) : isTeacher ? (
+                                    <Navigate to="/calendar" replace />
+                                ) : (
+                                    <DashboardPage />
+                                )
+                            }
                         />
                         <Route path="/families" element={<FamiliesPage />} />
                         <Route
@@ -230,7 +298,16 @@ export default function Dashboard() {
                             element={<FamilyDetailPage />}
                         />
                         <Route path="/programs" element={<ProgramsPage />} />
-                        <Route path="/calendar" element={<CalendarPage />} />
+                        <Route
+                            path="/calendar"
+                            element={isParent ? <ParentCalendarPage /> : <CalendarPage />}
+                        />
+                        {isParent && (
+                            <Route path="/payments" element={<ParentPaymentsPage />} />
+                        )}
+                        {isParent && (
+                            <Route path="/forms" element={<ParentFormsPage />} />
+                        )}
                         <Route
                             path="/programs/:id"
                             element={<ProgramDetailPage />}
@@ -273,6 +350,14 @@ export default function Dashboard() {
                             path="/enrollment-applications/:id"
                             element={<EnrollmentApplicationDetailPage />}
                         />
+                        <Route path="/content" element={<ContentPage />} />
+                        <Route path="/help" element={<HelpCenterPage />} />
+                        {user?.role === "admin" && (
+                            <Route path="/users" element={<UsersPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/emails" element={<EmailsPage />} />
+                        )}
                         {user?.super_admin && (
                             <Route
                                 path="/integrations"

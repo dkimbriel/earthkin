@@ -6,6 +6,7 @@ import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { familiesApi } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const columns = [
 	{ key: "name", label: "Family Name" },
@@ -24,6 +25,8 @@ const columns = [
 const formFields = [{ name: "name", label: "Family Name", required: true }];
 
 export default function FamiliesPage() {
+	const { user } = useAuth();
+	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
 	const [families, setFamilies] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -59,12 +62,12 @@ export default function FamiliesPage() {
 
 	return (
 		<Box>
-			<PageHeader title="Families" onAdd={() => setShowForm(true)} addLabel="Add Family" />
+			<PageHeader title="Families" onAdd={isAdmin ? () => setShowForm(true) : undefined} addLabel="Add Family" />
 			<DataTable
 				columns={columns}
 				data={families}
 				loading={loading}
-				onDelete={setDeleteTarget}
+				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/families/${row.id}`)}
 				emptyMessage="No families yet. Add one to get started."
 			/>

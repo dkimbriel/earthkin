@@ -7,6 +7,7 @@ import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { teachersApi } from "../../utils/api";
 import { formatPhoneNumber } from "../../utils/phoneFormatter";
+import { useAuth } from "../../contexts/AuthContext";
 
 const columns = [
 	{
@@ -37,6 +38,8 @@ const columns = [
 ];
 
 export default function TeachersPage() {
+	const { user } = useAuth();
+	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
 	const [teachers, setTeachers] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -82,7 +85,7 @@ export default function TeachersPage() {
 		<Box>
 			<PageHeader
 				title="Teachers"
-				onAdd={() => setShowForm(true)}
+				onAdd={isAdmin ? () => setShowForm(true) : undefined}
 				addLabel="Add Teacher"
 			/>
 
@@ -90,7 +93,7 @@ export default function TeachersPage() {
 				columns={columns}
 				data={teachers}
 				loading={loading}
-				onDelete={setDeleteTarget}
+				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/teachers/${row.id}`)}
 				emptyMessage="No teachers yet. Add your first teacher to get started."
 			/>

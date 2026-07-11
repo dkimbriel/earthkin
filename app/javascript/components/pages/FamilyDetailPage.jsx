@@ -6,7 +6,8 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
-import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi } from "../../utils/api";
+import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignaturesApi } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const parentColumns = [
 	{
@@ -72,6 +73,8 @@ const enrollmentColumns = [
 export default function FamilyDetailPage() {
 	const { id } = useParams();
 	const navigate = useNavigate();
+	const { user } = useAuth();
+	const isAdmin = user?.role === "admin";
 	const [family, setFamily] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [enrollments, setEnrollments] = useState([]);
@@ -79,6 +82,16 @@ export default function FamilyDetailPage() {
 	const [showParentForm, setShowParentForm] = useState(false);
 	const [showChildForm, setShowChildForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
+	const [signatures, setSignatures] = useState([]);
+
+	const loadSignatures = async () => {
+		try {
+			const data = await formSignaturesApi.listByFamily(id);
+			setSignatures(data);
+		} catch {
+			setSignatures([]);
+		}
+	};
 
 	const loadFamily = async () => {
 		setLoading(true);
@@ -113,9 +126,15 @@ export default function FamilyDetailPage() {
 		const load = async () => {
 			const familyData = await loadFamily();
 			await loadEnrollments(familyData);
+			await loadSignatures();
 		};
 		load();
 	}, [id]);
+
+	const handleIssueForms = async (childId) => {
+		await formSignaturesApi.issueForChild(childId);
+		loadSignatures();
+	};
 
 	const handleCreateParent = async (formData) => {
 		await parentsApi.create({ ...formData, family_id: id });
@@ -176,15 +195,15 @@ export default function FamilyDetailPage() {
 			<Paper sx={{ p: 3, mb: 3 }}>
 				<PageHeader
 					title="Parents"
-					onAdd={() => setShowParentForm(true)}
+					onAdd={isAdmin ? () => setShowParentForm(true) : undefined}
 					addLabel="Add Parent"
 				/>
 				<DataTable
 					columns={parentColumns}
 					data={family.parents}
 					loading={false}
-					onDelete={(item) => setDeleteTarget({ type: "parent", item })}
-					onRowClick={(row) => navigate(`/parents/${row.id}/edit`)}
+					onDelete={isAdmin ? (item) => setDeleteTarget({ type: "parent", item }) : undefined}
+					onRowClick={isAdmin ? (row) => navigate(`/parents/${row.id}/edit`) : undefined}
 					emptyMessage="No parents added yet."
 				/>
 			</Paper>
@@ -192,20 +211,20 @@ export default function FamilyDetailPage() {
 			<Paper sx={{ p: 3, mb: 3 }}>
 				<PageHeader
 					title="Children"
-					onAdd={() => setShowChildForm(true)}
+					onAdd={isAdmin ? () => setShowChildForm(true) : undefined}
 					addLabel="Add Child"
 				/>
 				<DataTable
 					columns={childColumns}
 					data={family.children}
 					loading={false}
-					onDelete={(item) => setDeleteTarget({ type: "child", item })}
+					onDelete={isAdmin ? (item) => setDeleteTarget({ type: "child", item }) : undefined}
 					onRowClick={(row) => navigate(`/children/${row.id}`)}
 					emptyMessage="No children added yet."
 				/>
 			</Paper>
 
-			<Paper sx={{ p: 3 }}>
+			<Paper sx={{ p: 3, mb: 3 }}>
 				<Typography variant="h6" gutterBottom>
 					Enrollments
 				</Typography>
@@ -216,6 +235,53 @@ export default function FamilyDetailPage() {
 					onRowClick={(row) => navigate(`/enrollments/${row.id}`, { state: { from: `/families/${id}` } })}
 					emptyMessage="No enrollments for this family."
 				/>
+			</Paper>
+
+			<Paper sx={{ p: 3 }}>
+				<Typography variant="h6" gutterBottom>
+					Enrollment Paperwork
+				</Typography>
+				{family.children.length === 0 && (
+					<Typography color="text.secondary">Add a child to issue enrollment forms.</Typography>
+				)}
+				{family.children.map((child) => {
+					const childSignatures = signatures.filter((s) => s.child_id === child.id);
+					return (
+						<Box key={child.id} sx={{ mb: 2 }}>
+							<Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+								<Typography variant="subtitle1">
+									{child.first_name} {child.last_name}
+								</Typography>
+								{isAdmin && childSignatures.length === 0 && (
+									<Button size="small" variant="outlined" onClick={() => handleIssueForms(child.id)}>
+										Issue Enrollment Forms
+									</Button>
+								)}
+							</Box>
+							{childSignatures.length === 0 ? (
+								<Typography variant="body2" color="text.secondary">
+									No forms issued yet.
+								</Typography>
+							) : (
+								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+									{childSignatures.map((sig) => (
+										<Chip
+											key={sig.id}
+											label={
+												sig.status === "signed"
+													? `${sig.form_name} — signed by ${sig.signed_by_name} ${new Date(sig.signed_at).toLocaleDateString()}`
+													: `${sig.form_name} — awaiting signature`
+											}
+											color={sig.status === "signed" ? "success" : "warning"}
+											variant={sig.status === "signed" ? "filled" : "outlined"}
+											size="small"
+										/>
+									))}
+								</Box>
+							)}
+						</Box>
+					);
+				})}
 			</Paper>
 
 			<FormDialog

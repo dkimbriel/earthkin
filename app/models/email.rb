@@ -1,8 +1,8 @@
 class Email < ApplicationRecord
-  belongs_to :emailable, polymorphic: true
+  belongs_to :emailable, polymorphic: true, optional: true
 
-  STATUSES = %w[queued sent failed bounced].freeze
-  MAILER_CLASSES = %w[EnrollmentMailer PaymentMailer ParentMailer].freeze
+  STATUSES = %w[draft queued sent failed bounced].freeze
+  MAILER_CLASSES = %w[EnrollmentMailer PaymentMailer ParentMailer ManualMailer].freeze
 
   validates :email_type, presence: true
   validates :status, inclusion: { in: STATUSES }
@@ -13,7 +13,12 @@ class Email < ApplicationRecord
   scope :by_type, ->(type) { where(email_type: type) }
   scope :sent, -> { where(status: 'sent') }
   scope :failed, -> { where(status: 'failed') }
+  scope :drafts, -> { where(status: 'draft') }
   scope :for_mailer, ->(mailer) { where(mailer_class: mailer) }
+
+  def draft?
+    status == 'draft'
+  end
 
   def mark_sent!
     update!(status: 'sent', sent_at: Time.current)
@@ -32,6 +37,7 @@ class Email < ApplicationRecord
     when 'sent' then 'success'
     when 'failed', 'bounced' then 'error'
     when 'queued' then 'warning'
+    when 'draft' then 'info'
     else 'default'
     end
   end

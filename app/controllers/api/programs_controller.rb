@@ -5,6 +5,7 @@ module Api
 		# Public, unauthenticated endpoint for the enrollment application page.
 		# Returns only non-sensitive program fields (no enrollments/revenue).
 		skip_before_action :authenticate_user!, only: [:public_show]
+		skip_before_action :require_staff!, only: [:public_show]
 
 		def public_show
 			program = Program.find(params[:id])
@@ -44,6 +45,53 @@ module Api
 			program = Program.find(params[:id])
 			program.program_teachers.find_by(teacher_id: params[:teacher_id])&.destroy
 			render json: { success: true, teachers: program.teachers.as_json(methods: %i[avatar_url full_name]) }
+		end
+
+		DAY_NAMES = %w[monday tuesday wednesday thursday friday saturday sunday].freeze
+
+		# Bulk-create classes from a weekly pattern (e.g. every Tue/Thu between
+		# the program's start and end dates), skipping holidays and dates that
+		# already have a class.
+		def generate_classes
+			program = Program.find(params[:id])
+
+			days = Array(params[:days_of_week]).map { |d| d.to_s.downcase } & DAY_NAMES
+			days = DAY_NAMES.select { |d| program.class_days.to_s.downcase.include?(d) } if days.empty?
+			if days.empty?
+				return render json: { error: 'Pick at least one day of the week' }, status: :unprocessable_content
+			end
+
+			start_date = params[:start_date].present? ? Date.parse(params[:start_date].to_s) : program.start_date
+			end_date = params[:end_date].present? ? Date.parse(params[:end_date].to_s) : program.end_date
+			unless start_date && end_date && end_date >= start_date
+				return render json: { error: 'Set a start and end date (or add them to the program)' }, status: :unprocessable_content
+			end
+			if end_date > start_date + 2.years
+				return render json: { error: 'Date range is too large' }, status: :unprocessable_content
+			end
+
+			skip_dates = Array(params[:skip_dates]).flat_map { |d| d.to_s.split(',') }.filter_map do |d|
+				Date.parse(d.strip)
+			rescue Date::Error
+				nil
+			end
+
+			existing_dates = program.program_classes.where.not(date: nil).pluck(:date).to_set
+			created = []
+			(start_date..end_date).each do |date|
+				next unless days.include?(date.strftime('%A').downcase)
+				next if skip_dates.include?(date) || existing_dates.include?(date)
+
+				created << program.program_classes.create!(
+					name: date.strftime('%A %b %-d'),
+					date: date,
+					start_time: params[:start_time].presence || program.start_time,
+					end_time: params[:end_time].presence || program.end_time,
+					location_id: params[:location_id].presence
+				)
+			end
+
+			render json: { created_count: created.size, classes: created.as_json }, status: :created
 		end
 
 		def create
@@ -93,8 +141,8 @@ module Api
 				# Generate enrollment URL with application ID for tracking
 				enrollment_url = "#{request.base_url}/enroll?program_id=#{program.id}&application_id=#{application.id}"
 
-				# Queue the email using EmailTrackingService for proper tracking
-				EmailTrackingService.new(application).queue_email(
+				# Send the email using EmailTrackingService for proper tracking
+				EmailTrackingService.new(application).send_email(
 					'EnrollmentMailer',
 					'enrollment_invite',
 					[application.id, enrollment_url]

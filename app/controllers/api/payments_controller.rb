@@ -26,12 +26,13 @@ module Api
 
 		def send_invoice
 			payment = Payment.find(params[:id])
-			if payment.status == 'completed'
-				PaymentMailer.receipt(payment.id).deliver_later
-				render json: { message: 'Receipt email sent successfully' }
+			email_type = payment.status == 'completed' ? 'receipt' : 'invoice'
+			email = EmailTrackingService.new(payment).send_email('PaymentMailer', email_type, [payment.id])
+
+			if email.status == 'sent'
+				render json: { message: "#{email_type.titleize} email sent successfully" }
 			else
-				PaymentMailer.invoice(payment.id).deliver_later
-				render json: { message: 'Invoice email sent successfully' }
+				render json: { error: "#{email_type.titleize} email failed to send: #{email.error_message}" }, status: :unprocessable_entity
 			end
 		end
 

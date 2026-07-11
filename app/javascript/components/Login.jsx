@@ -12,7 +12,7 @@ import {
     Link,
 } from "@mui/material";
 import { useAuth } from "../contexts/AuthContext";
-import { getCsrfToken } from "../utils/csrf";
+import { getCsrfToken, refreshCsrfToken } from "../utils/csrf";
 
 export default function Login() {
     const { login } = useAuth();
@@ -41,6 +41,10 @@ export default function Login() {
             const data = await response.json();
 
             if (response.ok) {
+                // Devise rotates the session CSRF token on sign-in; sync the
+                // meta tag so later non-GET requests (including sign-out)
+                // don't fail CSRF.
+                await refreshCsrfToken();
                 login(data.data);
             } else {
                 setError(data.status?.message || "Invalid email or password");
