@@ -97,7 +97,7 @@ function InlineField({ type, fieldKey, label, values, onChange, readOnly }) {
 
 function SignatureBlock({ readOnly, signatureName, onSignatureChange, signedAt }) {
 	return (
-		<Box sx={{ my: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
+		<Box id="form-signature-block" sx={{ my: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
 			{readOnly ? (
 				<>
 					<Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", lineHeight: 1.2 }}>

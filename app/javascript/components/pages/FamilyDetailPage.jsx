@@ -401,6 +401,9 @@ export default function FamilyDetailPage() {
 						)}
 					</DialogContent>
 					<DialogActions>
+						<Button component="a" href={`/api/enrollment_form_signatures/${auditTarget.id}/pdf`}>
+							Download PDF
+						</Button>
 						<Button onClick={() => setAuditTarget(null)}>Close</Button>
 					</DialogActions>
 				</Dialog>

@@ -165,6 +165,49 @@ RSpec.describe 'Enrollment form signatures', type: :request do
     end
   end
 
+  describe 'PDF downloads' do
+    before do
+      sign_in admin
+      post '/api/enrollment_form_signatures', params: { child_id: child.id }
+    end
+
+    it 'parents download their own forms as PDF (pending and signed)' do
+      sign_in parent_user
+      signature = child.enrollment_form_signatures.first
+
+      get "/api/portal/forms/#{signature.id}/pdf"
+      expect(response).to have_http_status(:ok)
+      expect(response.content_type).to eq('application/pdf')
+      expect(response.body[0, 4]).to eq('%PDF')
+
+      signature.sign!(name: 'Jane Parent', email: parent_user.email, form_fields: { 'child_full_name' => 'Demo Kid' })
+
+      get "/api/portal/forms/#{signature.id}/pdf"
+      expect(response).to have_http_status(:ok)
+      expect(response.body[0, 4]).to eq('%PDF')
+    end
+
+    it 'blocks parents from other families PDFs' do
+      other_child = create(:child, family: create(:family))
+      post '/api/enrollment_form_signatures', params: { child_id: other_child.id }
+      sign_in parent_user
+
+      get "/api/portal/forms/#{other_child.enrollment_form_signatures.first.id}/pdf"
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'staff download signed forms with the certificate' do
+      signature = child.enrollment_form_signatures.first
+      signature.sign!(name: 'Jane Parent')
+
+      get "/api/enrollment_form_signatures/#{signature.id}/pdf"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.content_type).to eq('application/pdf')
+    end
+  end
+
   describe 'form templates' do
     it 'admins can edit form text' do
       sign_in admin

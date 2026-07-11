@@ -105,6 +105,15 @@ module Api
 			render json: { error: e.message }, status: :unprocessable_content
 		end
 
+		def form_pdf
+			signature = family_form_signatures.find(params[:id])
+			generator = FormSignaturePdfGenerator.new(signature)
+			send_data generator.render,
+			          filename: generator.filename,
+			          type: 'application/pdf',
+			          disposition: 'attachment'
+		end
+
 		# Logged when a parent opens a form to read it — part of the audit trail.
 		def view_form
 			signature = family_form_signatures.find(params[:id])

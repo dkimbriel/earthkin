@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
     Box,
     Typography,
@@ -21,136 +22,13 @@ import {
 import { portalApi } from "../../utils/api";
 import FormDocument, { hasFormFields, SIGNATURE_FONT } from "../shared/FormDocument";
 
-function SignDialog({ form, onClose, onSigned }) {
-    const [name, setName] = useState("");
-    const [answers, setAnswers] = useState("");
-    const [agreed, setAgreed] = useState(false);
-    const [error, setError] = useState(null);
-    const [busy, setBusy] = useState(false);
-
-    const [fields, setFields] = useState({});
-
-    // Opening the form is part of the signing audit trail.
-    useEffect(() => {
-        portalApi.viewForm(form.id).catch(() => {});
-    }, [form.id]);
-
-    const structured = hasFormFields(form.form_body);
-    const asksForAnswers = !structured && (form.form_body || "").includes("Your answers");
-
-    const handleSign = async () => {
-        setError(null);
-        setBusy(true);
-        try {
-            await portalApi.signForm(form.id, name, answers, fields);
-            onSigned();
-            onClose();
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    return (
-        <Dialog open onClose={onClose} maxWidth="md" fullWidth>
-            <DialogTitle>
-                {form.form_name} — {form.child_name}
-            </DialogTitle>
-            <DialogContent>
-                {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-                <Paper
-                    variant="outlined"
-                    sx={{
-                        p: 3,
-                        mb: 2,
-                        maxHeight: 480,
-                        overflow: "auto",
-                        whiteSpace: structured ? "normal" : "pre-wrap",
-                    }}
-                >
-                    {structured ? (
-                        <FormDocument
-                            body={form.form_body}
-                            values={fields}
-                            onChange={(key, value) => setFields((prev) => ({ ...prev, [key]: value }))}
-                            signatureName={name}
-                            onSignatureChange={setName}
-                        />
-                    ) : (
-                        form.form_body
-                    )}
-                </Paper>
-                {asksForAnswers && (
-                    <TextField
-                        label="Your answers (to the numbered questions above)"
-                        value={answers}
-                        onChange={(e) => setAnswers(e.target.value)}
-                        multiline
-                        minRows={6}
-                        fullWidth
-                        sx={{ mb: 2 }}
-                        placeholder={"1. ...\n2. ...\n3. ..."}
-                    />
-                )}
-                {!structured && (
-                    <>
-                        <TextField
-                            label="Type your full legal name to sign"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                            fullWidth
-                            sx={{ mb: 1 }}
-                        />
-                        <Box
-                            sx={{
-                                mb: 1,
-                                px: 2,
-                                py: 1.5,
-                                border: "1px dashed",
-                                borderColor: "divider",
-                                borderRadius: 1,
-                                minHeight: 64,
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                gap: 2,
-                            }}
-                        >
-                            <Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", lineHeight: 1.2, overflow: "hidden" }}>
-                                {name || "\u00A0"}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                                Signature preview
-                            </Typography>
-                        </Box>
-                    </>
-                )}
-                <FormControlLabel
-                    control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
-                    label="I have read this form and agree that typing my name above constitutes my electronic signature."
-                />
-            </DialogContent>
-            <DialogActions>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                    variant="contained"
-                    onClick={handleSign}
-                    disabled={busy || !agreed || name.trim().length < 3}
-                >
-                    {busy ? "Signing..." : "Sign Form"}
-                </Button>
-            </DialogActions>
-        </Dialog>
-    );
-}
-
 export default function ParentFormsPage() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const justSigned = location.state?.justSigned;
     const [forms, setForms] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [signTarget, setSignTarget] = useState(null);
     const [viewTarget, setViewTarget] = useState(null);
 
     const load = () => {
@@ -184,6 +62,12 @@ export default function ParentFormsPage() {
                 Enrollment Forms
             </Typography>
 
+            {justSigned && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                    "{justSigned}" signed — thank you! You can review it below or download a PDF copy.
+                </Alert>
+            )}
+
             {forms.length === 0 && (
                 <Alert severity="info">No forms to sign right now.</Alert>
             )}
@@ -205,7 +89,7 @@ export default function ParentFormsPage() {
                                             For {form.child_name}
                                         </Typography>
                                     </Box>
-                                    <Button variant="contained" onClick={() => setSignTarget(form)}>
+                                    <Button variant="contained" onClick={() => navigate(`/forms/${form.id}/sign`)}>
                                         Review & Sign
                                     </Button>
                                 </CardContent>
@@ -239,10 +123,6 @@ export default function ParentFormsPage() {
                         ))}
                     </Stack>
                 </>
-            )}
-
-            {signTarget && (
-                <SignDialog form={signTarget} onClose={() => setSignTarget(null)} onSigned={load} />
             )}
 
             {viewTarget && (
@@ -288,6 +168,9 @@ export default function ParentFormsPage() {
                         </Typography>
                     </DialogContent>
                     <DialogActions>
+                        <Button component="a" href={`/api/portal/forms/${viewTarget.id}/pdf`}>
+                            Download PDF
+                        </Button>
                         <Button onClick={() => setViewTarget(null)}>Close</Button>
                     </DialogActions>
                 </Dialog>

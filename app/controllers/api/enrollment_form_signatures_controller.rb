@@ -16,6 +16,15 @@ module Api
 			}
 		end
 
+		def pdf
+			signature = EnrollmentFormSignature.find(params[:id])
+			generator = FormSignaturePdfGenerator.new(signature)
+			send_data generator.render,
+			          filename: generator.filename,
+			          type: 'application/pdf',
+			          disposition: 'attachment'
+		end
+
 		# Manually issue the standard forms for a child (admin, outside the
 		# normal workflow).
 		def create

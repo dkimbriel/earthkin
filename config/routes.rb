@@ -92,7 +92,11 @@ Rails.application.routes.draw do
 		end
 
 		resources :form_templates, only: [:index, :update]
-		resources :enrollment_form_signatures, only: [:index, :create]
+		resources :enrollment_form_signatures, only: [:index, :create] do
+			member do
+				get :pdf
+			end
+		end
 
 		# Parent portal (parent role only, scoped to their family)
 		get 'portal/overview', to: 'portal#overview'
@@ -101,6 +105,7 @@ Rails.application.routes.draw do
 		get 'portal/forms', to: 'portal#forms'
 		post 'portal/forms/:id/sign', to: 'portal#sign_form'
 		post 'portal/forms/:id/view', to: 'portal#view_form'
+		get 'portal/forms/:id/pdf', to: 'portal#form_pdf'
 
 		# Admin integration settings (Gmail mailbox connection)
 		namespace :admin do

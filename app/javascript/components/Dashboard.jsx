@@ -59,6 +59,7 @@ import EmailsPage from "./pages/EmailsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
+import ParentFormSignPage from "./pages/ParentFormSignPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 
 const drawerWidth = 220;
@@ -307,6 +308,9 @@ export default function Dashboard() {
                         )}
                         {isParent && (
                             <Route path="/forms" element={<ParentFormsPage />} />
+                        )}
+                        {isParent && (
+                            <Route path="/forms/:id/sign" element={<ParentFormSignPage />} />
                         )}
                         <Route
                             path="/programs/:id"
