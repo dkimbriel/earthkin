@@ -16,10 +16,11 @@
 	<body>
 		<%= yield %>
 
-		<% if ENV['USERBACK_ACCESS_TOKEN'].present? && user_signed_in? %>
+		<% userback_token = Rails.application.credentials.userback_access_token.presence || ENV['USERBACK_ACCESS_TOKEN'] %>
+		<% if userback_token.present? && user_signed_in? %>
 			<script>
 				window.Userback = window.Userback || {};
-				Userback.access_token = '<%= j ENV['USERBACK_ACCESS_TOKEN'] %>';
+				Userback.access_token = '<%= j userback_token %>';
 				Userback.user_data = {
 					id: '<%= j current_user.id.to_s %>',
 					info: { email: '<%= j current_user.email %>' }
