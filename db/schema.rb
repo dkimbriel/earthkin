@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_10_000004) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_10_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -153,6 +153,24 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000004) do
     t.index ["status"], name: "index_enrollment_applications_on_status"
   end
 
+  create_table "enrollment_form_signatures", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "child_id", null: false
+    t.uuid "form_template_id", null: false
+    t.uuid "enrollment_application_id"
+    t.string "status", default: "pending", null: false
+    t.string "signed_by_name"
+    t.string "signed_by_email"
+    t.string "signature_ip"
+    t.datetime "signed_at"
+    t.text "form_body_snapshot"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["child_id", "form_template_id", "enrollment_application_id"], name: "index_form_signatures_uniqueness", unique: true
+    t.index ["child_id"], name: "index_enrollment_form_signatures_on_child_id"
+    t.index ["enrollment_application_id"], name: "index_enrollment_form_signatures_on_enrollment_application_id"
+    t.index ["form_template_id"], name: "index_enrollment_form_signatures_on_form_template_id"
+  end
+
   create_table "enrollment_payment_plans", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "program_enrollment_id", null: false
     t.uuid "payment_plan_id", null: false
@@ -197,6 +215,15 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000004) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "form_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key", null: false
+    t.string "name", null: false
+    t.text "body", default: "", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_form_templates_on_key", unique: true
   end
 
   create_table "gmail_integrations", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -365,6 +392,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000004) do
   add_foreign_key "enrollment_applications", "payment_plans", column: "selected_payment_plan_id"
   add_foreign_key "enrollment_applications", "program_enrollments"
   add_foreign_key "enrollment_applications", "programs"
+  add_foreign_key "enrollment_form_signatures", "children"
+  add_foreign_key "enrollment_form_signatures", "enrollment_applications"
+  add_foreign_key "enrollment_form_signatures", "form_templates"
   add_foreign_key "enrollment_payment_plans", "payment_plans"
   add_foreign_key "enrollment_payment_plans", "program_enrollments"
   add_foreign_key "events", "locations"

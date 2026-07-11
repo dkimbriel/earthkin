@@ -79,6 +79,31 @@ module Api
 			}
 		end
 
+		def forms
+			signatures = EnrollmentFormSignature
+				.includes(:child, :form_template)
+				.where(child_id: family.children.select(:id))
+				.order(:created_at)
+
+			render json: signatures.map { |s| s.as_json.merge(form_body: s.signed? ? s.form_body_snapshot : s.form_template.body) }
+		end
+
+		def sign_form
+			signature = EnrollmentFormSignature
+				.where(child_id: family.children.select(:id))
+				.find(params[:id])
+
+			signature.sign!(
+				name: params[:signed_by_name],
+				email: current_user.email,
+				ip: request.remote_ip
+			)
+
+			render json: signature.as_json
+		rescue ArgumentError => e
+			render json: { error: e.message }, status: :unprocessable_content
+		end
+
 		private
 
 		def require_parent!

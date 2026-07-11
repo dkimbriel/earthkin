@@ -110,6 +110,8 @@ class EnrollmentWorkflowService
       @application.send_enrollment_forms!
       @application.program_enrollment&.advance_workflow_to!('signing_docs')
 
+      create_pending_form_signatures
+
       email_service = EmailTrackingService.new(@application)
       email_service.send_email('EnrollmentMailer', 'enrollment_forms', [@application.id])
     end
@@ -130,6 +132,20 @@ class EnrollmentWorkflowService
   end
 
   private
+
+  # Issue the four standard enrollment forms for e-signature in the parent
+  # portal. Skipped when the application has no linked child yet.
+  def create_pending_form_signatures
+    return unless @application.child
+
+    FormTemplate.ensure_defaults!.each do |form|
+      EnrollmentFormSignature.find_or_create_by!(
+        child: @application.child,
+        form_template: form,
+        enrollment_application: @application
+      )
+    end
+  end
 
   def find_or_create_family
     # Try to find existing parent by email

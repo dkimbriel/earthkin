@@ -17,7 +17,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DataTable from "../shared/DataTable";
 import ConfirmDialog from "../shared/ConfirmDialog";
-import { emailsApi, emailTemplatesApi, parentsApi } from "../../utils/api";
+import { emailsApi, emailTemplatesApi, formTemplatesApi, parentsApi } from "../../utils/api";
 
 const STATUS_COLORS = { sent: "success", failed: "error", bounced: "error", queued: "warning", draft: "info" };
 
@@ -262,6 +262,62 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 	);
 }
 
+function FormTemplateDialog({ open, onClose, initial, onSaved }) {
+	const [form, setForm] = useState({ name: initial.name, body: initial.body });
+	const [error, setError] = useState(null);
+	const [busy, setBusy] = useState(false);
+
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		setError(null);
+		setBusy(true);
+		try {
+			await formTemplatesApi.update(initial.id, form);
+			onSaved();
+			onClose();
+		} catch (err) {
+			setError(err.message);
+		} finally {
+			setBusy(false);
+		}
+	};
+
+	return (
+		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+			<form onSubmit={handleSubmit}>
+				<DialogTitle>Edit {initial.name}</DialogTitle>
+				<DialogContent>
+					{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+						<TextField
+							label="Form Name"
+							value={form.name}
+							onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+							required
+							fullWidth
+						/>
+						<TextField
+							label="Form Text (what parents read and sign)"
+							value={form.body}
+							onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
+							multiline
+							rows={16}
+							required
+							fullWidth
+						/>
+					</Box>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={onClose}>Cancel</Button>
+					<Button type="submit" variant="contained" disabled={busy}>
+						{busy ? "Saving..." : "Save"}
+					</Button>
+				</DialogActions>
+			</form>
+		</Dialog>
+	);
+}
+
 export default function EmailsPage() {
 	const [tab, setTab] = useState(0);
 	const [emails, setEmails] = useState([]);
@@ -274,18 +330,22 @@ export default function EmailsPage() {
 	const [viewEmail, setViewEmail] = useState(null);
 	const [showTemplateForm, setShowTemplateForm] = useState(false);
 	const [editTemplate, setEditTemplate] = useState(null);
+	const [formTemplates, setFormTemplates] = useState([]);
+	const [editFormTemplate, setEditFormTemplate] = useState(null);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 
 	const load = async () => {
 		setLoading(true);
 		try {
-			const [emailData, templateData] = await Promise.all([
+			const [emailData, templateData, formTemplateData] = await Promise.all([
 				emailsApi.list(),
 				emailTemplatesApi.list(),
+				formTemplatesApi.list(),
 			]);
 			setEmails(emailData);
 			setTemplates(templateData.templates);
 			setKnownKeys(templateData.known_keys);
+			setFormTemplates(formTemplateData);
 		} finally {
 			setLoading(false);
 		}
@@ -336,11 +396,12 @@ export default function EmailsPage() {
 		<Box>
 			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
 				<Typography variant="h5" component="h1">Emails</Typography>
-				{tab === 2 ? (
+				{tab === 2 && (
 					<Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowTemplateForm(true)}>
 						New Template
 					</Button>
-				) : (
+				)}
+				{tab < 2 && (
 					<Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowCompose(true)}>
 						New Email
 					</Button>
@@ -351,6 +412,7 @@ export default function EmailsPage() {
 				<Tab label={`Sent & Log (${log.length})`} />
 				<Tab label={`Drafts (${drafts.length})`} />
 				<Tab label={`Templates (${templates.length})`} />
+				<Tab label="Enrollment Forms" />
 			</Tabs>
 
 			{tab === 0 && (
@@ -382,6 +444,33 @@ export default function EmailsPage() {
 					onRowClick={(row) => setEditTemplate(row)}
 					onDelete={(row) => setDeleteTarget({ type: "template", row })}
 					emptyMessage="No templates yet. Templates can override workflow emails or seed manual emails."
+				/>
+			)}
+
+			{tab === 3 && (
+				<DataTable
+					columns={[
+						{ key: "name", label: "Form" },
+						{
+							key: "body",
+							label: "Text",
+							render: (row) => `${row.body.slice(0, 80)}${row.body.length > 80 ? "…" : ""}`,
+						},
+					]}
+					data={formTemplates}
+					loading={loading}
+					onRowClick={(row) => setEditFormTemplate(row)}
+					emptyMessage="Forms appear here once loaded."
+				/>
+			)}
+
+			{editFormTemplate && (
+				<FormTemplateDialog
+					key={editFormTemplate.id}
+					open
+					onClose={() => setEditFormTemplate(null)}
+					initial={editFormTemplate}
+					onSaved={load}
 				/>
 			)}
 

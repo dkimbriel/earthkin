@@ -176,6 +176,18 @@ export const portalApi = {
 	overview: () => api.get("/api/portal/overview"),
 	events: () => api.get("/api/portal/events"),
 	payments: () => api.get("/api/portal/payments"),
+	forms: () => api.get("/api/portal/forms"),
+	signForm: (id, signedByName) => api.post(`/api/portal/forms/${id}/sign`, { signed_by_name: signedByName }),
+};
+
+export const formTemplatesApi = {
+	list: () => api.get("/api/form_templates"),
+	update: (id, data) => api.patch(`/api/form_templates/${id}`, { form_template: data }),
+};
+
+export const formSignaturesApi = {
+	listByFamily: (familyId) => api.get(`/api/enrollment_form_signatures?family_id=${familyId}`),
+	issueForChild: (childId) => api.post("/api/enrollment_form_signatures", { child_id: childId }),
 };
 
 export const contentItemsApi = {

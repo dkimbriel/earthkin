@@ -55,6 +55,7 @@ import ContentPage from "./pages/ContentPage";
 import EmailsPage from "./pages/EmailsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
+import ParentFormsPage from "./pages/ParentFormsPage";
 
 const drawerWidth = 220;
 
@@ -98,6 +99,7 @@ export default function Dashboard() {
             { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
             { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
             { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
+            { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
         ]
         : isTeacher
             ? teacherNavItems
@@ -271,6 +273,9 @@ export default function Dashboard() {
                         />
                         {isParent && (
                             <Route path="/payments" element={<ParentPaymentsPage />} />
+                        )}
+                        {isParent && (
+                            <Route path="/forms" element={<ParentFormsPage />} />
                         )}
                         <Route
                             path="/programs/:id"
