@@ -12,18 +12,19 @@ module Api
     def create
       enrollment_plan = EnrollmentPaymentPlan.new(enrollment_plan_params)
 
-      # Copy installment schedule from payment plan
       payment_plan = PaymentPlan.find(enrollment_plan_params[:payment_plan_id])
+      enrollment = ProgramEnrollment.find(enrollment_plan_params[:program_enrollment_id])
 
-      # Build installment snapshot
-      enrollment_plan.installments = payment_plan.installment_schedule.map do |schedule|
-        year = schedule['month'] >= 8 ? 2026 : 2027
-        {
-          due_date: Date.new(year, schedule['month'], schedule['day']).to_s,
-          amount: schedule['amount'],
-          status: 'pending',
-          paid_at: nil
-        }
+      enrollment_plan.total_amount = payment_plan.total_amount if enrollment_plan.total_amount.blank?
+      enrollment_plan.enrollment_fee = 0 if enrollment_plan.enrollment_fee.blank?
+
+      # Due dates anchor to the program start date (a program starting on the
+      # 24th bills on the 24th of each month), unless a start date is given.
+      start_date = params.dig(:enrollment_payment_plan, :start_date).presence ||
+                   enrollment.program.start_date ||
+                   Date.current
+      enrollment_plan.installments = payment_plan.generate_schedule(start_date).map do |installment|
+        installment.merge('paid_at' => nil)
       end
 
       if enrollment_plan.save

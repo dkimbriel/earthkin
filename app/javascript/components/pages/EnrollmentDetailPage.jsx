@@ -26,7 +26,7 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
-import { programEnrollmentsApi, paymentsApi } from "../../utils/api";
+import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 
 const getPaymentColumns = (onSendInvoice) => [
     {
@@ -93,6 +93,8 @@ export default function EnrollmentDetailPage() {
     const [showClasses, setShowClasses] = useState(false);
     const [showCancelForm, setShowCancelForm] = useState(false);
     const [invoiceMessage, setInvoiceMessage] = useState(null);
+    const [showPlanForm, setShowPlanForm] = useState(false);
+    const [paymentPlans, setPaymentPlans] = useState([]);
 
     const loadEnrollment = async () => {
         setLoading(true);
@@ -110,6 +112,23 @@ export default function EnrollmentDetailPage() {
 
     const handleCreatePayment = async (formData) => {
         await paymentsApi.create({ ...formData, program_enrollment_id: id });
+        loadEnrollment();
+    };
+
+    const openPlanForm = async () => {
+        const plans = await paymentPlansApi.list(enrollment.program?.id, true);
+        setPaymentPlans(plans);
+        setShowPlanForm(true);
+    };
+
+    const handleCreatePlan = async (formData) => {
+        await enrollmentPaymentPlansApi.create({
+            program_enrollment_id: id,
+            payment_plan_id: formData.payment_plan_id,
+            total_amount: formData.total_amount || null,
+            enrollment_fee: formData.enrollment_fee || 0,
+            start_date: formData.start_date || null,
+        });
         loadEnrollment();
     };
 
@@ -363,13 +382,23 @@ export default function EnrollmentDetailPage() {
                                     )}
                                 </Typography>
                             ) : (
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{ mt: 1 }}
-                                >
-                                    {enrollment.billable_classes?.length || 0} classes × ${parseFloat(enrollment.rate_per_class || 0).toFixed(2)}
-                                </Typography>
+                                <>
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ mt: 1 }}
+                                    >
+                                        {enrollment.billable_classes?.length || 0} classes × ${parseFloat(enrollment.rate_per_class || 0).toFixed(2)}
+                                    </Typography>
+                                    <Button
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ mt: 1 }}
+                                        onClick={openPlanForm}
+                                    >
+                                        Add Payment Plan
+                                    </Button>
+                                </>
                             )}
                         </CardContent>
                     </Card>
@@ -438,6 +467,46 @@ export default function EnrollmentDetailPage() {
                 title="Record Payment"
                 fields={paymentFormFields}
             />
+
+            {showPlanForm && (
+                <FormDialog
+                    open={showPlanForm}
+                    onClose={() => setShowPlanForm(false)}
+                    onSubmit={handleCreatePlan}
+                    title="Add Payment Plan"
+                    fields={[
+                        {
+                            name: "payment_plan_id",
+                            label: "Payment Plan",
+                            type: "select",
+                            required: true,
+                            options: paymentPlans.map((p) => ({
+                                value: p.id,
+                                label: `${p.name} — $${parseFloat(p.total_amount).toFixed(2)} (${p.installment_count} payments)`,
+                            })),
+                        },
+                        {
+                            name: "total_amount",
+                            label: "Total Tuition ($)",
+                            type: "number",
+                            helperText: "Leave blank to use the plan's standard amount.",
+                        },
+                        {
+                            name: "enrollment_fee",
+                            label: "Enrollment Fee ($)",
+                            type: "number",
+                            defaultValue: "0",
+                        },
+                        {
+                            name: "start_date",
+                            label: "First Payment Due",
+                            type: "date",
+                            defaultValue: enrollment.program?.start_date || "",
+                            helperText: "Defaults to the program start date — monthly payments fall on this day of the month.",
+                        },
+                    ]}
+                />
+            )}
 
             <FormDialog
                 open={showEditForm}
