@@ -89,19 +89,30 @@ module Api
 		end
 
 		def sign_form
-			signature = EnrollmentFormSignature
-				.where(child_id: family.children.select(:id))
-				.find(params[:id])
+			signature = family_form_signatures.find(params[:id])
 
 			signature.sign!(
 				name: params[:signed_by_name],
 				email: current_user.email,
-				ip: request.remote_ip
+				ip: request.remote_ip,
+				user_agent: request.user_agent,
+				response_text: params[:response_text]
 			)
 
 			render json: signature.as_json
 		rescue ArgumentError => e
 			render json: { error: e.message }, status: :unprocessable_content
+		end
+
+		# Logged when a parent opens a form to read it — part of the audit trail.
+		def view_form
+			signature = family_form_signatures.find(params[:id])
+			signature.record_view!(
+				email: current_user.email,
+				ip: request.remote_ip,
+				user_agent: request.user_agent
+			)
+			head :ok
 		end
 
 		private
@@ -118,6 +129,10 @@ module Api
 
 		def family_enrollments
 			ProgramEnrollment.where(child_id: family.children.select(:id))
+		end
+
+		def family_form_signatures
+			EnrollmentFormSignature.where(child_id: family.children.select(:id))
 		end
 
 		def enrollment_json(enrollment)

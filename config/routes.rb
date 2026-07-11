@@ -100,6 +100,7 @@ Rails.application.routes.draw do
 		get 'portal/payments', to: 'portal#payments'
 		get 'portal/forms', to: 'portal#forms'
 		post 'portal/forms/:id/sign', to: 'portal#sign_form'
+		post 'portal/forms/:id/view', to: 'portal#view_form'
 
 		# Admin integration settings (Gmail mailbox connection)
 		namespace :admin do

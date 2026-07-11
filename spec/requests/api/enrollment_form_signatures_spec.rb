@@ -56,10 +56,13 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(json.first['form_body']).to be_present
     end
 
-    it 'signs a form recording name, time, and form snapshot' do
+    it 'signs a form recording name, time, answers, and form snapshot' do
       signature = child.enrollment_form_signatures.first
 
-      post "/api/portal/forms/#{signature.id}/sign", params: { signed_by_name: 'Jane Parent' }
+      post "/api/portal/forms/#{signature.id}/sign", params: {
+        signed_by_name: 'Jane Parent',
+        response_text: "1. Answer one\n2. Answer two"
+      }
 
       expect(response).to have_http_status(:ok)
       signature.reload
@@ -68,6 +71,40 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(signature.signed_at).to be_present
       expect(signature.signed_by_email).to eq(parent_user.email)
       expect(signature.form_body_snapshot).to eq(signature.form_template.body)
+      expect(signature.response_text).to include('Answer one')
+    end
+
+    it 'keeps a DocuSign-style audit trail: issued, viewed, signed with checksum' do
+      signature = child.enrollment_form_signatures.first
+      expect(signature.audit_log.map { |e| e['event'] }).to eq(['issued'])
+
+      post "/api/portal/forms/#{signature.id}/view"
+      expect(response).to have_http_status(:ok)
+
+      post "/api/portal/forms/#{signature.id}/sign", params: { signed_by_name: 'Jane Parent' }
+
+      log = signature.reload.audit_log
+      expect(log.map { |e| e['event'] }).to eq(%w[issued viewed signed])
+
+      viewed = log.find { |e| e['event'] == 'viewed' }
+      expect(viewed['by']).to eq(parent_user.email)
+      expect(viewed['ip']).to be_present
+
+      signed = log.find { |e| e['event'] == 'signed' }
+      expect(signed['by']).to eq('Jane Parent')
+      expect(signed['document_sha256']).to eq(Digest::SHA256.hexdigest(signature.form_template.body))
+    end
+
+    it 'blocks cross-family view tracking' do
+      other_child = create(:child, family: create(:family))
+      sign_in admin
+      post '/api/enrollment_form_signatures', params: { child_id: other_child.id }
+      sign_out admin
+      sign_in parent_user
+
+      post "/api/portal/forms/#{other_child.enrollment_form_signatures.first.id}/view"
+
+      expect(response).to have_http_status(:not_found)
     end
 
     it 'rejects signing without a name' do

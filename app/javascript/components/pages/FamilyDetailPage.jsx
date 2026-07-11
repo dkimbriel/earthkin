@@ -1,6 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Typography, Button, Paper, Chip } from "@mui/material";
+import {
+	Box,
+	Typography,
+	Button,
+	Paper,
+	Chip,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	Table,
+	TableHead,
+	TableBody,
+	TableRow,
+	TableCell,
+} from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
@@ -83,6 +98,7 @@ export default function FamilyDetailPage() {
 	const [showChildForm, setShowChildForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [signatures, setSignatures] = useState([]);
+	const [auditTarget, setAuditTarget] = useState(null);
 
 	const loadSignatures = async () => {
 		try {
@@ -275,6 +291,8 @@ export default function FamilyDetailPage() {
 											color={sig.status === "signed" ? "success" : "warning"}
 											variant={sig.status === "signed" ? "filled" : "outlined"}
 											size="small"
+											onClick={() => setAuditTarget(sig)}
+											clickable
 										/>
 									))}
 								</Box>
@@ -283,6 +301,91 @@ export default function FamilyDetailPage() {
 					);
 				})}
 			</Paper>
+
+			{auditTarget && (
+				<Dialog open onClose={() => setAuditTarget(null)} maxWidth="md" fullWidth>
+					<DialogTitle>
+						{auditTarget.form_name} — {auditTarget.child_name}
+					</DialogTitle>
+					<DialogContent>
+						{auditTarget.status === "signed" ? (
+							<>
+								<Typography sx={{ fontFamily: '"Snell Roundhand", "Brush Script MT", "Segoe Script", cursive', fontSize: "2rem" }}>
+									{auditTarget.signed_by_name}
+								</Typography>
+								<Typography variant="body2" color="text.secondary" gutterBottom>
+									Signed by {auditTarget.signed_by_name}
+									{auditTarget.signed_by_email ? ` (${auditTarget.signed_by_email})` : ""} on{" "}
+									{new Date(auditTarget.signed_at).toLocaleString()}
+								</Typography>
+							</>
+						) : (
+							<Typography variant="body2" color="text.secondary" gutterBottom>
+								Awaiting signature.
+							</Typography>
+						)}
+
+						{auditTarget.response_text && (
+							<>
+								<Typography variant="subtitle2" sx={{ mt: 2 }}>Family's answers</Typography>
+								<Paper variant="outlined" sx={{ p: 2, whiteSpace: "pre-wrap", maxHeight: 240, overflow: "auto" }}>
+									{auditTarget.response_text}
+								</Paper>
+							</>
+						)}
+
+						{auditTarget.audit_log?.length > 0 && (
+							<>
+								<Typography variant="subtitle2" sx={{ mt: 2 }}>Signing history</Typography>
+								<Table size="small">
+									<TableHead>
+										<TableRow>
+											<TableCell>Event</TableCell>
+											<TableCell>When</TableCell>
+											<TableCell>Who</TableCell>
+											<TableCell>IP Address</TableCell>
+										</TableRow>
+									</TableHead>
+									<TableBody>
+										{auditTarget.audit_log.map((entry, i) => (
+											<TableRow key={i}>
+												<TableCell>
+													<Chip
+														size="small"
+														label={entry.event}
+														color={entry.event === "signed" ? "success" : entry.event === "viewed" ? "info" : "default"}
+													/>
+												</TableCell>
+												<TableCell>{new Date(entry.at).toLocaleString()}</TableCell>
+												<TableCell>{entry.by || entry.email || "—"}</TableCell>
+												<TableCell>{entry.ip || "—"}</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+								{auditTarget.audit_log.find((e) => e.document_sha256) && (
+									<Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+										Document fingerprint (SHA-256):{" "}
+										{auditTarget.audit_log.find((e) => e.document_sha256).document_sha256}
+									</Typography>
+								)}
+							</>
+						)}
+
+						{auditTarget.form_body_snapshot && (
+							<>
+								<Typography variant="subtitle2" sx={{ mt: 2 }}>Form text as signed</Typography>
+								<Paper variant="outlined" sx={{ p: 2, whiteSpace: "pre-wrap", maxHeight: 240, overflow: "auto" }}>
+									{auditTarget.form_body_snapshot}
+								</Paper>
+							</>
+						)}
+					</DialogContent>
+					<DialogActions>
+						<Button onClick={() => setAuditTarget(null)}>Close</Button>
+					</DialogActions>
+				</Dialog>
+			)}
 
 			<FormDialog
 				open={showParentForm}
