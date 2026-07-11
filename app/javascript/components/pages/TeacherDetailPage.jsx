@@ -15,8 +15,10 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { teachersApi } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function TeacherDetailPage() {
+	const { user } = useAuth();
 	const { id } = useParams();
 	const navigate = useNavigate();
 	const fileInputRef = useRef(null);
@@ -115,20 +117,22 @@ export default function TeacherDetailPage() {
 						>
 							{teacher.first_name?.[0]}{teacher.last_name?.[0]}
 						</Avatar>
-						<IconButton
-							sx={{
-								position: "absolute",
-								bottom: 0,
-								right: 0,
-								backgroundColor: "background.paper",
-								"&:hover": { backgroundColor: "action.hover" },
-							}}
-							size="small"
-							onClick={handleAvatarClick}
-							disabled={saving}
-						>
-							<PhotoCameraIcon fontSize="small" />
-						</IconButton>
+						{(user?.role === "admin" || user?.teacher_id === teacher.id) && (
+							<IconButton
+								sx={{
+									position: "absolute",
+									bottom: 0,
+									right: 0,
+									backgroundColor: "background.paper",
+									"&:hover": { backgroundColor: "action.hover" },
+								}}
+								size="small"
+								onClick={handleAvatarClick}
+								disabled={saving}
+							>
+								<PhotoCameraIcon fontSize="small" />
+							</IconButton>
+						)}
 						<input
 							type="file"
 							ref={fileInputRef}
@@ -206,9 +210,11 @@ export default function TeacherDetailPage() {
 									<Typography variant="h4">
 										{teacher.full_name}
 									</Typography>
-									<IconButton size="small" onClick={() => setEditing(true)}>
-										<EditIcon fontSize="small" />
-									</IconButton>
+									{(user?.role === "admin" || user?.teacher_id === teacher.id) && (
+										<IconButton size="small" onClick={() => setEditing(true)}>
+											<EditIcon fontSize="small" />
+										</IconButton>
+									)}
 								</Box>
 								<Typography color="text.secondary" gutterBottom>
 									{teacher.email}

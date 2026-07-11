@@ -27,6 +27,7 @@ import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const getPaymentColumns = (onSendInvoice) => [
     {
@@ -62,25 +63,29 @@ const getPaymentColumns = (onSendInvoice) => [
         ),
     },
     { key: "notes", label: "Notes", render: (row) => row.notes || "—" },
-    {
-        key: "actions",
-        label: "Actions",
-        render: (row) => (
-            <Button
-                size="small"
-                startIcon={<EmailIcon />}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onSendInvoice(row.id, row.status);
-                }}
-            >
-                {row.status === "completed" ? "Send Receipt" : "Send Invoice"}
-            </Button>
-        ),
-    },
+    ...(onSendInvoice
+        ? [{
+            key: "actions",
+            label: "Actions",
+            render: (row) => (
+                <Button
+                    size="small"
+                    startIcon={<EmailIcon />}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onSendInvoice(row.id, row.status);
+                    }}
+                >
+                    {row.status === "completed" ? "Send Receipt" : "Send Invoice"}
+                </Button>
+            ),
+        }]
+        : []),
 ];
 
 export default function EnrollmentDetailPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
     const { id } = useParams();
     const navigate = useNavigate();
     const location = useLocation();
@@ -309,14 +314,16 @@ export default function EnrollmentDetailPage() {
                         variant="outlined"
                     />
                 )}
-                <Button
-                    size="small"
-                    startIcon={<EditIcon />}
-                    onClick={() => setShowEditForm(true)}
-                >
-                    Edit
-                </Button>
-                {enrollment.status !== "cancelled" && (
+                {isAdmin && (
+                    <Button
+                        size="small"
+                        startIcon={<EditIcon />}
+                        onClick={() => setShowEditForm(true)}
+                    >
+                        Edit
+                    </Button>
+                )}
+                {isAdmin && enrollment.status !== "cancelled" && (
                     <Button
                         size="small"
                         color="error"
@@ -395,6 +402,7 @@ export default function EnrollmentDetailPage() {
                                         variant="outlined"
                                         sx={{ mt: 1 }}
                                         onClick={openPlanForm}
+                                        style={isAdmin ? undefined : { display: "none" }}
                                     >
                                         Add Payment Plan
                                     </Button>
@@ -439,7 +447,7 @@ export default function EnrollmentDetailPage() {
             <Paper sx={{ p: 3 }}>
                 <PageHeader
                     title="Payments"
-                    onAdd={() => setShowPaymentForm(true)}
+                    onAdd={isAdmin ? () => setShowPaymentForm(true) : undefined}
                     addLabel="Record Payment"
                 />
                 {invoiceMessage && (
@@ -452,10 +460,10 @@ export default function EnrollmentDetailPage() {
                     </Alert>
                 )}
                 <DataTable
-                    columns={getPaymentColumns(handleSendInvoice)}
+                    columns={getPaymentColumns(isAdmin ? handleSendInvoice : null)}
                     data={enrollment.payments}
                     loading={false}
-                    onDelete={setDeleteTarget}
+                    onDelete={isAdmin ? setDeleteTarget : undefined}
                     emptyMessage="No payments recorded yet."
                 />
             </Paper>

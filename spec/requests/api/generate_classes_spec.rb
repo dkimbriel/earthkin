@@ -33,15 +33,19 @@ RSpec.describe 'Api::Programs generate_classes', type: :request do
     expect(json['created_count']).to eq(6) # 9 minus existing 9/1, skipped 9/3 and 9/8
   end
 
-  it 'accepts explicit days and date range' do
+  it 'accepts explicit days, date range, and location' do
+    location = create(:location)
+
     post "/api/programs/#{program.id}/generate_classes", params: {
       days_of_week: ['friday'],
       start_date: '2026-09-01',
-      end_date: '2026-09-15'
+      end_date: '2026-09-15',
+      location_id: location.id
     }
 
     json = JSON.parse(response.body)
     expect(json['created_count']).to eq(2) # Fridays 9/4 and 9/11
+    expect(program.program_classes.pluck(:location_id).uniq).to eq([location.id])
   end
 
   it 'errors when no days can be determined' do

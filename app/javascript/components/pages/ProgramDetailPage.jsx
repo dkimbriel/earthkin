@@ -43,6 +43,7 @@ import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import GenerateClassesDialog from "../shared/GenerateClassesDialog";
+import { useAuth } from "../../contexts/AuthContext";
 import {
     programsApi,
     programClassesApi,
@@ -169,6 +170,8 @@ const formatSchedule = (schedule) => {
 // paymentPlanColumns is defined inside the component to access state
 
 export default function ProgramDetailPage() {
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
     const { id } = useParams();
     const navigate = useNavigate();
     const [program, setProgram] = useState(null);
@@ -515,21 +518,25 @@ export default function ProgramDetailPage() {
                     >
                         Get Enrollment Application Link
                     </Button>
-                    <Button
-                        startIcon={<EmailIcon />}
-                        variant="contained"
-                        color="primary"
-                        onClick={() => setShowInviteModal(true)}
-                    >
-                        Send Enrollment Invite
-                    </Button>
-                    <Button
-                        startIcon={<EditIcon />}
-                        variant="outlined"
-                        onClick={() => navigate(`/programs/${id}/edit`)}
-                    >
-                        Edit Program
-                    </Button>
+                    {isAdmin && (
+                        <Button
+                            startIcon={<EmailIcon />}
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setShowInviteModal(true)}
+                        >
+                            Send Enrollment Invite
+                        </Button>
+                    )}
+                    {isAdmin && (
+                        <Button
+                            startIcon={<EditIcon />}
+                            variant="outlined"
+                            onClick={() => navigate(`/programs/${id}/edit`)}
+                        >
+                            Edit Program
+                        </Button>
+                    )}
                 </Box>
             </Box>
 
@@ -636,7 +643,7 @@ export default function ProgramDetailPage() {
             <Paper id="teachers-section" sx={{ p: 3, mb: 3 }}>
                 <PageHeader
                     title="Teachers"
-                    onAdd={availableTeachers.length > 0 ? () => setShowTeacherForm(true) : undefined}
+                    onAdd={isAdmin && availableTeachers.length > 0 ? () => setShowTeacherForm(true) : undefined}
                     addLabel="Assign Teacher"
                 />
                 {program.teachers?.length > 0 ? (
@@ -650,7 +657,7 @@ export default function ProgramDetailPage() {
                                     </Avatar>
                                 }
                                 label={`${teacher.first_name} ${teacher.last_name}`}
-                                onDelete={() => handleUnassignTeacher(teacher.id)}
+                                onDelete={isAdmin ? () => handleUnassignTeacher(teacher.id) : undefined}
                                 onClick={() => navigate(`/teachers/${teacher.id}`)}
                                 clickable
                             />
@@ -664,27 +671,29 @@ export default function ProgramDetailPage() {
             <Paper id="classes-section" sx={{ p: 3, mb: 3 }}>
                 <PageHeader
                     title="Classes"
-                    onAdd={() => setShowClassForm(true)}
+                    onAdd={isAdmin ? () => setShowClassForm(true) : undefined}
                     addLabel="Add Class"
                     actions={
-                        <Button
-                            variant="outlined"
-                            startIcon={<EventRepeatIcon />}
-                            onClick={() => setShowGenerateForm(true)}
-                        >
-                            Generate from Pattern
-                        </Button>
+                        isAdmin ? (
+                            <Button
+                                variant="outlined"
+                                startIcon={<EventRepeatIcon />}
+                                onClick={() => setShowGenerateForm(true)}
+                            >
+                                Generate from Pattern
+                            </Button>
+                        ) : undefined
                     }
                 />
                 <DataTable
                     columns={classColumns}
                     data={program.program_classes}
                     loading={false}
-                    onDelete={(item) =>
-                        setDeleteTarget({ type: "class", item })
+                    onDelete={isAdmin ? (item) =>
+                        setDeleteTarget({ type: "class", item }) : undefined
                     }
                     canDelete={isClassInFuture}
-                    onRowClick={(row) => navigate(`/classes/${row.id}/edit`)}
+                    onRowClick={isAdmin ? (row) => navigate(`/classes/${row.id}/edit`) : undefined}
                     canRowClick={isClassInFuture}
                     emptyMessage="No classes scheduled yet."
                 />
@@ -694,7 +703,7 @@ export default function ProgramDetailPage() {
                 <PageHeader
                     title="Enrollments"
                     onAdd={
-                        availableChildren.length > 0
+                        isAdmin && availableChildren.length > 0
                             ? () => setShowEnrollmentForm(true)
                             : undefined
                     }
@@ -712,15 +721,15 @@ export default function ProgramDetailPage() {
             <Paper id="payment-plans-section" sx={{ p: 3 }}>
                 <PageHeader
                     title="Payment Plans"
-                    onAdd={() => setShowPaymentPlanForm(true)}
+                    onAdd={isAdmin ? () => setShowPaymentPlanForm(true) : undefined}
                     addLabel="Add Payment Plan"
                 />
                 <DataTable
                     columns={paymentPlanColumns}
                     data={paymentPlans}
                     loading={false}
-                    onEdit={(row) => setEditingPaymentPlan(row)}
-                    onDelete={(row) => setDeletePaymentPlanTarget(row)}
+                    onEdit={isAdmin ? (row) => setEditingPaymentPlan(row) : undefined}
+                    onDelete={isAdmin ? (row) => setDeletePaymentPlanTarget(row) : undefined}
                     emptyMessage="No payment plans configured yet."
                 />
             </Paper>
@@ -730,6 +739,7 @@ export default function ProgramDetailPage() {
                     open={showGenerateForm}
                     onClose={() => setShowGenerateForm(false)}
                     program={program}
+                    locations={locations}
                     onGenerated={(result) => {
                         setInviteSnackbar({
                             open: true,

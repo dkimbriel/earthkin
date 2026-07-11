@@ -195,15 +195,15 @@ export default function FamilyDetailPage() {
 			<Paper sx={{ p: 3, mb: 3 }}>
 				<PageHeader
 					title="Parents"
-					onAdd={() => setShowParentForm(true)}
+					onAdd={isAdmin ? () => setShowParentForm(true) : undefined}
 					addLabel="Add Parent"
 				/>
 				<DataTable
 					columns={parentColumns}
 					data={family.parents}
 					loading={false}
-					onDelete={(item) => setDeleteTarget({ type: "parent", item })}
-					onRowClick={(row) => navigate(`/parents/${row.id}/edit`)}
+					onDelete={isAdmin ? (item) => setDeleteTarget({ type: "parent", item }) : undefined}
+					onRowClick={isAdmin ? (row) => navigate(`/parents/${row.id}/edit`) : undefined}
 					emptyMessage="No parents added yet."
 				/>
 			</Paper>
@@ -211,14 +211,14 @@ export default function FamilyDetailPage() {
 			<Paper sx={{ p: 3, mb: 3 }}>
 				<PageHeader
 					title="Children"
-					onAdd={() => setShowChildForm(true)}
+					onAdd={isAdmin ? () => setShowChildForm(true) : undefined}
 					addLabel="Add Child"
 				/>
 				<DataTable
 					columns={childColumns}
 					data={family.children}
 					loading={false}
-					onDelete={(item) => setDeleteTarget({ type: "child", item })}
+					onDelete={isAdmin ? (item) => setDeleteTarget({ type: "child", item }) : undefined}
 					onRowClick={(row) => navigate(`/children/${row.id}`)}
 					emptyMessage="No children added yet."
 				/>

@@ -6,6 +6,7 @@ import {
 	DialogActions,
 	Button,
 	TextField,
+	MenuItem,
 	Box,
 	Alert,
 	FormGroup,
@@ -18,12 +19,17 @@ import { programsApi } from "../../utils/api";
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-export default function GenerateClassesDialog({ open, onClose, program, onGenerated }) {
+export default function GenerateClassesDialog({ open, onClose, program, locations = [], onGenerated }) {
 	const defaultDays = DAYS.filter((d) => (program.class_days || "").toLowerCase().includes(d));
+	// Default to where this program's classes already meet (or the only location).
+	const defaultLocationId =
+		program.program_classes?.find((c) => c.location_id)?.location_id ||
+		(locations.length === 1 ? locations[0].id : "");
 	const [days, setDays] = useState(defaultDays);
 	const [startDate, setStartDate] = useState(program.start_date || "");
 	const [endDate, setEndDate] = useState(program.end_date || "");
 	const [skipDates, setSkipDates] = useState("");
+	const [locationId, setLocationId] = useState(defaultLocationId);
 	const [error, setError] = useState(null);
 	const [submitting, setSubmitting] = useState(false);
 
@@ -40,6 +46,7 @@ export default function GenerateClassesDialog({ open, onClose, program, onGenera
 				start_date: startDate,
 				end_date: endDate,
 				skip_dates: skipDates,
+				location_id: locationId || null,
 			});
 			onGenerated(result);
 			onClose();
@@ -89,6 +96,18 @@ export default function GenerateClassesDialog({ open, onClose, program, onGenera
 								slotProps={{ inputLabel: { shrink: true } }}
 							/>
 						</Box>
+						<TextField
+							select
+							label="Location"
+							value={locationId}
+							onChange={(e) => setLocationId(e.target.value)}
+							fullWidth
+						>
+							<MenuItem value="">None</MenuItem>
+							{locations.map((l) => (
+								<MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>
+							))}
+						</TextField>
 						<TextField
 							label="Skip dates (holidays)"
 							value={skipDates}
