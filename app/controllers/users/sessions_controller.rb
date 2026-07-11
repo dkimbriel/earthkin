@@ -3,6 +3,15 @@
 class Users::SessionsController < Devise::SessionsController
 	respond_to :json
 
+	# A sign-in request must always authenticate the submitted credentials.
+	# Otherwise warden returns the already-authenticated session user, so if a
+	# previous sign-out never reached the server (e.g. failed CSRF), "signing
+	# in" as a different account silently keeps the old session.
+	def create
+		sign_out(:user) if user_signed_in?
+		super
+	end
+
 	private
 
 	def respond_with(resource, _opts = {})

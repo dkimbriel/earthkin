@@ -3,12 +3,14 @@ import {
     Route,
     NavLink,
     Navigate,
+    useNavigate,
 } from "react-router-dom";
 import { useState } from "react";
 import {
+    Avatar,
     Box,
     Button,
-    Typography,
+    Chip,
     Drawer,
     List,
     ListItem,
@@ -85,6 +87,7 @@ const superAdminNavItems = [
 
 export default function Dashboard() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
 
     // Single source of truth for the nav bar height, shared by the fixed header
@@ -93,6 +96,21 @@ export default function Dashboard() {
 
     const isParent = user?.role === "parent";
     const isTeacher = user?.role === "teacher";
+
+    const displayName = user?.display_name || user?.email || "";
+    const initials = displayName
+        .split(/\s+/)
+        .map((part) => part[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join("")
+        .toUpperCase();
+    // Parents land on their family home; the staff family pages 403 for them.
+    const profilePath = isParent
+        ? "/dashboard"
+        : isTeacher
+            ? user?.teacher_id && `/teachers/${user.teacher_id}`
+            : "/users";
     const teacherNavItems = baseNavItems.filter((item) =>
         ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
     );
@@ -188,17 +206,25 @@ export default function Dashboard() {
                             }}
                         />
                     </Box>
-                    <Typography
-                        noWrap
+                    <Chip
+                        clickable={Boolean(profilePath)}
+                        onClick={profilePath ? () => navigate(profilePath) : undefined}
+                        avatar={<Avatar>{initials}</Avatar>}
+                        label={displayName}
                         sx={{
-                            display: { xs: "none", sm: "block" },
+                            display: { xs: "none", sm: "flex" },
                             maxWidth: 240,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            color: "common.white",
+                            bgcolor: "rgba(255, 255, 255, 0.15)",
+                            "&:hover, &.MuiChip-clickable:hover": {
+                                bgcolor: "rgba(255, 255, 255, 0.3)",
+                            },
+                            "& .MuiChip-avatar": {
+                                bgcolor: "primary.dark",
+                                color: "common.white",
+                            },
                         }}
-                    >
-                        {user.email}
-                    </Typography>
+                    />
                     <Button sx={{ color: "common.white" }} onClick={logout}>
                         Logout
                     </Button>
