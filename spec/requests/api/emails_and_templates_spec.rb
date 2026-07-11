@@ -35,14 +35,45 @@ RSpec.describe 'Api::Emails and Api::EmailTemplates', type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
-    it 'lists templates with known keys' do
-      create(:email_template)
+    it 'lists a pre-populated template for every workflow email' do
+      create(:email_template, name: 'My Manual Template')
 
       get '/api/email_templates'
 
       json = JSON.parse(response.body)
-      expect(json['templates'].length).to eq(1)
+      expect(json['templates'].map { |t| t['key'] }.compact).to match_array(EmailTemplate::KNOWN_KEYS.keys)
+      expect(json['templates'].map { |t| t['name'] }).to include('My Manual Template')
       expect(json['known_keys']).to have_key('enrollment_fee_request')
+
+      fee_template = json['templates'].find { |t| t['key'] == 'enrollment_fee_request' }
+      expect(fee_template['body']).to include('{{payment_link}}')
+    end
+
+    it 'recreates the default wording after a workflow template is deleted' do
+      get '/api/email_templates'
+      template = EmailTemplate.for('welcome_email')
+      template.update!(body: 'Custom wording {{parent_name}}')
+
+      delete "/api/email_templates/#{template.id}"
+      expect(response).to have_http_status(:no_content)
+
+      get '/api/email_templates'
+      expect(EmailTemplate.for('welcome_email').body).to include('Welcome to Earthkin Nature School!')
+    end
+
+    it 'sends workflow emails using the default template with tokens filled in' do
+      get '/api/email_templates' # seeds the defaults
+
+      family = create(:family)
+      create(:parent, family: family, email: 'mom@example.com')
+      child = create(:child, family: family, first_name: 'Fern')
+      program = create(:program, name: 'Forest Explorers')
+      enrollment = create(:program_enrollment, child: child, program: program)
+
+      mail = EnrollmentMailer.enrollment_confirmed(enrollment.id)
+      expect(mail.subject).to include('Enrollment Confirmed for Fern!')
+      expect(mail.body.encoded).to include('officially welcome Fern to Forest Explorers')
+      expect(mail.body.encoded).not_to include('{{')
     end
 
     it 'is admin-only' do

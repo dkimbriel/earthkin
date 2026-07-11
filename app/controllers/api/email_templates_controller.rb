@@ -6,10 +6,11 @@ module Api
 		before_action :set_template, only: [:update, :destroy]
 
 		def index
+			EmailTemplate.ensure_defaults!
 			templates = EmailTemplate.order(:name)
 			render json: {
 				templates: templates.as_json,
-				# Workflow emails that can be overridden and their placeholders
+				# Workflow emails and the tokens each supports
 				known_keys: EmailTemplate::KNOWN_KEYS
 			}
 		end

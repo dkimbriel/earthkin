@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
 	Box,
 	Chip,
@@ -171,9 +171,31 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 	});
 	const [error, setError] = useState(null);
 	const [busy, setBusy] = useState(false);
+	const subjectRef = useRef(null);
+	const bodyRef = useRef(null);
+	const lastFocused = useRef("body");
 
 	const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
-	const placeholders = form.key ? knownKeys[form.key] || [] : [];
+	const tokens = form.key ? knownKeys[form.key] || [] : [];
+
+	const insertToken = (token) => {
+		const field = lastFocused.current === "subject" ? "subject" : "body";
+		const ref = field === "subject" ? subjectRef : bodyRef;
+		const input = ref.current;
+		const text = `{{${token}}}`;
+		const value = form[field];
+		const start = input?.selectionStart ?? value.length;
+		const end = input?.selectionEnd ?? value.length;
+		const next = value.slice(0, start) + text + value.slice(end);
+		set(field, next);
+		// Restore focus and put the cursor right after the inserted token.
+		setTimeout(() => {
+			if (!input) return;
+			input.focus();
+			const pos = start + text.length;
+			input.setSelectionRange(pos, pos);
+		}, 0);
+	};
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
@@ -197,17 +219,22 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 	return (
 		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
 			<form onSubmit={handleSubmit}>
-				<DialogTitle>{initial?.id ? "Edit Template" : "New Template"}</DialogTitle>
+				<DialogTitle>{initial?.id ? `Edit ${initial.name}` : "New Template"}</DialogTitle>
 				<DialogContent>
 					{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
 						<TextField
 							select
-							label="Overrides workflow email"
+							label="Workflow email"
 							value={form.key}
 							onChange={(e) => set("key", e.target.value)}
 							fullWidth
-							helperText="When set, this template replaces the built-in email for that step. Leave as 'None' for a reusable manual-email template."
+							disabled={!!initial?.key}
+							helperText={
+								initial?.key
+									? "This template is the wording used for this workflow email."
+									: "Pick a workflow email to edit its wording, or leave as 'None' for a reusable manual-email template."
+							}
 						>
 							<MenuItem value="">None (manual email template)</MenuItem>
 							{Object.keys(knownKeys).map((k) => (
@@ -225,6 +252,8 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 							label="Subject"
 							value={form.subject}
 							onChange={(e) => set("subject", e.target.value)}
+							onFocus={() => (lastFocused.current = "subject")}
+							inputRef={subjectRef}
 							required
 							fullWidth
 						/>
@@ -232,19 +261,29 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 							label="Body"
 							value={form.body}
 							onChange={(e) => set("body", e.target.value)}
+							onFocus={() => (lastFocused.current = "body")}
+							inputRef={bodyRef}
 							multiline
-							rows={12}
+							rows={14}
 							required
 							fullWidth
 						/>
-						{placeholders.length > 0 && (
+						{tokens.length > 0 && (
 							<Box>
 								<Typography variant="caption" color="text.secondary">
-									Available placeholders (use as {"{{name}}"}):
+									Tokens — click to insert at the cursor (filled in automatically when the email is sent):
 								</Typography>
 								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
-									{placeholders.map((p) => (
-										<Chip key={p} size="small" label={`{{${p}}}`} />
+									{tokens.map((t) => (
+										<Chip
+											key={t}
+											size="small"
+											label={`{{${t}}}`}
+											onClick={() => insertToken(t)}
+											clickable
+											color="primary"
+											variant="outlined"
+										/>
 									))}
 								</Box>
 							</Box>
@@ -382,7 +421,7 @@ export default function EmailsPage() {
 		{ key: "name", label: "Name" },
 		{
 			key: "key",
-			label: "Overrides",
+			label: "Workflow Email",
 			render: (row) =>
 				row.key ? <Chip size="small" color="primary" label={row.key.replace(/_/g, " ")} /> : "manual only",
 		},
@@ -535,10 +574,16 @@ export default function EmailsPage() {
 					setDeleteTarget(null);
 					load();
 				}}
-				title={deleteTarget?.type === "template" ? "Delete Template" : "Delete Draft"}
+				title={
+					deleteTarget?.type === "template"
+						? deleteTarget?.row?.key ? "Reset Template" : "Delete Template"
+						: "Delete Draft"
+				}
 				message={
 					deleteTarget?.type === "template"
-						? `Delete template "${deleteTarget?.row?.name}"? Workflow emails go back to the built-in default.`
+						? deleteTarget?.row?.key
+							? `Reset "${deleteTarget?.row?.name}" to its default wording? Your edits will be lost.`
+							: `Delete template "${deleteTarget?.row?.name}"?`
 						: `Delete this draft to ${deleteTarget?.row?.recipient}?`
 				}
 			/>

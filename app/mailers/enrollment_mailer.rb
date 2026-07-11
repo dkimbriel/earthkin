@@ -16,7 +16,9 @@ class EnrollmentMailer < ApplicationMailer
         child_name: @application.child_first_name,
         program_name: @program.name,
         meeting_datetime: @event.scheduled_at&.strftime('%B %d at %I:%M %p'),
-        location_name: @location&.name
+        location_name: @location&.name || 'Forest Hill Park',
+        location_address: @location&.address,
+        handbook_url: ENV['FAMILY_HANDBOOK_URL']
       })
     end
 
@@ -55,9 +57,10 @@ class EnrollmentMailer < ApplicationMailer
       return templated_mail(template, to: @application.parent_email, vars: {
         parent_name: @application.parent_first_name,
         child_name: @application.child_first_name,
-        enrollment_fee: @application.effective_enrollment_fee.to_i,
+        enrollment_fee: number_to_delimited(@application.effective_enrollment_fee.to_i),
         payment_link: @application.payment_selection_url,
-        location_name: @location&.name
+        location_name: @location&.name || 'Forest Hill Park',
+        handbook_url: ENV['FAMILY_HANDBOOK_URL']
       })
     end
 
@@ -78,9 +81,15 @@ class EnrollmentMailer < ApplicationMailer
     @payment_plans = PaymentPlan.where(program: @program, active: true).order(:display_order)
 
     if (template = EmailTemplate.for('enrollment_invite'))
+      tuition = @application.effective_tuition_amount || @program.tuition_amount
       return templated_mail(template, to: @application.parent_email, vars: {
         parent_name: @application.parent_first_name,
         program_name: @program.name,
+        program_dates: format_date_range(@program),
+        class_days: @program.class_days.presence || 'select days',
+        time_range: @program.formatted_time_range.presence || 'times TBD',
+        tuition: number_to_delimited(tuition.to_i),
+        enrollment_fee: number_to_delimited(@application.effective_enrollment_fee.to_i),
         enrollment_link: @enrollment_url
       })
     end
@@ -103,7 +112,8 @@ class EnrollmentMailer < ApplicationMailer
       return templated_mail(template, to: @application.parent_email, vars: {
         parent_name: @application.parent_first_name,
         child_name: @application.child_first_name,
-        program_name: @program.name
+        program_name: @program.name,
+        login_url: root_url
       })
     end
 
@@ -125,7 +135,10 @@ class EnrollmentMailer < ApplicationMailer
     if (template = EmailTemplate.for('enrollment_confirmed'))
       return templated_mail(template, to: @family.parents.pluck(:email), vars: {
         child_name: @child.first_name,
-        program_name: @program.name
+        program_name: @program.name,
+        program_dates: format_date_range(@program),
+        class_days: @program.class_days.presence || 'Days TBD',
+        payment_plan_summary: payment_plan_summary(@payment_plan)
       })
     end
 
@@ -133,5 +146,30 @@ class EnrollmentMailer < ApplicationMailer
       to: @family.parents.pluck(:email),
       subject: "Enrollment Confirmed for #{@child.first_name}! 🎉"
     )
+  end
+
+  private
+
+  def format_date_range(program)
+    return 'dates TBD' unless program.start_date && program.end_date
+
+    "#{program.start_date.strftime('%b %d, %Y')}\u2013#{program.end_date.strftime('%b %d, %Y')}"
+  end
+
+  def payment_plan_summary(enrollment_payment_plan)
+    return 'Your selected payment plan details are available in your parent portal.' unless enrollment_payment_plan
+
+    plan = enrollment_payment_plan.payment_plan
+    installment = (enrollment_payment_plan.total_amount / plan.installment_count).round(2)
+    [
+      plan.name,
+      "Total Tuition: $#{number_to_delimited(enrollment_payment_plan.total_amount.to_i)}",
+      "Enrollment Fee: $#{number_to_delimited(enrollment_payment_plan.enrollment_fee.to_i)} (paid)",
+      "#{plan.installment_count} payment(s) of $#{number_to_delimited(installment)}"
+    ].join("\n")
+  end
+
+  def number_to_delimited(value)
+    ActiveSupport::NumberHelper.number_to_delimited(value)
   end
 end
