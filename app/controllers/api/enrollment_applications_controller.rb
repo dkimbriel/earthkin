@@ -1,6 +1,7 @@
 module Api
   class EnrollmentApplicationsController < BaseController
     skip_before_action :authenticate_user!, only: [:create] # Public application form
+    skip_before_action :require_staff!, only: [:create]
 
     def index
       applications = EnrollmentApplication.includes(:program, :child, :family, events: :location)

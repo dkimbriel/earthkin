@@ -5,6 +5,7 @@ module Api
 		# Public, unauthenticated endpoint for the enrollment application page.
 		# Returns only non-sensitive program fields (no enrollments/revenue).
 		skip_before_action :authenticate_user!, only: [:public_show]
+		skip_before_action :require_staff!, only: [:public_show]
 
 		def public_show
 			program = Program.find(params[:id])
