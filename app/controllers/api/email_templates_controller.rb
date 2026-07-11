@@ -37,9 +37,11 @@ module Api
 		end
 
 		def template_params
-			params.require(:email_template).permit(:key, :name, :subject, :body).tap do |p|
-				p[:key] = nil if p[:key].blank?
-			end
+			permitted = params.require(:email_template).permit(:key, :name, :subject, :body)
+			# Normalize a blank key to nil, but only when the caller sent one —
+			# a body-only update must not detach the template from its workflow.
+			permitted[:key] = nil if permitted.key?(:key) && permitted[:key].blank?
+			permitted
 		end
 	end
 end

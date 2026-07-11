@@ -38,6 +38,7 @@ import {
 } from "../../utils/api";
 import PaymentPlanSelector from "../enrollment/PaymentPlanSelector";
 import EmailTimeline from "../enrollment/EmailTimeline";
+import ComposeEmailDialog from "../shared/ComposeEmailDialog";
 import ActionButtonWithEmail from "../enrollment/ActionButtonWithEmail";
 
 const formatStatusLabel = (status) => {
@@ -72,6 +73,7 @@ export default function EnrollmentApplicationDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [emailNotification, setEmailNotification] = useState(null);
+    const [composeDraft, setComposeDraft] = useState(null);
     const [showDob, setShowDob] = useState(false);
 
     const tabParam = searchParams.get("tab");
@@ -320,14 +322,12 @@ export default function EnrollmentApplicationDetailPage() {
         }
     };
 
+    // Opens the manual composer prefilled with the workflow email (tokens
+    // already resolved for this family) so it can be edited before sending.
     const handleSendEmail = async (emailType) => {
         try {
-            await enrollmentApplicationsApi.sendEmail(id, emailType);
-            const emailTypeLabel = emailType
-                .replace(/_/g, " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase());
-            setEmailNotification(`${emailTypeLabel} email sent to parent`);
-            loadApplication();
+            const draft = await enrollmentApplicationsApi.emailDraft(id, emailType);
+            setComposeDraft(draft);
         } catch (err) {
             setError(err.message);
         }
@@ -938,6 +938,22 @@ export default function EnrollmentApplicationDetailPage() {
                         application={application}
                         onSendEmail={handleSendEmail}
                     />
+                    {composeDraft && (
+                        <ComposeEmailDialog
+                            open
+                            onClose={() => setComposeDraft(null)}
+                            initial={composeDraft}
+                            showPickers={false}
+                            onSaved={() => {
+                                setEmailNotification("Draft saved — it's under Emails > Drafts");
+                                loadApplication();
+                            }}
+                            onSent={() => {
+                                setEmailNotification("Email sent to parent");
+                                loadApplication();
+                            }}
+                        />
+                    )}
                 </TabPanel>
 
                 {/* Tab: Tuition */}

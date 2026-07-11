@@ -11,14 +11,18 @@ module Api
 			render json: emails.limit(200).map { |e| email_json(e) }
 		end
 
-		# Create a manual email draft.
+		# Create a manual email draft. Linked to an enrollment application when
+		# started from its Communications tab (so it shows on the timeline),
+		# otherwise to the chosen parent.
 		def create
 			parent = params.dig(:email, :parent_id).presence && Parent.find(params[:email][:parent_id])
+			application = params.dig(:email, :enrollment_application_id).presence &&
+				EnrollmentApplication.find(params[:email][:enrollment_application_id])
 
 			email = Email.create!(
-				emailable: parent,
+				emailable: application || parent,
 				mailer_class: 'ManualMailer',
-				email_type: 'manual',
+				email_type: params.dig(:email, :email_type).presence || 'manual',
 				status: 'draft',
 				recipient: params.dig(:email, :recipient).presence || parent&.email,
 				subject: params.dig(:email, :subject),

@@ -69,6 +69,7 @@ Rails.application.routes.draw do
 				patch :update_parent_email
 				patch :update_custom_fees
 				post :send_email
+				get :email_draft
 				post :send_meeting_invite
 			end
 		end

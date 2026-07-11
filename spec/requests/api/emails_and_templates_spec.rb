@@ -61,6 +61,38 @@ RSpec.describe 'Api::Emails and Api::EmailTemplates', type: :request do
       expect(EmailTemplate.for('welcome_email').body).to include('Welcome to Earthkin Nature School!')
     end
 
+    it 'rejects unknown tokens and broken braces on workflow templates' do
+      get '/api/email_templates'
+      template = EmailTemplate.for('welcome_email')
+
+      patch "/api/email_templates/#{template.id}", params: {
+        email_template: { body: 'Hi {{parent_nam}}' }
+      }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('Unknown token')
+
+      patch "/api/email_templates/#{template.id}", params: {
+        email_template: { body: 'Hi {{parent_name}, broken brace' }
+      }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('broken token')
+    end
+
+    it 'renders the meeting invite from a template with clickable date links' do
+      get '/api/email_templates' # seeds defaults
+
+      application = create(:enrollment_application, parent_first_name: 'Dana')
+      event = create(:event, eventable: application, event_type: 'meet_and_greet',
+                     status: 'pending_selection',
+                     proposed_dates: [1.week.from_now.iso8601, 2.weeks.from_now.iso8601])
+
+      mail = EnrollmentMailer.meeting_invite(event.id, 'https://example.org')
+      body = mail.html_part ? mail.html_part.body.decoded : mail.body.decoded
+      expect(body).to include('Sydney Gary')
+      expect(body).to include("https://example.org/meetings/#{event.confirmation_token}/confirm?date=")
+      expect(body).to include('<a href="https://example.org/meetings/')
+    end
+
     it 'sends workflow emails using the default template with tokens filled in' do
       get '/api/email_templates' # seeds the defaults
 
@@ -142,6 +174,52 @@ RSpec.describe 'Api::Emails and Api::EmailTemplates', type: :request do
 
       expect(Email.last.recipient).to eq('parent@example.com')
       expect(Email.last.emailable).to eq(parent)
+    end
+
+    it 'links drafts started from an application to its email timeline' do
+      application = create(:enrollment_application)
+
+      post '/api/emails', params: {
+        email: {
+          recipient: application.parent_email,
+          subject: 'Fee reminder',
+          body: 'B',
+          email_type: 'enrollment_fee_request',
+          enrollment_application_id: application.id
+        }
+      }
+
+      email = Email.last
+      expect(email.emailable).to eq(application)
+      expect(email.email_type).to eq('enrollment_fee_request')
+      expect(application.emails).to include(email)
+    end
+  end
+
+  describe 'GET /api/enrollment_applications/:id/email_draft' do
+    it 'returns the workflow email with tokens resolved for editing' do
+      program = create(:program, name: 'Forest Explorers')
+      application = create(:enrollment_application, program: program,
+                           parent_first_name: 'Dana', parent_email: 'dana@example.com')
+
+      get "/api/enrollment_applications/#{application.id}/email_draft", params: { email_type: 'enrollment_fee_request' }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json['recipient']).to eq('dana@example.com')
+      expect(json['email_type']).to eq('enrollment_fee_request')
+      expect(json['enrollment_application_id']).to eq(application.id)
+      expect(json['body']).to include('Hi Dana')
+      expect(json['body']).not_to include('{{')
+    end
+
+    it 'errors helpfully when prerequisites are missing' do
+      application = create(:enrollment_application)
+
+      get "/api/enrollment_applications/#{application.id}/email_draft", params: { email_type: 'meeting_scheduled' }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('No meeting scheduled yet')
     end
   end
 end

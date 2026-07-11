@@ -2,6 +2,7 @@ class EmailTemplate < ApplicationRecord
   # Workflow emails that can be edited, with the placeholders each supports.
   KNOWN_KEYS = {
     'enrollment_invite' => %w[parent_name program_name program_dates class_days time_range tuition enrollment_fee enrollment_link],
+    'meeting_invite' => %w[parent_name child_name program_name program_dates class_days time_range tuition enrollment_fee location_name date_options],
     'meeting_scheduled' => %w[parent_name child_name program_name meeting_datetime location_name location_address handbook_url],
     'enrollment_fee_request' => %w[parent_name child_name enrollment_fee payment_link location_name handbook_url],
     'enrollment_forms' => %w[parent_name child_name program_name login_url],
@@ -32,6 +33,30 @@ class EmailTemplate < ApplicationRecord
 
         Kindly,
         The Earthkin Team
+      BODY
+    },
+    'meeting_invite' => {
+      name: 'Schedule A Meet-n-Greet',
+      subject: "\u{1F33F} Nature Preschool: Schedule A Meet-n-Greet",
+      body: <<~BODY
+        Hi {{parent_name}},
+
+        I hope this email finds you in good health and spirits! Thank you for taking the time to thoughtfully fill out the enrollment application for our Nature Preschool program. We would love to welcome {{child_name}} and your family to move forward with the next phase of enrollment.
+
+        Program Details:
+        - {{class_days}}, {{program_dates}}
+        - {{time_range}}
+        - Tuition: ${{tuition}}
+
+        A ${{enrollment_fee}} non-refundable enrollment fee is due upon enrollment to reserve your child's spot in the program.
+
+        If you'd like to continue the enrollment process, the next step is gathering together for a meet-and-greet at {{location_name}} with the director, Sydney Gary. Spending time together in the space will give us all an opportunity to explore the environment, answer questions, and make sure the nature preschool feels like a good fit for your family.
+
+        Please click the date that works best for your family:
+        {{date_options}}
+
+        Warmly,
+        The Nature Preschool Team
       BODY
     },
     'meeting_scheduled' => {
@@ -185,6 +210,7 @@ class EmailTemplate < ApplicationRecord
 
   validates :name, :subject, :body, presence: true
   validates :key, uniqueness: true, inclusion: { in: KNOWN_KEYS.keys }, allow_nil: true
+  validate :tokens_must_be_valid
 
   def self.for(key)
     find_by(key: key)
@@ -207,23 +233,48 @@ class EmailTemplate < ApplicationRecord
     interpolate(subject, vars)
   end
 
+  # Body with tokens substituted, still plain text (used to prefill the
+  # manual email composer).
+  def rendered_text(vars = {})
+    interpolate(body, vars)
+  end
+
   # Plain text body -> simple HTML: {{placeholders}} substituted (URLs become
   # links), blank lines split paragraphs.
   def rendered_html(vars = {})
     escaped = ERB::Util.html_escape(body)
     substituted = escaped.gsub(/{{\s*(\w+)\s*}}/) do
-      value = vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]
-      value = value.to_s
-      if value.start_with?('http://', 'https://')
-        %(<a href="#{ERB::Util.html_escape(value)}">#{ERB::Util.html_escape(value)}</a>)
-      else
-        ERB::Util.html_escape(value)
-      end
+      value = (vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]).to_s
+      linkify(ERB::Util.html_escape(value))
     end
     substituted.split(/\r?\n\r?\n+/).map { |para| "<p>#{para.gsub(/\r?\n/, '<br>')}</p>" }.join("\n")
   end
 
   private
+
+  def linkify(escaped_text)
+    escaped_text.gsub(%r{https?://[^\s<]+}) do |url|
+      %(<a href="#{url}">#{url}</a>)
+    end
+  end
+
+  # Guard rails for the template editor: a keyed (workflow) template may only
+  # use its known tokens, and stray braces are rejected so a half-deleted
+  # token can't silently break the email.
+  def tokens_must_be_valid
+    return if key.blank?
+
+    allowed = KNOWN_KEYS[key] || []
+    combined = "#{subject}\n#{body}"
+    used = combined.scan(/{{\s*(\w+)\s*}}/).flatten.uniq
+
+    unknown = used - allowed
+    errors.add(:base, "Unknown token(s): #{unknown.map { |t| "{{#{t}}}" }.join(', ')}") if unknown.any?
+
+    if combined.gsub(/{{\s*\w+\s*}}/, '').match?(/[{}]/)
+      errors.add(:base, 'There is a broken token — check for stray { or } characters')
+    end
+  end
 
   def interpolate(text, vars)
     text.gsub(/{{\s*(\w+)\s*}}/) do

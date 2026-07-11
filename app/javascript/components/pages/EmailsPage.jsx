@@ -17,150 +17,11 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DataTable from "../shared/DataTable";
 import ConfirmDialog from "../shared/ConfirmDialog";
+import ComposeEmailDialog from "../shared/ComposeEmailDialog";
+import TokenEditor from "../shared/TokenEditor";
 import { emailsApi, emailTemplatesApi, formTemplatesApi, parentsApi } from "../../utils/api";
 
 const STATUS_COLORS = { sent: "success", failed: "error", bounced: "error", queued: "warning", draft: "info" };
-
-function ComposeDialog({ open, onClose, initial, templates, parents, onSaved, onSent }) {
-	const [form, setForm] = useState({
-		recipient: initial?.recipient || "",
-		subject: initial?.subject || "",
-		body: initial?.body || "",
-		template_pick: "",
-		parent_pick: "",
-	});
-	const [error, setError] = useState(null);
-	const [busy, setBusy] = useState(false);
-
-	const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
-
-	const applyTemplate = (templateId) => {
-		const t = templates.find((x) => x.id === templateId);
-		if (t) {
-			setForm((prev) => ({ ...prev, template_pick: templateId, subject: t.subject, body: t.body }));
-		}
-	};
-
-	const applyParent = (parentId) => {
-		const p = parents.find((x) => x.id === parentId);
-		setForm((prev) => ({ ...prev, parent_pick: parentId, recipient: p ? p.email : prev.recipient }));
-	};
-
-	const persist = async () => {
-		const payload = {
-			recipient: form.recipient,
-			subject: form.subject,
-			body: form.body,
-			parent_id: form.parent_pick || null,
-		};
-		if (initial?.id) {
-			return emailsApi.update(initial.id, payload);
-		}
-		return emailsApi.create(payload);
-	};
-
-	const handleSaveDraft = async () => {
-		setError(null);
-		setBusy(true);
-		try {
-			await persist();
-			onSaved();
-			onClose();
-		} catch (err) {
-			setError(err.message);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	const handleSend = async () => {
-		setError(null);
-		setBusy(true);
-		try {
-			const saved = await persist();
-			await emailsApi.deliver(saved.id);
-			onSent();
-			onClose();
-		} catch (err) {
-			setError(err.message);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<DialogTitle>{initial?.id ? "Edit Draft" : "New Email"}</DialogTitle>
-			<DialogContent>
-				{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-					<Box sx={{ display: "flex", gap: 2 }}>
-						<TextField
-							select
-							label="Start from template"
-							value={form.template_pick}
-							onChange={(e) => applyTemplate(e.target.value)}
-							fullWidth
-						>
-							<MenuItem value="">Blank</MenuItem>
-							{templates.map((t) => (
-								<MenuItem key={t.id} value={t.id}>{t.name}</MenuItem>
-							))}
-						</TextField>
-						<TextField
-							select
-							label="Send to parent"
-							value={form.parent_pick}
-							onChange={(e) => applyParent(e.target.value)}
-							fullWidth
-						>
-							<MenuItem value="">Type an address instead</MenuItem>
-							{parents.map((p) => (
-								<MenuItem key={p.id} value={p.id}>
-									{p.first_name} {p.last_name} ({p.email})
-								</MenuItem>
-							))}
-						</TextField>
-					</Box>
-					<TextField
-						label="To"
-						type="email"
-						value={form.recipient}
-						onChange={(e) => set("recipient", e.target.value)}
-						required
-						fullWidth
-					/>
-					<TextField
-						label="Subject"
-						value={form.subject}
-						onChange={(e) => set("subject", e.target.value)}
-						required
-						fullWidth
-					/>
-					<TextField
-						label="Body"
-						value={form.body}
-						onChange={(e) => set("body", e.target.value)}
-						multiline
-						rows={10}
-						required
-						fullWidth
-						helperText="Plain text. Blank lines start new paragraphs. Sent with the school's standard email styling."
-					/>
-				</Box>
-			</DialogContent>
-			<DialogActions>
-				<Button onClick={onClose}>Cancel</Button>
-				<Button onClick={handleSaveDraft} disabled={busy}>
-					Save Draft
-				</Button>
-				<Button onClick={handleSend} variant="contained" disabled={busy}>
-					{busy ? "Working..." : "Send"}
-				</Button>
-			</DialogActions>
-		</Dialog>
-	);
-}
 
 function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 	const [form, setForm] = useState({
@@ -171,30 +32,16 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 	});
 	const [error, setError] = useState(null);
 	const [busy, setBusy] = useState(false);
-	const subjectRef = useRef(null);
-	const bodyRef = useRef(null);
+	const subjectEditor = useRef(null);
+	const bodyEditor = useRef(null);
 	const lastFocused = useRef("body");
 
 	const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
 	const tokens = form.key ? knownKeys[form.key] || [] : [];
 
 	const insertToken = (token) => {
-		const field = lastFocused.current === "subject" ? "subject" : "body";
-		const ref = field === "subject" ? subjectRef : bodyRef;
-		const input = ref.current;
-		const text = `{{${token}}}`;
-		const value = form[field];
-		const start = input?.selectionStart ?? value.length;
-		const end = input?.selectionEnd ?? value.length;
-		const next = value.slice(0, start) + text + value.slice(end);
-		set(field, next);
-		// Restore focus and put the cursor right after the inserted token.
-		setTimeout(() => {
-			if (!input) return;
-			input.focus();
-			const pos = start + text.length;
-			input.setSelectionRange(pos, pos);
-		}, 0);
+		const editor = lastFocused.current === "subject" ? subjectEditor : bodyEditor;
+		editor.current?.insertToken(token);
 	};
 
 	const handleSubmit = async (e) => {
@@ -248,26 +95,45 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 							required
 							fullWidth
 						/>
-						<TextField
-							label="Subject"
-							value={form.subject}
-							onChange={(e) => set("subject", e.target.value)}
-							onFocus={() => (lastFocused.current = "subject")}
-							inputRef={subjectRef}
-							required
-							fullWidth
-						/>
-						<TextField
-							label="Body"
-							value={form.body}
-							onChange={(e) => set("body", e.target.value)}
-							onFocus={() => (lastFocused.current = "body")}
-							inputRef={bodyRef}
-							multiline
-							rows={14}
-							required
-							fullWidth
-						/>
+						{form.key ? (
+							<>
+								<TokenEditor
+									ref={subjectEditor}
+									label="Subject"
+									value={form.subject}
+									onChange={(v) => set("subject", v)}
+									onFocus={() => (lastFocused.current = "subject")}
+								/>
+								<TokenEditor
+									ref={bodyEditor}
+									label="Body"
+									value={form.body}
+									onChange={(v) => set("body", v)}
+									onFocus={() => (lastFocused.current = "body")}
+									multiline
+									minRows={14}
+								/>
+							</>
+						) : (
+							<>
+								<TextField
+									label="Subject"
+									value={form.subject}
+									onChange={(e) => set("subject", e.target.value)}
+									required
+									fullWidth
+								/>
+								<TextField
+									label="Body"
+									value={form.body}
+									onChange={(e) => set("body", e.target.value)}
+									multiline
+									rows={12}
+									required
+									fullWidth
+								/>
+							</>
+						)}
 						{tokens.length > 0 && (
 							<Box>
 								<Typography variant="caption" color="text.secondary">
@@ -278,10 +144,10 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 										<Chip
 											key={t}
 											size="small"
-											label={`{{${t}}}`}
+											label={t.replace(/_/g, " ")}
 											onClick={() => insertToken(t)}
 											clickable
-											color="primary"
+											color="success"
 											variant="outlined"
 										/>
 									))}
@@ -514,7 +380,7 @@ export default function EmailsPage() {
 			)}
 
 			{(showCompose || editDraft) && (
-				<ComposeDialog
+				<ComposeEmailDialog
 					key={editDraft?.id || "new"}
 					open
 					onClose={() => {

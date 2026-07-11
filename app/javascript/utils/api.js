@@ -231,6 +231,7 @@ export const enrollmentApplicationsApi = {
 			custom_tuition_amount: customTuitionAmount,
 		}),
 	sendEmail: (id, emailType) => api.post(`/api/enrollment_applications/${id}/send_email`, { email_type: emailType }),
+	emailDraft: (id, emailType) => api.get(`/api/enrollment_applications/${id}/email_draft?email_type=${emailType}`),
 	sendMeetingInvite: (id, { locationId, proposedDates, notes }) =>
 		api.post(`/api/enrollment_applications/${id}/send_meeting_invite`, {
 			location_id: locationId,
