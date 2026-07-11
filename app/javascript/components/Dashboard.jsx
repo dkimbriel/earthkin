@@ -26,6 +26,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SettingsIcon from "@mui/icons-material/Settings";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -47,6 +48,7 @@ import CalendarPage from "./pages/CalendarPage";
 import EnrollmentApplicationsPage from "./pages/EnrollmentApplicationsPage";
 import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetailPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
+import UsersPage from "./pages/UsersPage";
 
 const drawerWidth = 220;
 
@@ -60,8 +62,13 @@ const baseNavItems = [
     { path: "/locations", label: "Locations", icon: <LocationOnIcon /> },
 ];
 
-// Settings/Integrations is admin-only.
+// Admin-only pages.
 const adminNavItems = [
+    { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
+];
+
+// Super-admin-only pages.
+const superAdminNavItems = [
     { path: "/integrations", label: "Integrations", icon: <SettingsIcon /> },
 ];
 
@@ -73,12 +80,14 @@ export default function Dashboard() {
     // and the two layout spacers below it so they always line up.
     const navHeight = { xs: 72, sm: 104 };
 
-    // For now, everyone sees the admin dashboard
-    // In the future, you can add role checking here
-    const isParent = false;
-    const navItems = user?.super_admin
-        ? [...baseNavItems, ...adminNavItems]
-        : baseNavItems;
+    const isParent = user?.role === "parent";
+    const navItems = isParent
+        ? [{ path: "/dashboard", label: "Home", icon: <DashboardIcon /> }]
+        : [
+            ...baseNavItems,
+            ...(user?.role === "admin" ? adminNavItems : []),
+            ...(user?.super_admin ? superAdminNavItems : []),
+        ];
 
     const drawerContent = (
         <>
@@ -273,6 +282,9 @@ export default function Dashboard() {
                             path="/enrollment-applications/:id"
                             element={<EnrollmentApplicationDetailPage />}
                         />
+                        {user?.role === "admin" && (
+                            <Route path="/users" element={<UsersPage />} />
+                        )}
                         {user?.super_admin && (
                             <Route
                                 path="/integrations"

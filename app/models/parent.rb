@@ -19,6 +19,7 @@ class Parent < ApplicationRecord
 
     new_user = User.create!(
       email: email,
+      role: 'parent',
       password: generated_password,
       password_confirmation: generated_password
     )

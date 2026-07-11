@@ -156,6 +156,13 @@ export const teachersApi = {
 	delete: (id) => api.delete(`/api/teachers/${id}`),
 };
 
+export const usersApi = {
+	list: () => api.get("/api/users"),
+	create: (data) => api.post("/api/users", { user: data }),
+	update: (id, data) => api.patch(`/api/users/${id}`, { user: data }),
+	delete: (id) => api.delete(`/api/users/${id}`),
+};
+
 // Enrollment workflow APIs
 export const enrollmentApplicationsApi = {
 	list: (filters = {}) => {
