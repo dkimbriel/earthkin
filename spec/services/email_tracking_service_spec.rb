@@ -65,7 +65,7 @@ RSpec.describe EmailTrackingService do
         expect {
           email = service.send_email('PaymentMailer', 'invoice', [payment.id])
 
-          expect(email.subject).to eq('Payment Invoice')
+          expect(email.subject).to include('Payment Invoice')
           expect(email.recipient).to include('parent@example.com')
           expect(email.status).to eq('sent')
         }.to change { ActionMailer::Base.deliveries.count }.by(1)
@@ -75,7 +75,7 @@ RSpec.describe EmailTrackingService do
         expect {
           email = service.send_email('PaymentMailer', 'receipt', [payment.id])
 
-          expect(email.subject).to eq('Payment Receipt')
+          expect(email.subject).to include('Payment Receipt')
           expect(email.recipient).to include('parent@example.com')
           expect(email.status).to eq('sent')
         }.to change { ActionMailer::Base.deliveries.count }.by(1)

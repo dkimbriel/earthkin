@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_10_000003) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_10_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -72,9 +72,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000003) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "email_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "key"
+    t.string "name", null: false
+    t.string "subject", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["key"], name: "index_email_templates_on_key", unique: true, where: "(key IS NOT NULL)"
+  end
+
   create_table "emails", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "emailable_type", null: false
-    t.uuid "emailable_id", null: false
+    t.string "emailable_type"
+    t.uuid "emailable_id"
     t.string "mailer_class", null: false
     t.string "email_type", null: false
     t.string "recipient", null: false

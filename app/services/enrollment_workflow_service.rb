@@ -123,7 +123,8 @@ class EnrollmentWorkflowService
       @application.program_enrollment&.update!(status: 'confirmed')
 
       email_service = EmailTrackingService.new(@application)
-      email_service.send_email('EnrollmentMailer', 'enrollment_confirmed', [@application.id])
+      # The confirmed mailer takes the program enrollment, not the application
+      email_service.send_email('EnrollmentMailer', 'enrollment_confirmed', [@application.program_enrollment.id]) if @application.program_enrollment
     end
     @application
   end

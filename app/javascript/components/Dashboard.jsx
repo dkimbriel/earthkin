@@ -28,6 +28,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
+import EmailIcon from "@mui/icons-material/Email";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -51,6 +52,7 @@ import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetail
 import IntegrationsPage from "./pages/IntegrationsPage";
 import UsersPage from "./pages/UsersPage";
 import ContentPage from "./pages/ContentPage";
+import EmailsPage from "./pages/EmailsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 
@@ -69,6 +71,7 @@ const baseNavItems = [
 
 // Admin-only pages.
 const adminNavItems = [
+    { path: "/emails", label: "Emails", icon: <EmailIcon /> },
     { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
 ];
 
@@ -314,6 +317,9 @@ export default function Dashboard() {
                         <Route path="/content" element={<ContentPage />} />
                         {user?.role === "admin" && (
                             <Route path="/users" element={<UsersPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/emails" element={<EmailsPage />} />
                         )}
                         {user?.super_admin && (
                             <Route

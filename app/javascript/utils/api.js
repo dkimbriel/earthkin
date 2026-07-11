@@ -157,6 +157,21 @@ export const teachersApi = {
 	delete: (id) => api.delete(`/api/teachers/${id}`),
 };
 
+export const emailsApi = {
+	list: (status) => api.get(`/api/emails${status ? `?status=${status}` : ""}`),
+	create: (data) => api.post("/api/emails", { email: data }),
+	update: (id, data) => api.patch(`/api/emails/${id}`, { email: data }),
+	deliver: (id) => api.post(`/api/emails/${id}/deliver`),
+	delete: (id) => api.delete(`/api/emails/${id}`),
+};
+
+export const emailTemplatesApi = {
+	list: () => api.get("/api/email_templates"),
+	create: (data) => api.post("/api/email_templates", { email_template: data }),
+	update: (id, data) => api.patch(`/api/email_templates/${id}`, { email_template: data }),
+	delete: (id) => api.delete(`/api/email_templates/${id}`),
+};
+
 export const portalApi = {
 	overview: () => api.get("/api/portal/overview"),
 	events: () => api.get("/api/portal/events"),

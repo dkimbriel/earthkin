@@ -10,6 +10,16 @@ class EnrollmentMailer < ApplicationMailer
     @location = @event.location
     @payment_plans = PaymentPlan.where(program: @program, active: true).order(:display_order)
 
+    if (template = EmailTemplate.for('meeting_scheduled'))
+      return templated_mail(template, to: @application.parent_email, vars: {
+        parent_name: @application.parent_first_name,
+        child_name: @application.child_first_name,
+        program_name: @program.name,
+        meeting_datetime: @event.scheduled_at&.strftime('%B %d at %I:%M %p'),
+        location_name: @location&.name
+      })
+    end
+
     mail(
       to: @application.parent_email,
       subject: "🌿 Nature Preschool: Meet-n-Greet Scheduled - #{@event.scheduled_at.strftime('%B %d at %I:%M %p')}"
@@ -41,10 +51,15 @@ class EnrollmentMailer < ApplicationMailer
     @location = @meeting_event&.location || @program.program_classes.first&.location
     @payment_plans = PaymentPlan.where(program: @program, active: true).order(:display_order)
 
-    # Note: Add handbook attachment if it exists
-    # if @program.respond_to?(:handbook) && @program.handbook.attached?
-    #   attachments['Nature_Preschool_Handbook.pdf'] = @program.handbook.download
-    # end
+    if (template = EmailTemplate.for('enrollment_fee_request'))
+      return templated_mail(template, to: @application.parent_email, vars: {
+        parent_name: @application.parent_first_name,
+        child_name: @application.child_first_name,
+        enrollment_fee: @application.effective_enrollment_fee.to_i,
+        payment_link: @application.payment_selection_url,
+        location_name: @location&.name
+      })
+    end
 
     mail(
       to: @application.parent_email,
@@ -62,6 +77,14 @@ class EnrollmentMailer < ApplicationMailer
     @location = @program.program_classes.first&.location
     @payment_plans = PaymentPlan.where(program: @program, active: true).order(:display_order)
 
+    if (template = EmailTemplate.for('enrollment_invite'))
+      return templated_mail(template, to: @application.parent_email, vars: {
+        parent_name: @application.parent_first_name,
+        program_name: @program.name,
+        enrollment_link: @enrollment_url
+      })
+    end
+
     mail(
       to: @application.parent_email,
       subject: "You're Invited to Apply: #{@program.name}"
@@ -75,6 +98,14 @@ class EnrollmentMailer < ApplicationMailer
     @program = @application.program
     @enrollment = @application.program_enrollment
     @payment_plan = @enrollment&.enrollment_payment_plan&.payment_plan
+
+    if (template = EmailTemplate.for('enrollment_forms'))
+      return templated_mail(template, to: @application.parent_email, vars: {
+        parent_name: @application.parent_first_name,
+        child_name: @application.child_first_name,
+        program_name: @program.name
+      })
+    end
 
     mail(
       to: @application.parent_email,
@@ -90,6 +121,13 @@ class EnrollmentMailer < ApplicationMailer
     @program = @enrollment.program
     @payment_plan = @enrollment.enrollment_payment_plan
     @family = @child.family
+
+    if (template = EmailTemplate.for('enrollment_confirmed'))
+      return templated_mail(template, to: @family.parents.pluck(:email), vars: {
+        child_name: @child.first_name,
+        program_name: @program.name
+      })
+    end
 
     mail(
       to: @family.parents.pluck(:email),

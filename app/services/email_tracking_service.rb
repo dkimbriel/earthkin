@@ -30,7 +30,8 @@ class EmailTrackingService
   def deliver(email, mailer_class, email_type, mailer_args)
     message = mailer_class.constantize.public_send(email_type, *mailer_args)
 
-    email.update(html_body: capture_html_body(message))
+    # The mailer (or an admin-edited template) owns the real subject.
+    email.update(html_body: capture_html_body(message), subject: message.subject.presence || email.subject)
 
     message.deliver_now
     email.mark_sent!

@@ -27,6 +27,12 @@ Rails.application.routes.draw do
 		resources :teachers, only: [:index, :show, :create, :update, :destroy]
 		resources :users, only: [:index, :create, :update, :destroy]
 		resources :content_items, only: [:index, :create, :update, :destroy]
+		resources :email_templates, only: [:index, :create, :update, :destroy]
+		resources :emails, only: [:index, :create, :update, :destroy] do
+			member do
+				post :deliver
+			end
+		end
 
 		# Teacher assignments and enrollment invites
 		resources :programs, only: [] do
