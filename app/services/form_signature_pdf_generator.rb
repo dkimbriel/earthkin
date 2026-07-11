@@ -7,7 +7,7 @@ class FormSignaturePdfGenerator
 
   def initialize(signature)
     @signature = signature
-    @body = signature.signed? ? signature.form_body_snapshot.to_s : signature.form_template.body.to_s
+    @body = signature.signed? ? signature.form_body_snapshot.to_s : signature.rendered_body
     @fields = signature.form_fields || {}
   end
 

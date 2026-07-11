@@ -209,7 +209,7 @@ function FormTemplateDialog({ open, onClose, initial, onSaved }) {
 							rows={16}
 							required
 							fullWidth
-							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]], [[textarea:key|Label]], [[checkbox:key|Label]], and [[signature]] where the parent signs."
+							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]] (end the label with * to make it required), [[textarea:key|Label]], [[checkbox:key|Label]], [[require-one:key1,key2|Message]] for a required choice, [[payment-plans]] for the program's payment plan options from the database, and [[signature]] where the parent signs."
 						/>
 					</Box>
 				</DialogContent>

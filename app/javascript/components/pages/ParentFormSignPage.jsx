@@ -48,6 +48,7 @@ export default function ParentFormSignPage() {
                     return;
                 }
                 setForm(found);
+                setFields(found.suggested_fields || {});
                 portalApi.viewForm(found.id).catch(() => {});
             })
             .catch((err) => setError(err.message))

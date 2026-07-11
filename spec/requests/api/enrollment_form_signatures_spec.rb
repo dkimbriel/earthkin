@@ -95,6 +95,41 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(fields['nested']).to be_a(String) # flattened, never a nested hash
     end
 
+    it 'expands [[payment-plans]] from the database and snapshots the expansion' do
+      program = create(:program)
+      plan_a = create(:payment_plan, program: program, name: 'Pay In Full', installment_count: 1, total_amount: 2800, display_order: 1)
+      plan_b = create(:payment_plan, program: program, name: 'Ten Months', installment_count: 10, total_amount: 2800, display_order: 2)
+      enrollment = create(:program_enrollment, child: child, program: program)
+      create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: plan_b)
+
+      signature = child.enrollment_form_signatures.first
+      signature.form_template.update!(body: "# Agreement\n\nPick a plan:\n\n[[payment-plans]]\n\n[[signature]]")
+
+      get '/api/portal/forms'
+      form = JSON.parse(response.body).find { |f| f['id'] == signature.id }
+
+      expect(form['form_body']).to include('Pay In Full')
+      expect(form['form_body']).to include('Ten Months')
+      expect(form['form_body']).to include("[[checkbox:plan_#{plan_a.id}|")
+      expect(form['form_body']).to include("[[require-one:plan_#{plan_a.id},plan_#{plan_b.id}|")
+      expect(form['form_body']).not_to include('[[payment-plans]]')
+      # The plan the enrollment already uses comes pre-checked.
+      expect(form['suggested_fields']).to eq({ "plan_#{plan_b.id}" => true })
+
+      # Signing without choosing a plan is rejected; the snapshot records the
+      # expanded document.
+      post "/api/portal/forms/#{signature.id}/sign", params: { signed_by_name: 'Jane Parent' }
+      expect(response).to have_http_status(:unprocessable_content)
+
+      post "/api/portal/forms/#{signature.id}/sign", params: {
+        signed_by_name: 'Jane Parent',
+        form_fields: { "plan_#{plan_b.id}" => 'true' }
+      }
+      expect(response).to have_http_status(:ok)
+      expect(signature.reload.form_body_snapshot).to include('Ten Months')
+      expect(signature.form_body_snapshot).not_to include('[[payment-plans]]')
+    end
+
     it 'refuses to sign while required fields are missing' do
       signature = child.enrollment_form_signatures.first
       signature.form_template.update!(body: <<~BODY)

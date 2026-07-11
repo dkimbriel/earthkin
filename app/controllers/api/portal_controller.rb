@@ -85,7 +85,12 @@ module Api
 				.where(child_id: family.children.select(:id))
 				.order(:created_at)
 
-			render json: signatures.map { |s| s.as_json.merge(form_body: s.signed? ? s.form_body_snapshot : s.form_template.body) }
+			render json: signatures.map { |s|
+				s.as_json.merge(
+					form_body: s.signed? ? s.form_body_snapshot : s.rendered_body,
+					suggested_fields: s.signed? ? {} : s.suggested_fields
+				)
+			}
 		end
 
 		def sign_form

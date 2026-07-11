@@ -17,11 +17,26 @@ class EnrollmentFormSignature < ApplicationRecord
     status == 'signed'
   end
 
+  # The form as presented to the family: the template body with dynamic
+  # markers expanded. [[payment-plans]] becomes one checkbox per active
+  # payment plan of the child's program, straight from the database.
+  def rendered_body
+    form_template.body.to_s.gsub('[[payment-plans]]') { payment_plan_options_markup }
+  end
+
+  # Field values to pre-check when the parent opens the form — currently the
+  # payment plan their enrollment already uses.
+  def suggested_fields
+    plan_id = enrollment&.enrollment_payment_plan&.payment_plan_id
+    plan_id ? { "plan_#{plan_id}" => true } : {}
+  end
+
   def sign!(name:, email: nil, ip: nil, user_agent: nil, response_text: nil, form_fields: nil)
     raise ArgumentError, 'Signature name is required' if name.blank?
     raise ArgumentError, 'Form is already signed' if signed?
 
-    missing = FormFieldRequirements.errors_for(form_template.body, form_fields)
+    document = rendered_body
+    missing = FormFieldRequirements.errors_for(document, form_fields)
     raise ArgumentError, "Please complete the required fields: #{missing.join('; ')}" if missing.any?
 
     update!(
@@ -32,7 +47,7 @@ class EnrollmentFormSignature < ApplicationRecord
       signed_at: Time.current,
       response_text: response_text.presence,
       form_fields: form_fields.presence || {},
-      form_body_snapshot: form_template.body
+      form_body_snapshot: document
     )
 
     log_event!('signed',
@@ -40,7 +55,7 @@ class EnrollmentFormSignature < ApplicationRecord
                'email' => email,
                'ip' => ip,
                'user_agent' => user_agent,
-               'document_sha256' => Digest::SHA256.hexdigest(form_template.body.to_s))
+               'document_sha256' => Digest::SHA256.hexdigest(document))
   end
 
   def record_view!(email: nil, ip: nil, user_agent: nil)
@@ -66,6 +81,31 @@ class EnrollmentFormSignature < ApplicationRecord
   end
 
   private
+
+  def enrollment
+    enrollment_application&.program_enrollment || child.program_enrollments.order(:created_at).last
+  end
+
+  def payment_plan_options_markup
+    program = enrollment&.program
+    plans = program ? PaymentPlan.where(program: program, active: true).order(:display_order) : PaymentPlan.none
+    return '(Payment plan options are arranged directly with the school.)' if plans.blank?
+
+    lines = plans.map.with_index(1) do |plan, index|
+      amount = ActiveSupport::NumberHelper.number_to_delimited(plan.installment_amount.to_i)
+      label = "Option #{index}: #{plan.name} — #{plan.installment_count} payment(s) of $#{amount}"
+      label += " (#{plan.description})" if plan.description.present?
+      "[[checkbox:plan_#{plan.id}|#{sanitize_label(label)}]]"
+    end
+
+    keys = plans.map { |plan| "plan_#{plan.id}" }.join(',')
+    (lines + ["[[require-one:#{keys}|Please choose one payment plan option]]"]).join("\n")
+  end
+
+  # Labels live inside [[...|label]] markers, so strip the delimiters.
+  def sanitize_label(text)
+    text.tr('|', '/').gsub(']]', ')')
+  end
 
   # Append an event to the audit trail without touching validations —
   # audit entries must never be blocked or rewritten by model state.
