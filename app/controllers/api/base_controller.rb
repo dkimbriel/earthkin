@@ -12,10 +12,15 @@ module Api
 
 		# Internal portal APIs are for staff (admins and teachers). Actions that
 		# skip authenticate_user! (public forms) pass through with no user.
+		# Teachers get read-only access; admins can write.
 		def require_staff!
 			return unless current_user
 
-			render json: { error: 'Forbidden' }, status: :forbidden unless current_user.staff?
+			if !current_user.staff?
+				render json: { error: 'Forbidden' }, status: :forbidden
+			elsif current_user.teacher_role? && !request.get?
+				render json: { error: 'Teachers have view-only access' }, status: :forbidden
+			end
 		end
 
 		def require_admin!

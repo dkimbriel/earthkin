@@ -6,6 +6,7 @@ import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { programsApi } from "../../utils/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 function EnrollmentProgress({ confirmed, pending, capacity }) {
 	const total = confirmed + pending;
@@ -101,6 +102,8 @@ const formFields = [
 ];
 
 export default function ProgramsPage() {
+	const { user } = useAuth();
+	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
 	const [programs, setPrograms] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -136,12 +139,12 @@ export default function ProgramsPage() {
 
 	return (
 		<Box>
-			<PageHeader title="Programs" onAdd={() => setShowForm(true)} addLabel="Add Program" />
+			<PageHeader title="Programs" onAdd={isAdmin ? () => setShowForm(true) : undefined} addLabel="Add Program" />
 			<DataTable
 				columns={columns}
 				data={programs}
 				loading={loading}
-				onDelete={setDeleteTarget}
+				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/programs/${row.id}`)}
 				emptyMessage="No programs yet. Add one to get started."
 			/>

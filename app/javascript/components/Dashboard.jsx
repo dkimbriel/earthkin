@@ -84,13 +84,19 @@ export default function Dashboard() {
     const navHeight = { xs: 72, sm: 104 };
 
     const isParent = user?.role === "parent";
+    const isTeacher = user?.role === "teacher";
+    const teacherNavItems = baseNavItems.filter((item) =>
+        ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
+    );
     const navItems = isParent
         ? [{ path: "/dashboard", label: "Home", icon: <DashboardIcon /> }]
-        : [
-            ...baseNavItems,
-            ...(user?.role === "admin" ? adminNavItems : []),
-            ...(user?.super_admin ? superAdminNavItems : []),
-        ];
+        : isTeacher
+            ? teacherNavItems
+            : [
+                ...baseNavItems,
+                ...(user?.role === "admin" ? adminNavItems : []),
+                ...(user?.super_admin ? superAdminNavItems : []),
+            ];
 
     const drawerContent = (
         <>
@@ -234,7 +240,15 @@ export default function Dashboard() {
                         />
                         <Route
                             path="/dashboard"
-                            element={isParent ? <ParentDashboardPage /> : <DashboardPage />}
+                            element={
+                                isParent ? (
+                                    <ParentDashboardPage />
+                                ) : isTeacher ? (
+                                    <Navigate to="/calendar" replace />
+                                ) : (
+                                    <DashboardPage />
+                                )
+                            }
                         />
                         <Route path="/families" element={<FamiliesPage />} />
                         <Route

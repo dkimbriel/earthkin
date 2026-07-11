@@ -102,5 +102,13 @@ RSpec.describe 'Api::Users', type: :request do
 
       expect(response).to have_http_status(:ok)
     end
+
+    it 'blocks teacher users from writing' do
+      sign_in create(:user, :teacher)
+
+      post '/api/families', params: { family: { name: 'New Family' } }
+
+      expect(response).to have_http_status(:forbidden)
+    end
   end
 end
