@@ -15,5 +15,22 @@
 
 	<body>
 		<%= yield %>
+
+		<% if ENV['USERBACK_ACCESS_TOKEN'].present? && user_signed_in? %>
+			<script>
+				window.Userback = window.Userback || {};
+				Userback.access_token = '<%= j ENV['USERBACK_ACCESS_TOKEN'] %>';
+				Userback.user_data = {
+					id: '<%= j current_user.id.to_s %>',
+					info: { email: '<%= j current_user.email %>' }
+				};
+				(function(d) {
+					var s = d.createElement('script');
+					s.async = true;
+					s.src = 'https://static.userback.io/widget/v1.js';
+					(d.head || d.body).appendChild(s);
+				})(document);
+			</script>
+		<% end %>
 	</body>
 </html>
