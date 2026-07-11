@@ -94,6 +94,7 @@ export const programsApi = {
 	assignTeacher: (id, teacherId) => api.post(`/api/programs/${id}/assign_teacher`, { teacher_id: teacherId }),
 	unassignTeacher: (id, teacherId) => api.delete(`/api/programs/${id}/unassign_teacher?teacher_id=${teacherId}`),
 	sendEnrollmentInvite: (id, recipients) => api.post(`/api/programs/${id}/send_enrollment_invite`, { recipients }),
+	generateClasses: (id, data) => api.post(`/api/programs/${id}/generate_classes`, data),
 };
 
 export const programClassesApi = {

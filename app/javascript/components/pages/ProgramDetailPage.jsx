@@ -41,6 +41,7 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import GenerateClassesDialog from "../shared/GenerateClassesDialog";
 import {
     programsApi,
     programClassesApi,
@@ -176,6 +177,7 @@ export default function ProgramDetailPage() {
     const [allTeachers, setAllTeachers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showClassForm, setShowClassForm] = useState(false);
+    const [showGenerateForm, setShowGenerateForm] = useState(false);
     const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
     const [showTeacherForm, setShowTeacherForm] = useState(false);
     const [selectedTeacher, setSelectedTeacher] = useState(null);
@@ -664,6 +666,14 @@ export default function ProgramDetailPage() {
                     onAdd={() => setShowClassForm(true)}
                     addLabel="Add Class"
                 />
+                <Button
+                    size="small"
+                    variant="outlined"
+                    sx={{ mb: 2 }}
+                    onClick={() => setShowGenerateForm(true)}
+                >
+                    Generate from Pattern
+                </Button>
                 <DataTable
                     columns={classColumns}
                     data={program.program_classes}
@@ -712,6 +722,22 @@ export default function ProgramDetailPage() {
                     emptyMessage="No payment plans configured yet."
                 />
             </Paper>
+
+            {showGenerateForm && (
+                <GenerateClassesDialog
+                    open={showGenerateForm}
+                    onClose={() => setShowGenerateForm(false)}
+                    program={program}
+                    onGenerated={(result) => {
+                        setInviteSnackbar({
+                            open: true,
+                            message: `Created ${result.created_count} class${result.created_count === 1 ? "" : "es"}`,
+                            severity: "success",
+                        });
+                        loadProgram();
+                    }}
+                />
+            )}
 
             <FormDialog
                 open={showClassForm}

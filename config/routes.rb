@@ -34,6 +34,7 @@ Rails.application.routes.draw do
 				post :assign_teacher
 				delete :unassign_teacher
 				post :send_enrollment_invite
+				post :generate_classes
 			end
 		end
 		resources :program_classes, only: [] do
