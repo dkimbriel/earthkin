@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_10_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_10_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -158,8 +158,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000002) do
   end
 
   create_table "events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "eventable_type", null: false
-    t.uuid "eventable_id", null: false
+    t.string "eventable_type"
+    t.uuid "eventable_id"
     t.uuid "location_id"
     t.string "event_type", null: false
     t.string "title"
@@ -174,6 +174,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000002) do
     t.datetime "updated_at", null: false
     t.jsonb "proposed_dates", default: []
     t.string "confirmation_token"
+    t.boolean "published", default: false, null: false
     t.index ["confirmation_token"], name: "index_events_on_confirmation_token", unique: true
     t.index ["event_type"], name: "index_events_on_event_type"
     t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable"

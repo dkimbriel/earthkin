@@ -99,7 +99,7 @@ module Api
       params.require(:event).permit(
         :eventable_type, :eventable_id, :location_id,
         :event_type, :title, :description,
-        :scheduled_at, :notes, :outcome_notes
+        :scheduled_at, :notes, :outcome_notes, :published
       )
     end
   end

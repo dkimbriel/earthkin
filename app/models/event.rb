@@ -1,5 +1,5 @@
 class Event < ApplicationRecord
-  belongs_to :eventable, polymorphic: true
+  belongs_to :eventable, polymorphic: true, optional: true
   belongs_to :location, optional: true
 
   validates :event_type, presence: true, inclusion: {
@@ -16,6 +16,7 @@ class Event < ApplicationRecord
   scope :past, -> { where('scheduled_at < ?', Time.current) }
   scope :by_type, ->(type) { where(event_type: type) }
   scope :pending_selection, -> { where(status: 'pending_selection') }
+  scope :published, -> { where(published: true) }
 
   before_validation :generate_confirmation_token, on: :create, if: :pending_selection?
 

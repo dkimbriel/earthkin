@@ -92,6 +92,36 @@ RSpec.describe 'Api::Events', type: :request do
       end
     end
 
+    context 'when creating a standalone school event' do
+      it 'creates a published event with no eventable' do
+        expect {
+          post '/api/events', params: {
+            event: {
+              event_type: 'open_house',
+              title: 'Fall Open House',
+              scheduled_at: 2.weeks.from_now.iso8601,
+              location_id: location.id,
+              published: true
+            }
+          }
+        }.to change(Event, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+        event = Event.last
+        expect(event.eventable).to be_nil
+        expect(event.published).to be true
+      end
+
+      it 'can toggle published on update' do
+        event = create(:event, eventable: nil, event_type: 'open_house', title: 'Open House')
+
+        patch "/api/events/#{event.id}", params: { event: { published: true } }
+
+        expect(response).to have_http_status(:ok)
+        expect(event.reload.published).to be true
+      end
+    end
+
     context 'when creating a generic event' do
       it 'creates a new event' do
         expect {
