@@ -12,7 +12,28 @@ export const SIGNATURE_FONT = '"Snell Roundhand", "Savoye LET", "Brush Script MT
 
 export const hasFormFields = (body) => /\[\[(text|textarea|checkbox|signature)/.test(body || "");
 
-const FIELD_RE = /\[\[(text|textarea|checkbox|signature|date)(?::([\w-]+))?(?:\|([^\]]*))?\]\]/g;
+// Mirrors the server-side FormFieldRequirements: labels ending in * are
+// required; [[require-one:a,b|Message]] needs at least one key checked.
+export function validateForm(body, values = {}) {
+	const errors = {};
+	const requiredRe = /\[\[(?:text|textarea):([\w-]+)\|([^\]]*)\*\]\]/g;
+	let match;
+	while ((match = requiredRe.exec(body || "")) !== null) {
+		if (!String(values[match[1]] || "").trim()) {
+			errors[match[1]] = "Required";
+		}
+	}
+	const groupRe = /\[\[require-one:([\w,-]+)(?:\|([^\]]*))?\]\]/g;
+	while ((match = groupRe.exec(body || "")) !== null) {
+		const keys = match[1].split(",");
+		if (!keys.some((k) => values[k] === true || values[k] === "true")) {
+			errors[`one-of:${match[1]}`] = match[2] || "Please choose an option";
+		}
+	}
+	return errors;
+}
+
+const FIELD_RE = /\[\[(text|textarea|checkbox|signature|date|require-one)(?::([\w,-]+))?(?:\|([^\]]*))?\]\]/g;
 const BOLD_RE = /\*\*(.+?)\*\*/g;
 
 const renderBold = (text, keyPrefix) => {
@@ -22,7 +43,7 @@ const renderBold = (text, keyPrefix) => {
 	);
 };
 
-function InlineField({ type, fieldKey, label, values, onChange, readOnly }) {
+function InlineField({ type, fieldKey, label, values, onChange, readOnly, error }) {
 	const value = values?.[fieldKey];
 
 	if (type === "checkbox") {
@@ -35,10 +56,19 @@ function InlineField({ type, fieldKey, label, values, onChange, readOnly }) {
 		}
 		return (
 			<FormControlLabel
-				sx={{ display: "flex", alignItems: "flex-start", ml: 0, my: 0.25, "& .MuiCheckbox-root": { py: 0.25 } }}
+				id={`field-${fieldKey}`}
+				sx={{
+					display: "flex",
+					alignItems: "flex-start",
+					ml: 0,
+					my: 0.25,
+					"& .MuiCheckbox-root": { py: 0.25 },
+					...(error ? { color: "error.main" } : {}),
+				}}
 				control={
 					<Checkbox
 						size="small"
+						color={error ? "error" : "primary"}
 						checked={!!value}
 						onChange={(e) => onChange(fieldKey, e.target.checked)}
 					/>
@@ -71,6 +101,7 @@ function InlineField({ type, fieldKey, label, values, onChange, readOnly }) {
 	if (type === "textarea") {
 		return (
 			<TextField
+				id={`field-${fieldKey}`}
 				label={label}
 				value={value || ""}
 				onChange={(e) => onChange(fieldKey, e.target.value)}
@@ -79,18 +110,23 @@ function InlineField({ type, fieldKey, label, values, onChange, readOnly }) {
 				fullWidth
 				size="small"
 				sx={{ my: 1 }}
+				error={!!error}
+				helperText={error}
 			/>
 		);
 	}
 
 	return (
 		<TextField
+			id={`field-${fieldKey}`}
 			placeholder={label}
 			value={value || ""}
 			onChange={(e) => onChange(fieldKey, e.target.value)}
 			variant="standard"
 			size="small"
 			sx={{ mx: 0.5, minWidth: 220, verticalAlign: "baseline" }}
+			error={!!error}
+			helperText={error}
 		/>
 	);
 }
@@ -138,6 +174,7 @@ export default function FormDocument({
 	signatureName = "",
 	onSignatureChange = () => {},
 	signedAt = null,
+	errors = {},
 }) {
 	const renderInline = (text, keyPrefix) => {
 		const nodes = [];
@@ -166,6 +203,18 @@ export default function FormDocument({
 						{signedAt ? new Date(signedAt).toLocaleDateString() : new Date().toLocaleDateString()}
 					</Typography>
 				);
+			} else if (type === "require-one") {
+				const groupId = `one-of:${fieldKey}`;
+				const groupError = errors[groupId];
+				nodes.push(
+					<Box key={`${keyPrefix}-g${i}`} id={`field-${groupId}`} component="span" sx={{ display: "block" }}>
+						{!readOnly && groupError && (
+							<Typography variant="body2" color="error.main" sx={{ my: 0.5, fontWeight: 600 }}>
+								{groupError}
+							</Typography>
+						)}
+					</Box>
+				);
 			} else {
 				nodes.push(
 					<InlineField
@@ -176,6 +225,7 @@ export default function FormDocument({
 						values={values}
 						onChange={onChange}
 						readOnly={readOnly}
+						error={errors[fieldKey]}
 					/>
 				);
 			}
@@ -232,7 +282,7 @@ export default function FormDocument({
 		const bullet = line.match(/^-\s+(.*)$/);
 		const numbered = line.match(/^\d+\.\s+(.*)$/);
 		// A checkbox on its own line renders as its own row, not inside a paragraph.
-		const soloCheckbox = line.match(/^\[\[checkbox:[\w-]+\|[^\]]*\]\]$/);
+		const soloCheckbox = line.match(/^\[\[(?:checkbox:[\w-]+|require-one:[\w,-]+)\|[^\]]*\]\]$/);
 
 		if (heading) {
 			flushParagraph(`${key}-p`);
@@ -270,5 +320,12 @@ export default function FormDocument({
 	flushParagraph("tail-p");
 	flushList("tail-ul");
 
-	return <Box>{blocks}</Box>;
+	return (
+		<Box>
+			<Box sx={{ borderBottom: "2px solid", borderColor: "primary.main", pb: 1.5, mb: 2 }}>
+				<Box component="img" src="/logo-green.png" alt="Earthkin Nature School" sx={{ height: 56, display: "block" }} />
+			</Box>
+			{blocks}
+		</Box>
+	);
 }

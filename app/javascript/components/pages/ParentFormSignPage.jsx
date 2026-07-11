@@ -17,7 +17,7 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DownloadIcon from "@mui/icons-material/Download";
 import DrawIcon from "@mui/icons-material/Draw";
 import { portalApi } from "../../utils/api";
-import FormDocument, { hasFormFields, SIGNATURE_FONT } from "../shared/FormDocument";
+import FormDocument, { hasFormFields, validateForm, SIGNATURE_FONT } from "../shared/FormDocument";
 
 export default function ParentFormSignPage() {
     const { id } = useParams();
@@ -31,6 +31,7 @@ export default function ParentFormSignPage() {
     const [agreed, setAgreed] = useState(false);
     const [busy, setBusy] = useState(false);
     const [signatureVisible, setSignatureVisible] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState({});
     const observerRef = useRef(null);
 
     useEffect(() => {
@@ -76,6 +77,19 @@ export default function ParentFormSignPage() {
 
     const handleSign = async () => {
         setError(null);
+
+        // Client-side required-field check (the server enforces it too).
+        const validationErrors = hasFormFields(form.form_body) ? validateForm(form.form_body, fields) : {};
+        setFieldErrors(validationErrors);
+        const firstErrorKey = Object.keys(validationErrors)[0];
+        if (firstErrorKey) {
+            setError("Please complete the highlighted required fields before signing.");
+            document
+                .getElementById(`field-${firstErrorKey}`)
+                ?.scrollIntoView({ behavior: "smooth", block: "center" });
+            return;
+        }
+
         setBusy(true);
         try {
             await portalApi.signForm(form.id, name, answers, fields);
@@ -132,9 +146,22 @@ export default function ParentFormSignPage() {
                     <FormDocument
                         body={form.form_body}
                         values={fields}
-                        onChange={(key, value) => setFields((prev) => ({ ...prev, [key]: value }))}
+                        onChange={(key, value) => {
+                            setFields((prev) => ({ ...prev, [key]: value }));
+                            if (Object.keys(fieldErrors).length) {
+                                setFieldErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[key];
+                                    Object.keys(next).forEach((k) => {
+                                        if (k.startsWith("one-of:") && k.includes(key)) delete next[k];
+                                    });
+                                    return next;
+                                });
+                            }
+                        }}
                         signatureName={name}
                         onSignatureChange={setName}
+                        errors={fieldErrors}
                     />
                 ) : (
                     form.form_body

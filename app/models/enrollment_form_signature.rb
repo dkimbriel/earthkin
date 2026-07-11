@@ -21,6 +21,9 @@ class EnrollmentFormSignature < ApplicationRecord
     raise ArgumentError, 'Signature name is required' if name.blank?
     raise ArgumentError, 'Form is already signed' if signed?
 
+    missing = FormFieldRequirements.errors_for(form_template.body, form_fields)
+    raise ArgumentError, "Please complete the required fields: #{missing.join('; ')}" if missing.any?
+
     update!(
       status: 'signed',
       signed_by_name: name,

@@ -95,6 +95,33 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(fields['nested']).to be_a(String) # flattened, never a nested hash
     end
 
+    it 'refuses to sign while required fields are missing' do
+      signature = child.enrollment_form_signatures.first
+      signature.form_template.update!(body: <<~BODY)
+        # Test Form
+        Name: [[text:child_full_name|Child's full name*]]
+        [[checkbox:opt_a|Option A]]
+        [[checkbox:opt_b|Option B]]
+        [[require-one:opt_a,opt_b|Please choose A or B]]
+        [[signature]]
+      BODY
+
+      post "/api/portal/forms/#{signature.id}/sign", params: { signed_by_name: 'Jane Parent' }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Child's full name")
+      expect(response.body).to include('Please choose A or B')
+      expect(signature.reload.status).to eq('pending')
+
+      post "/api/portal/forms/#{signature.id}/sign", params: {
+        signed_by_name: 'Jane Parent',
+        form_fields: { child_full_name: 'Demo Kid', opt_a: 'true' }
+      }
+
+      expect(response).to have_http_status(:ok)
+      expect(signature.reload.status).to eq('signed')
+    end
+
     it 'keeps a DocuSign-style audit trail: issued, viewed, signed with checksum' do
       signature = child.enrollment_form_signatures.first
       expect(signature.audit_log.map { |e| e['event'] }).to eq(['issued'])

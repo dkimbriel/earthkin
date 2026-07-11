@@ -30,14 +30,25 @@ class FormSignaturePdfGenerator
 
   private
 
+  LOGO_PATH = Rails.root.join('public/logo-green.png')
+
   def header(doc)
-    doc.text safe('Earthkin Nature School'), size: 9, color: '2e7d32'
+    if File.exist?(LOGO_PATH)
+      doc.image LOGO_PATH.to_s, fit: [150, 56], position: :left
+      doc.move_down 4
+    else
+      doc.text safe('Earthkin Nature School'), size: 12, style: :bold, color: '2e7d32'
+    end
     doc.text safe("#{@signature.form_template.name} — #{@signature.child.full_name}"), size: 9, color: '666666'
+    doc.move_down 4
+    doc.stroke_color '2e7d32'
     doc.stroke_horizontal_rule
-    doc.move_down 12
+    doc.stroke_color '000000'
+    doc.move_down 14
   end
 
   def render_line(doc, line)
+    line = line.gsub(/\[\[require-one:[\w,-]+(?:\|[^\]]*)?\]\]/, '').rstrip
     if line.strip.empty?
       doc.move_down 6
     elsif (heading = line.match(/^(#{Regexp.escape('#')}{1,3})\s+(.*)$/))
@@ -48,7 +59,7 @@ class FormSignaturePdfGenerator
       signature_block(doc)
     elsif (textarea = line.match(/^\[\[textarea:([\w-]+)(?:\|([^\]]*))?\]\]$/))
       value = @fields[textarea[1]].to_s
-      doc.text inline("#{textarea[2] || textarea[1]}:"), inline_format: true, color: '555555', size: 9
+      doc.text inline("#{(textarea[2] || textarea[1]).delete_suffix('*')}:"), inline_format: true, color: '555555', size: 9
       doc.text safe(value.presence || '(not provided)'), style: value.present? ? :normal : :italic
       doc.move_down 4
     elsif (bullet = line.match(/^-\s+(.*)$/))
@@ -79,6 +90,8 @@ class FormSignaturePdfGenerator
 
   def certificate(doc)
     doc.start_new_page
+    doc.image LOGO_PATH.to_s, fit: [120, 45], position: :left if File.exist?(LOGO_PATH)
+    doc.move_down 6
     doc.text 'Signing Certificate', size: 18, style: :bold
     doc.move_down 4
     doc.text safe("#{@signature.form_template.name} — #{@signature.child.full_name}"), size: 11
