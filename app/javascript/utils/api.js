@@ -156,6 +156,13 @@ export const teachersApi = {
 	delete: (id) => api.delete(`/api/teachers/${id}`),
 };
 
+export const contentItemsApi = {
+	list: () => api.get("/api/content_items"),
+	create: (data) => api.post("/api/content_items", { content_item: data }),
+	update: (id, data) => api.patch(`/api/content_items/${id}`, { content_item: data }),
+	delete: (id) => api.delete(`/api/content_items/${id}`),
+};
+
 export const usersApi = {
 	list: () => api.get("/api/users"),
 	create: (data) => api.post("/api/users", { user: data }),

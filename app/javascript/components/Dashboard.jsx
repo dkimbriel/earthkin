@@ -27,6 +27,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import AssignmentIcon from "@mui/icons-material/Assignment";
 import SettingsIcon from "@mui/icons-material/Settings";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
+import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -49,6 +50,7 @@ import EnrollmentApplicationsPage from "./pages/EnrollmentApplicationsPage";
 import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetailPage";
 import IntegrationsPage from "./pages/IntegrationsPage";
 import UsersPage from "./pages/UsersPage";
+import ContentPage from "./pages/ContentPage";
 
 const drawerWidth = 220;
 
@@ -60,6 +62,7 @@ const baseNavItems = [
     { path: "/programs", label: "Programs", icon: <SchoolIcon /> },
     { path: "/teachers", label: "Teachers", icon: <PersonIcon /> },
     { path: "/locations", label: "Locations", icon: <LocationOnIcon /> },
+    { path: "/content", label: "Content", icon: <FolderSharedIcon /> },
 ];
 
 // Admin-only pages.
@@ -282,6 +285,7 @@ export default function Dashboard() {
                             path="/enrollment-applications/:id"
                             element={<EnrollmentApplicationDetailPage />}
                         />
+                        <Route path="/content" element={<ContentPage />} />
                         {user?.role === "admin" && (
                             <Route path="/users" element={<UsersPage />} />
                         )}

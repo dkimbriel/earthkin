@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_10_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_10_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -50,6 +50,26 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000001) do
     t.datetime "updated_at", null: false
     t.uuid "family_id", null: false
     t.index ["family_id"], name: "index_children_on_family_id"
+  end
+
+  create_table "content_item_teachers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "content_item_id", null: false
+    t.uuid "teacher_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["content_item_id", "teacher_id"], name: "index_content_item_teachers_on_content_item_id_and_teacher_id", unique: true
+    t.index ["content_item_id"], name: "index_content_item_teachers_on_content_item_id"
+    t.index ["teacher_id"], name: "index_content_item_teachers_on_teacher_id"
+  end
+
+  create_table "content_items", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "title", null: false
+    t.string "url", null: false
+    t.text "description"
+    t.string "category", default: "general", null: false
+    t.string "visibility", default: "all_staff", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "emails", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -327,6 +347,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_10_000001) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "children", "families"
+  add_foreign_key "content_item_teachers", "content_items"
+  add_foreign_key "content_item_teachers", "teachers"
   add_foreign_key "enrollment_applications", "children"
   add_foreign_key "enrollment_applications", "families"
   add_foreign_key "enrollment_applications", "payment_plans", column: "selected_payment_plan_id"
