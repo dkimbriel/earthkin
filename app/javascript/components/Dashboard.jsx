@@ -29,6 +29,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import EmailIcon from "@mui/icons-material/Email";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useAuth } from "../contexts/AuthContext";
 
 import DashboardPage from "./pages/DashboardPage";
@@ -56,6 +57,7 @@ import EmailsPage from "./pages/EmailsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
+import HelpCenterPage from "./pages/HelpCenterPage";
 
 const drawerWidth = 220;
 
@@ -94,19 +96,22 @@ export default function Dashboard() {
     const teacherNavItems = baseNavItems.filter((item) =>
         ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
     );
+    const helpNavItem = { path: "/help", label: "Help", icon: <HelpOutlineIcon /> };
     const navItems = isParent
         ? [
             { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
             { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
             { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
             { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
+            helpNavItem,
         ]
         : isTeacher
-            ? teacherNavItems
+            ? [...teacherNavItems, helpNavItem]
             : [
                 ...baseNavItems,
                 ...(user?.role === "admin" ? adminNavItems : []),
                 ...(user?.super_admin ? superAdminNavItems : []),
+                helpNavItem,
             ];
 
     const drawerContent = (
@@ -320,6 +325,7 @@ export default function Dashboard() {
                             element={<EnrollmentApplicationDetailPage />}
                         />
                         <Route path="/content" element={<ContentPage />} />
+                        <Route path="/help" element={<HelpCenterPage />} />
                         {user?.role === "admin" && (
                             <Route path="/users" element={<UsersPage />} />
                         )}
