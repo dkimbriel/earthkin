@@ -156,6 +156,12 @@ export const teachersApi = {
 	delete: (id) => api.delete(`/api/teachers/${id}`),
 };
 
+export const portalApi = {
+	overview: () => api.get("/api/portal/overview"),
+	events: () => api.get("/api/portal/events"),
+	payments: () => api.get("/api/portal/payments"),
+};
+
 export const contentItemsApi = {
 	list: () => api.get("/api/content_items"),
 	create: (data) => api.post("/api/content_items", { content_item: data }),

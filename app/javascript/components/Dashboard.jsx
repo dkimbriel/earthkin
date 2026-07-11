@@ -51,6 +51,8 @@ import EnrollmentApplicationDetailPage from "./pages/EnrollmentApplicationDetail
 import IntegrationsPage from "./pages/IntegrationsPage";
 import UsersPage from "./pages/UsersPage";
 import ContentPage from "./pages/ContentPage";
+import ParentCalendarPage from "./pages/ParentCalendarPage";
+import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 
 const drawerWidth = 220;
 
@@ -89,7 +91,11 @@ export default function Dashboard() {
         ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
     );
     const navItems = isParent
-        ? [{ path: "/dashboard", label: "Home", icon: <DashboardIcon /> }]
+        ? [
+            { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
+            { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
+            { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
+        ]
         : isTeacher
             ? teacherNavItems
             : [
@@ -256,7 +262,13 @@ export default function Dashboard() {
                             element={<FamilyDetailPage />}
                         />
                         <Route path="/programs" element={<ProgramsPage />} />
-                        <Route path="/calendar" element={<CalendarPage />} />
+                        <Route
+                            path="/calendar"
+                            element={isParent ? <ParentCalendarPage /> : <CalendarPage />}
+                        />
+                        {isParent && (
+                            <Route path="/payments" element={<ParentPaymentsPage />} />
+                        )}
                         <Route
                             path="/programs/:id"
                             element={<ProgramDetailPage />}

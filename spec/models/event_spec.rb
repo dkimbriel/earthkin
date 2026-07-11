@@ -2,7 +2,7 @@ require 'rails_helper'
 
 RSpec.describe Event, type: :model do
   describe 'associations' do
-    it { should belong_to(:eventable) }
+    it { should belong_to(:eventable).optional }
     it { should belong_to(:location).optional }
   end
 

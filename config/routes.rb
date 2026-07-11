@@ -83,6 +83,11 @@ Rails.application.routes.draw do
 			end
 		end
 
+		# Parent portal (parent role only, scoped to their family)
+		get 'portal/overview', to: 'portal#overview'
+		get 'portal/events', to: 'portal#events'
+		get 'portal/payments', to: 'portal#payments'
+
 		# Admin integration settings (Gmail mailbox connection)
 		namespace :admin do
 			get 'integrations/gmail', to: 'integrations#gmail'
