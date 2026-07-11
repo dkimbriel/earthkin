@@ -4,7 +4,7 @@
 
 <p>Thank you again for meeting with us<% if @location %> at <%= @location.name %><% end %>! We really enjoyed spending time with your family and getting to know <%= @application.child_first_name %> a bit more. It was wonderful to connect and share more about Earthkin together.</p>
 
-<p>We're excited to move forward with the next steps for enrollment!</p>
+<p>Please see the information below for next steps toward enrollment.</p>
 
 <h3>To Reserve Your Spot</h3>
 <p>To reserve <%= @application.child_first_name %>'s spot, please select your preferred payment plan and submit the <strong>non-refundable $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee</strong>.</p>
@@ -14,7 +14,7 @@
 </p>
 
 <h3>Before Completing Final Forms</h3>
-<p>Please review our Family Handbook to familiarize yourself with our policies and procedures.</p>
+<p>Please review our <% if ENV['FAMILY_HANDBOOK_URL'].present? %><a href="<%= ENV['FAMILY_HANDBOOK_URL'] %>" style="color: #2e7d32;">Family Handbook</a><% else %>Family Handbook<% end %> to familiarize yourself with our policies and procedures.</p>
 
 <p>The first tuition installment payment will be due according to the payment plan you select.</p>
 

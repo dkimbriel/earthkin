@@ -45,13 +45,12 @@ RSpec.describe EnrollmentMailer, type: :mailer do
 
     it 'renders the body with event details' do
       expect(mail.body.encoded).to include(location.name)
-      expect(mail.body.encoded).to include('PAYMENT OPTIONS')
+      expect(mail.body.encoded).to include('selecting a date for the Earthkin Nature School Meet-n-Greet')
     end
 
-    it 'includes payment plan options' do
-      create_list(:payment_plan, 4, program: application.program)
-      expect(mail.body.encoded).to include('Full Payment')
-      expect(mail.body.encoded).to include('$2,800')
+    it 'points families at the Family Handbook before the meeting' do
+      expect(mail.body.encoded).to include('Family Handbook')
+      expect(mail.body.encoded).to include('come ready with questions')
     end
   end
 
