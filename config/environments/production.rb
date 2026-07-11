@@ -56,9 +56,9 @@ Rails.application.configure do
 	config.action_mailer.perform_caching = false
 
 	# Mailer links (Devise password reset, parent login) need an absolute host.
-	# Set APPLICATION_HOST on Heroku if the app runs on a custom domain.
+	# Defaults to the live portal domain; override with APPLICATION_HOST.
 	config.action_mailer.default_url_options = {
-		host: ENV.fetch("APPLICATION_HOST", "earthkin.herokuapp.com"),
+		host: ENV.fetch("APPLICATION_HOST", "portal.earthkinnatureschool.com"),
 		protocol: "https"
 	}
 
