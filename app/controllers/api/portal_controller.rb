@@ -96,7 +96,8 @@ module Api
 				email: current_user.email,
 				ip: request.remote_ip,
 				user_agent: request.user_agent,
-				response_text: params[:response_text]
+				response_text: params[:response_text],
+				form_fields: sanitized_form_fields
 			)
 
 			render json: signature.as_json
@@ -133,6 +134,20 @@ module Api
 
 		def family_form_signatures
 			EnrollmentFormSignature.where(child_id: family.children.select(:id))
+		end
+
+		# The filled-in field values from the form document: flat key ->
+		# string/boolean pairs only, so arbitrary nested payloads can't land
+		# in the record.
+		def sanitized_form_fields
+			raw = params[:form_fields]
+			return {} unless raw.respond_to?(:to_unsafe_h)
+
+			raw.to_unsafe_h.each_with_object({}) do |(key, value), clean|
+				next unless key.to_s.match?(/\A[\w-]+\z/)
+
+				clean[key.to_s] = value.in?([true, false, 'true', 'false']) ? ActiveModel::Type::Boolean.new.cast(value) : value.to_s
+			end
 		end
 
 		def enrollment_json(enrollment)

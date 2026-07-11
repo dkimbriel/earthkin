@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_11_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_11_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -167,6 +167,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_11_000002) do
     t.datetime "updated_at", null: false
     t.text "response_text"
     t.jsonb "audit_log", default: [], null: false
+    t.jsonb "form_fields", default: {}, null: false
     t.index ["child_id", "form_template_id", "enrollment_application_id"], name: "index_form_signatures_uniqueness", unique: true
     t.index ["child_id"], name: "index_enrollment_form_signatures_on_child_id"
     t.index ["enrollment_application_id"], name: "index_enrollment_form_signatures_on_enrollment_application_id"

@@ -177,8 +177,12 @@ export const portalApi = {
 	events: () => api.get("/api/portal/events"),
 	payments: () => api.get("/api/portal/payments"),
 	forms: () => api.get("/api/portal/forms"),
-	signForm: (id, signedByName, responseText) =>
-		api.post(`/api/portal/forms/${id}/sign`, { signed_by_name: signedByName, response_text: responseText }),
+	signForm: (id, signedByName, responseText, formFields) =>
+		api.post(`/api/portal/forms/${id}/sign`, {
+			signed_by_name: signedByName,
+			response_text: responseText,
+			form_fields: formFields || {},
+		}),
 	viewForm: (id) => api.post(`/api/portal/forms/${id}/view`),
 };
 

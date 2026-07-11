@@ -19,9 +19,7 @@ import {
     Paper,
 } from "@mui/material";
 import { portalApi } from "../../utils/api";
-
-// The signature preview and signed record render the typed name in cursive.
-const SIGNATURE_FONT = '"Snell Roundhand", "Savoye LET", "Brush Script MT", "Segoe Script", cursive';
+import FormDocument, { hasFormFields, SIGNATURE_FONT } from "../shared/FormDocument";
 
 function SignDialog({ form, onClose, onSigned }) {
     const [name, setName] = useState("");
@@ -30,18 +28,21 @@ function SignDialog({ form, onClose, onSigned }) {
     const [error, setError] = useState(null);
     const [busy, setBusy] = useState(false);
 
+    const [fields, setFields] = useState({});
+
     // Opening the form is part of the signing audit trail.
     useEffect(() => {
         portalApi.viewForm(form.id).catch(() => {});
     }, [form.id]);
 
-    const asksForAnswers = (form.form_body || "").includes("Your answers");
+    const structured = hasFormFields(form.form_body);
+    const asksForAnswers = !structured && (form.form_body || "").includes("Your answers");
 
     const handleSign = async () => {
         setError(null);
         setBusy(true);
         try {
-            await portalApi.signForm(form.id, name, answers);
+            await portalApi.signForm(form.id, name, answers, fields);
             onSigned();
             onClose();
         } catch (err) {
@@ -60,9 +61,25 @@ function SignDialog({ form, onClose, onSigned }) {
                 {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
                 <Paper
                     variant="outlined"
-                    sx={{ p: 2, mb: 2, maxHeight: 320, overflow: "auto", whiteSpace: "pre-wrap" }}
+                    sx={{
+                        p: 3,
+                        mb: 2,
+                        maxHeight: 480,
+                        overflow: "auto",
+                        whiteSpace: structured ? "normal" : "pre-wrap",
+                    }}
                 >
-                    {form.form_body}
+                    {structured ? (
+                        <FormDocument
+                            body={form.form_body}
+                            values={fields}
+                            onChange={(key, value) => setFields((prev) => ({ ...prev, [key]: value }))}
+                            signatureName={name}
+                            onSignatureChange={setName}
+                        />
+                    ) : (
+                        form.form_body
+                    )}
                 </Paper>
                 {asksForAnswers && (
                     <TextField
@@ -76,36 +93,40 @@ function SignDialog({ form, onClose, onSigned }) {
                         placeholder={"1. ...\n2. ...\n3. ..."}
                     />
                 )}
-                <TextField
-                    label="Type your full legal name to sign"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    fullWidth
-                    sx={{ mb: 1 }}
-                />
-                <Box
-                    sx={{
-                        mb: 1,
-                        px: 2,
-                        py: 1.5,
-                        border: "1px dashed",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        minHeight: 64,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: 2,
-                    }}
-                >
-                    <Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", lineHeight: 1.2, overflow: "hidden" }}>
-                        {name || "\u00A0"}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                        Signature preview
-                    </Typography>
-                </Box>
+                {!structured && (
+                    <>
+                        <TextField
+                            label="Type your full legal name to sign"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            required
+                            fullWidth
+                            sx={{ mb: 1 }}
+                        />
+                        <Box
+                            sx={{
+                                mb: 1,
+                                px: 2,
+                                py: 1.5,
+                                border: "1px dashed",
+                                borderColor: "divider",
+                                borderRadius: 1,
+                                minHeight: 64,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 2,
+                            }}
+                        >
+                            <Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", lineHeight: 1.2, overflow: "hidden" }}>
+                                {name || "\u00A0"}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                                Signature preview
+                            </Typography>
+                        </Box>
+                    </>
+                )}
                 <FormControlLabel
                     control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
                     label="I have read this form and agree that typing my name above constitutes my electronic signature."
@@ -228,8 +249,26 @@ export default function ParentFormsPage() {
                 <Dialog open onClose={() => setViewTarget(null)} maxWidth="md" fullWidth>
                     <DialogTitle>{viewTarget.form_name} (signed)</DialogTitle>
                     <DialogContent>
-                        <Paper variant="outlined" sx={{ p: 2, whiteSpace: "pre-wrap", maxHeight: 300, overflow: "auto" }}>
-                            {viewTarget.form_body}
+                        <Paper
+                            variant="outlined"
+                            sx={{
+                                p: 3,
+                                whiteSpace: hasFormFields(viewTarget.form_body) ? "normal" : "pre-wrap",
+                                maxHeight: 480,
+                                overflow: "auto",
+                            }}
+                        >
+                            {hasFormFields(viewTarget.form_body) ? (
+                                <FormDocument
+                                    body={viewTarget.form_body}
+                                    values={viewTarget.form_fields || {}}
+                                    readOnly
+                                    signatureName={viewTarget.signed_by_name}
+                                    signedAt={viewTarget.signed_at}
+                                />
+                            ) : (
+                                viewTarget.form_body
+                            )}
                         </Paper>
                         {viewTarget.response_text && (
                             <>
@@ -239,10 +278,12 @@ export default function ParentFormsPage() {
                                 </Paper>
                             </>
                         )}
-                        <Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", mt: 2 }}>
-                            {viewTarget.signed_by_name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        {!hasFormFields(viewTarget.form_body) && (
+                            <Typography sx={{ fontFamily: SIGNATURE_FONT, fontSize: "2rem", mt: 2 }}>
+                                {viewTarget.signed_by_name}
+                            </Typography>
+                        )}
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                             Signed by {viewTarget.signed_by_name} on {new Date(viewTarget.signed_at).toLocaleString()}
                         </Typography>
                     </DialogContent>

@@ -17,7 +17,7 @@ class EnrollmentFormSignature < ApplicationRecord
     status == 'signed'
   end
 
-  def sign!(name:, email: nil, ip: nil, user_agent: nil, response_text: nil)
+  def sign!(name:, email: nil, ip: nil, user_agent: nil, response_text: nil, form_fields: nil)
     raise ArgumentError, 'Signature name is required' if name.blank?
     raise ArgumentError, 'Form is already signed' if signed?
 
@@ -28,6 +28,7 @@ class EnrollmentFormSignature < ApplicationRecord
       signature_ip: ip,
       signed_at: Time.current,
       response_text: response_text.presence,
+      form_fields: form_fields.presence || {},
       form_body_snapshot: form_template.body
     )
 
@@ -55,6 +56,7 @@ class EnrollmentFormSignature < ApplicationRecord
       signed_by_email: signed_by_email,
       signed_at: signed_at,
       response_text: response_text,
+      form_fields: form_fields,
       audit_log: audit_log,
       created_at: created_at
     }

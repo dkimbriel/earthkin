@@ -74,6 +74,27 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(signature.response_text).to include('Answer one')
     end
 
+    it 'stores inline form field values, filtering junk keys and nested payloads' do
+      signature = child.enrollment_form_signatures.first
+
+      post "/api/portal/forms/#{signature.id}/sign", params: {
+        signed_by_name: 'Jane Parent',
+        form_fields: {
+          child_full_name: 'Mayu K',
+          media_permission: 'true',
+          'bad key!' => 'nope',
+          nested: { evil: 'payload' }
+        }
+      }
+
+      expect(response).to have_http_status(:ok)
+      fields = signature.reload.form_fields
+      expect(fields['child_full_name']).to eq('Mayu K')
+      expect(fields['media_permission']).to be true
+      expect(fields).not_to have_key('bad key!')
+      expect(fields['nested']).to be_a(String) # flattened, never a nested hash
+    end
+
     it 'keeps a DocuSign-style audit trail: issued, viewed, signed with checksum' do
       signature = child.enrollment_form_signatures.first
       expect(signature.audit_log.map { |e| e['event'] }).to eq(['issued'])

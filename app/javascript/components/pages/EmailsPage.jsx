@@ -209,6 +209,7 @@ function FormTemplateDialog({ open, onClose, initial, onSaved }) {
 							rows={16}
 							required
 							fullWidth
+							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]], [[textarea:key|Label]], [[checkbox:key|Label]], and [[signature]] where the parent signs."
 						/>
 					</Box>
 				</DialogContent>

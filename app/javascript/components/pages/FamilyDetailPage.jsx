@@ -23,6 +23,7 @@ import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignaturesApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
+import FormDocument, { hasFormFields } from "../shared/FormDocument";
 
 const parentColumns = [
 	{
@@ -374,9 +375,27 @@ export default function FamilyDetailPage() {
 
 						{auditTarget.form_body_snapshot && (
 							<>
-								<Typography variant="subtitle2" sx={{ mt: 2 }}>Form text as signed</Typography>
-								<Paper variant="outlined" sx={{ p: 2, whiteSpace: "pre-wrap", maxHeight: 240, overflow: "auto" }}>
-									{auditTarget.form_body_snapshot}
+								<Typography variant="subtitle2" sx={{ mt: 2 }}>Form as signed</Typography>
+								<Paper
+									variant="outlined"
+									sx={{
+										p: 3,
+										whiteSpace: hasFormFields(auditTarget.form_body_snapshot) ? "normal" : "pre-wrap",
+										maxHeight: 360,
+										overflow: "auto",
+									}}
+								>
+									{hasFormFields(auditTarget.form_body_snapshot) ? (
+										<FormDocument
+											body={auditTarget.form_body_snapshot}
+											values={auditTarget.form_fields || {}}
+											readOnly
+											signatureName={auditTarget.signed_by_name}
+											signedAt={auditTarget.signed_at}
+										/>
+									) : (
+										auditTarget.form_body_snapshot
+									)}
 								</Paper>
 							</>
 						)}
