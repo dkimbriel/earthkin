@@ -9,6 +9,7 @@ class PaymentPlan < ApplicationRecord
   scope :active, -> { where(active: true).order(:display_order) }
 
   before_save :calculate_installment_amount
+  before_create :assign_display_order
 
   # Generate installment schedule starting from a given date
   # Returns array of hashes with { due_date:, amount: }
@@ -44,5 +45,14 @@ class PaymentPlan < ApplicationRecord
 
   def calculate_installment_amount
     self.installment_amount = total_amount / installment_count if installment_count > 0
+  end
+
+  # New plans join the end of the list. The first active plan is treated as
+  # the program's standard rate (default tuition in emails and the public
+  # enrollment page), so a newly added discount plan must not jump ahead.
+  def assign_display_order
+    return if display_order.present? && display_order.positive?
+
+    self.display_order = (self.class.where(program: program).maximum(:display_order) || 0) + 1
   end
 end

@@ -21,5 +21,9 @@ class GmailApiDelivery
 			raw: Base64.urlsafe_encode64(mail.to_s)
 		)
 		service.send_user_message('me', message)
+	rescue Signet::AuthorizationError, Google::Apis::AuthorizationError => e
+		# The stored refresh token was revoked or expired (Google expires them
+		# weekly while the OAuth app is in "Testing" status).
+		raise "The Gmail connection has expired — an admin needs to reconnect it under Integrations. (#{e.class})"
 	end
 end

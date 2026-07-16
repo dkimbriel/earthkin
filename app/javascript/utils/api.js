@@ -39,8 +39,8 @@ async function request(url, options = {}) {
 			credentials: "same-origin",
 		});
 		if (!retryResponse.ok) {
-			const error = await retryResponse.json();
-			throw new Error(error.errors?.join(", ") || "Request failed");
+			const error = await retryResponse.json().catch(() => ({}));
+			throw new Error(error.errors?.join(", ") || error.error || "Request failed");
 		}
 		return retryResponse.status === 204 ? null : retryResponse.json();
 	}
