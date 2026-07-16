@@ -79,6 +79,7 @@ export default function IntegrationsPage() {
 	}
 
 	const connected = status?.connected;
+	const expired = connected && status?.healthy === false;
 
 	return (
 		<Box>
@@ -102,9 +103,9 @@ export default function IntegrationsPage() {
 						</Box>
 						<Chip
 							size="small"
-							color={connected ? "success" : "default"}
-							icon={connected ? <CheckCircleIcon /> : undefined}
-							label={connected ? "Connected" : "Not connected"}
+							color={expired ? "error" : connected ? "success" : "default"}
+							icon={connected && !expired ? <CheckCircleIcon /> : undefined}
+							label={expired ? "Connection expired" : connected ? "Connected" : "Not connected"}
 						/>
 					</Stack>
 
@@ -112,6 +113,14 @@ export default function IntegrationsPage() {
 
 					{connected ? (
 						<>
+							{expired && (
+								<Alert severity="error" sx={{ mb: 2 }}>
+									Google has revoked this connection, so outgoing emails are failing.
+									Click Reconnect and sign in with the school account to resume sending.
+									(While the Google OAuth app is in "Testing" status, this happens every
+									7 days — publish the app in Google Cloud Console to make it permanent.)
+								</Alert>
+							)}
 							<Typography variant="body2" sx={{ mb: 0.5 }}>
 								<strong>Account:</strong> {status.email || "—"}
 							</Typography>
@@ -120,14 +129,20 @@ export default function IntegrationsPage() {
 									Connected by {status.connected_by}
 								</Typography>
 							)}
-							<Button
-								color="error"
-								variant="outlined"
-								sx={{ mt: 2 }}
-								onClick={() => setConfirmOpen(true)}
-							>
-								Disconnect
-							</Button>
+							<Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+								{expired && (
+									<Button variant="contained" onClick={handleConnect}>
+										Reconnect Gmail
+									</Button>
+								)}
+								<Button
+									color="error"
+									variant="outlined"
+									onClick={() => setConfirmOpen(true)}
+								>
+									Disconnect
+								</Button>
+							</Stack>
 						</>
 					) : (
 						<>

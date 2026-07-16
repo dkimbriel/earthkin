@@ -23,11 +23,25 @@ module Api
 			def gmail_status(integration)
 				{
 					connected: integration&.usable? || false,
+					healthy: gmail_healthy?(integration),
 					configured: GmailOauth.configured?,
 					email: integration&.email,
 					connected_at: integration&.updated_at,
 					connected_by: integration&.connected_by&.email
 				}
+			end
+
+			# Having credentials on file isn't the same as being able to send:
+			# Google revokes refresh tokens (weekly, while the OAuth app is in
+			# Testing status). Prove the connection works by refreshing the
+			# access token right now.
+			def gmail_healthy?(integration)
+				return false unless integration&.usable?
+
+				integration.refresh!
+				true
+			rescue StandardError
+				false
 			end
 
 			def require_super_admin!
