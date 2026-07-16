@@ -157,6 +157,33 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       expect(signature.reload.status).to eq('signed')
     end
 
+    it 'waives all requirements when the no-medication checkbox is checked' do
+      signature = child.enrollment_form_signatures.first
+      signature.form_template.update!(body: <<~BODY)
+        # Medication Form
+        [[checkbox:no_medication|My child does not have any medication that needs to be administered while at Earthkin Nature School]]
+        [[waive-required-if:no_medication]]
+        Medication Name: [[text:medication_name|Medication name*]]
+        [[checkbox:is_prescribed|Prescribed]]
+        [[checkbox:is_otc|Over-the-counter]]
+        [[require-one:is_prescribed,is_otc|Please indicate prescribed or OTC]]
+        [[signature]]
+      BODY
+
+      # Without the waiver, requirements still block signing.
+      post "/api/portal/forms/#{signature.id}/sign", params: { signed_by_name: 'Jane Parent' }
+      expect(response).to have_http_status(:unprocessable_content)
+
+      # Checking the no-medication box waives everything.
+      post "/api/portal/forms/#{signature.id}/sign", params: {
+        signed_by_name: 'Jane Parent',
+        form_fields: { no_medication: 'true' }
+      }
+      expect(response).to have_http_status(:ok)
+      expect(signature.reload.status).to eq('signed')
+      expect(signature.form_fields['no_medication']).to be true
+    end
+
     it 'keeps a DocuSign-style audit trail: issued, viewed, signed with checksum' do
       signature = child.enrollment_form_signatures.first
       expect(signature.audit_log.map { |e| e['event'] }).to eq(['issued'])

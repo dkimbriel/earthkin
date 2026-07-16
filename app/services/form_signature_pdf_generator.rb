@@ -48,7 +48,7 @@ class FormSignaturePdfGenerator
   end
 
   def render_line(doc, line)
-    line = line.gsub(/\[\[require-one:[\w,-]+(?:\|[^\]]*)?\]\]/, '').rstrip
+    line = line.gsub(/\[\[(?:require-one:[\w,-]+(?:\|[^\]]*)?|waive-required-if:[\w-]+)\]\]/, '').rstrip
     if line.strip.empty?
       doc.move_down 6
     elsif (heading = line.match(/^(#{Regexp.escape('#')}{1,3})\s+(.*)$/))

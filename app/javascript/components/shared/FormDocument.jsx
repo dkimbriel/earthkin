@@ -16,6 +16,15 @@ export const hasFormFields = (body) => /\[\[(text|textarea|checkbox|signature)/.
 // required; [[require-one:a,b|Message]] needs at least one key checked.
 export function validateForm(body, values = {}) {
 	const errors = {};
+	// A checked waive key (e.g. "my child has no medication") clears every
+	// requirement on the form.
+	const waiveRe = /\[\[waive-required-if:([\w-]+)\]\]/g;
+	let waiveMatch;
+	while ((waiveMatch = waiveRe.exec(body || "")) !== null) {
+		if (values[waiveMatch[1]] === true || values[waiveMatch[1]] === "true") {
+			return errors;
+		}
+	}
 	const requiredRe = /\[\[(?:text|textarea):([\w-]+)\|([^\]]*)\*\]\]/g;
 	let match;
 	while ((match = requiredRe.exec(body || "")) !== null) {
@@ -33,7 +42,7 @@ export function validateForm(body, values = {}) {
 	return errors;
 }
 
-const FIELD_RE = /\[\[(text|textarea|checkbox|signature|date|require-one)(?::([\w,-]+))?(?:\|([^\]]*))?\]\]/g;
+const FIELD_RE = /\[\[(text|textarea|checkbox|signature|date|require-one|waive-required-if)(?::([\w,-]+))?(?:\|([^\]]*))?\]\]/g;
 const BOLD_RE = /\*\*(.+?)\*\*/g;
 
 const renderBold = (text, keyPrefix) => {
@@ -203,6 +212,8 @@ export default function FormDocument({
 						{signedAt ? new Date(signedAt).toLocaleDateString() : new Date().toLocaleDateString()}
 					</Typography>
 				);
+			} else if (type === "waive-required-if") {
+				// Validation directive only — renders nothing.
 			} else if (type === "require-one") {
 				const groupId = `one-of:${fieldKey}`;
 				const groupError = errors[groupId];
@@ -283,6 +294,12 @@ export default function FormDocument({
 		const numbered = line.match(/^\d+\.\s+(.*)$/);
 		// A checkbox on its own line renders as its own row, not inside a paragraph.
 		const soloCheckbox = line.match(/^\[\[(?:checkbox:[\w-]+|require-one:[\w,-]+)\|[^\]]*\]\]$/);
+		const soloDirective = line.match(/^\[\[waive-required-if:[\w-]+\]\]$/);
+		if (soloDirective) {
+			flushParagraph(`${key}-p`);
+			flushList(`${key}-ul`);
+			return;
+		}
 
 		if (heading) {
 			flushParagraph(`${key}-p`);
