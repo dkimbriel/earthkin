@@ -21,6 +21,10 @@ import { integrationsApi } from "../../utils/api";
 const RETURN_MESSAGES = {
 	connected: { severity: "success", text: "Gmail connected successfully." },
 	error: { severity: "error", text: "Couldn't connect Gmail. Please try again." },
+	missing_scope: {
+		severity: "error",
+		text: "Google connected, but the \"Send email on your behalf\" permission wasn't granted, so nothing was saved. Click Connect again and make sure that checkbox is CHECKED on the Google screen.",
+	},
 	not_configured: {
 		severity: "warning",
 		text: "Google OAuth credentials aren't configured on the server yet.",
@@ -115,10 +119,9 @@ export default function IntegrationsPage() {
 						<>
 							{expired && (
 								<Alert severity="error" sx={{ mb: 2 }}>
-									Google has revoked this connection, so outgoing emails are failing.
-									Click Reconnect and sign in with the school account to resume sending.
-									(While the Google OAuth app is in "Testing" status, this happens every
-									7 days — publish the app in Google Cloud Console to make it permanent.)
+									{status?.send_scope_missing
+										? 'This connection is missing the "Send email on your behalf" permission, so outgoing emails are failing. Click Reconnect and make sure that checkbox is CHECKED on the Google consent screen.'
+										: 'Google has revoked this connection, so outgoing emails are failing. Click Reconnect and sign in with the school account to resume sending. (While the Google OAuth app is in "Testing" status, this happens every 7 days — publish the app in Google Cloud Console to make it permanent.)'}
 								</Alert>
 							)}
 							<Typography variant="body2" sx={{ mb: 0.5 }}>

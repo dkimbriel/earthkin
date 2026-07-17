@@ -20,6 +20,11 @@ class GmailIntegration < ApplicationRecord
 		status == 'connected' && refresh_token.present?
 	end
 
+	# Blank granted_scopes means the row predates scope tracking — assume ok.
+	def send_scope_granted?
+		granted_scopes.blank? || granted_scopes.include?('gmail.send')
+	end
+
 	# A valid access token, refreshing via the stored refresh token if expired.
 	def fresh_access_token!
 		refresh! if access_token.blank? || token_expired?

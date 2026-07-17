@@ -24,6 +24,7 @@ module Api
 				{
 					connected: integration&.usable? || false,
 					healthy: gmail_healthy?(integration),
+					send_scope_missing: integration ? !integration.send_scope_granted? : false,
 					configured: GmailOauth.configured?,
 					email: integration&.email,
 					connected_at: integration&.updated_at,
@@ -37,6 +38,7 @@ module Api
 			# access token right now.
 			def gmail_healthy?(integration)
 				return false unless integration&.usable?
+				return false unless integration.send_scope_granted?
 
 				integration.refresh!
 				true

@@ -24,7 +24,12 @@ module Admin
 		def gmail_callback
 			return redirect_to "#{RETURN_PATH}?gmail=error" unless valid_callback?
 
-			save_integration!(GmailOauth.exchange_code(params[:code]))
+			client = GmailOauth.exchange_code(params[:code])
+			# Refuse to "connect" a grant that can't send mail — happens when the
+			# 'Send email on your behalf' checkbox is left unchecked at consent.
+			return redirect_to "#{RETURN_PATH}?gmail=missing_scope" unless GmailOauth.send_scope_granted?(client)
+
+			save_integration!(client)
 			redirect_to "#{RETURN_PATH}?gmail=connected"
 		rescue StandardError => e
 			Rails.logger.error("Gmail OAuth callback failed: #{e.class}: #{e.message}")
@@ -45,6 +50,7 @@ module Admin
 				access_token: client.access_token,
 				refresh_token: client.refresh_token,
 				token_expires_at: client.expires_at,
+				granted_scopes: GmailOauth.granted_scopes(client),
 				status: 'connected',
 				connected_by: current_user
 			)

@@ -69,6 +69,16 @@ module GmailOauth
 		client
 	end
 
+	# Google's consent screen lets the user uncheck individual permissions, so
+	# a successful token exchange doesn't guarantee we can actually send mail.
+	def send_scope_granted?(client)
+		granted_scopes(client).include?('gmail.send')
+	end
+
+	def granted_scopes(client)
+		Array(client.scope).join(' ')
+	end
+
 	# Look up the email address of the account that just authorized.
 	def fetch_email(access_token)
 		uri = URI(USERINFO_URI)
