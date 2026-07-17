@@ -297,6 +297,28 @@ RSpec.describe 'Enrollment form signatures', type: :request do
     end
   end
 
+  describe '[[tuition-plan]] token' do
+    it "renders only the child's own rate, plan, and 24th-of-month due dates" do
+      program = create(:program, start_date: Date.new(2026, 8, 24))
+      plan = create(:payment_plan, program: program, name: 'Sibling Monthly', installment_count: 10, total_amount: 2520)
+      enrollment = create(:program_enrollment, child: child, program: program)
+      enrollment.create_enrollment_payment_plan!(
+        payment_plan: plan, total_amount: 2520, enrollment_fee: 150,
+        installments: plan.generate_schedule(program.start_date).map { |i| i.merge('paid_at' => nil) }
+      )
+      template = FormTemplate.find_or_create_by!(key: 'family_agreement') { |t| t.name = 'Family Agreement & Waiver' }
+      template.update!(body: "# Agreement\n\n[[tuition-plan]]\n\n[[signature]]")
+      sig = EnrollmentFormSignature.create!(child: child, form_template: template, enrollment_application: nil)
+
+      body = sig.rendered_body
+      expect(body).to include('Tuition for')
+      expect(body).to include('$2,520.00')
+      expect(body).to include('due on the 24th of each month')
+      expect(body).not_to include('[[tuition-plan]]')
+      expect(body).not_to include('Option 2') # not a menu of all plans
+    end
+  end
+
   describe 'form templates' do
     it 'admins can edit form text' do
       sign_in admin

@@ -61,7 +61,7 @@ RSpec.describe 'Api::ContentItems', type: :request do
         content_item: { title: 'New Doc', url: 'https://drive.google.com/x', visible_to_families: true }
       }
       expect(response).to have_http_status(:created)
-      expect(ContentItem.last.visible_to_families).to be true
+      expect(ContentItem.find_by(title: 'New Doc').visible_to_families).to be true
     end
 
     it 'families see only family-visible items in the portal' do

@@ -21,7 +21,9 @@ class EnrollmentFormSignature < ApplicationRecord
   # markers expanded. [[payment-plans]] becomes one checkbox per active
   # payment plan of the child's program, straight from the database.
   def rendered_body
-    form_template.body.to_s.gsub('[[payment-plans]]') { payment_plan_options_markup }
+    form_template.body.to_s
+                 .gsub('[[payment-plans]]') { payment_plan_options_markup }
+                 .gsub('[[tuition-plan]]') { tuition_plan_markup }
   end
 
   # Field values to pre-check when the parent opens the form — currently the
@@ -100,6 +102,44 @@ class EnrollmentFormSignature < ApplicationRecord
 
     keys = plans.map { |plan| "plan_#{plan.id}" }.join(',')
     (lines + ["[[require-one:#{keys}|Please choose one payment plan option]]"]).join("\n")
+  end
+
+  # A statement of THIS child's tuition and selected plan, with due dates on
+  # the program's billing day — used by [[tuition-plan]] so each family's
+  # agreement shows only their own rate.
+  def tuition_plan_markup
+    enr = enrollment
+    epp = enr&.enrollment_payment_plan
+
+    if epp&.payment_plan
+      plan = epp.payment_plan
+      total = epp.total_amount
+      count = plan.installment_count.to_i
+      per = count.positive? ? (total / count) : total
+      installments = Array(epp.installments)
+      first_due = begin
+        installments.first && Date.parse(installments.first['due_date'].to_s)
+      rescue Date::Error
+        nil
+      end
+
+      lines = ["**Tuition for #{child.full_name} is $#{money(total)}** (#{plan.name})."]
+      lines << if count <= 1
+        due = first_due ? " Payment is due #{first_due.strftime('%B %-d, %Y')}." : ''
+        "Selected plan: pay in full ($#{money(total)}).#{due}"
+      elsif first_due
+        "Selected plan: #{count} payments of $#{money(per)}, due on the #{first_due.day.ordinalize} of each month beginning #{first_due.strftime('%B %-d, %Y')}."
+      else
+        "Selected plan: #{count} payments of $#{money(per)}."
+      end
+      lines.join("\n\n")
+    else
+      'Your tuition and payment plan will be confirmed with the school before your first payment is due.'
+    end
+  end
+
+  def money(value)
+    ActiveSupport::NumberHelper.number_to_delimited(format('%.2f', value.to_f))
   end
 
   # Labels live inside [[...|label]] markers, so strip the delimiters.

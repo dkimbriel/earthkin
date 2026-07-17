@@ -220,7 +220,7 @@ function FormTemplateDialog({ open, onClose, initial, onSaved }) {
 							rows={16}
 							required
 							fullWidth
-							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]] (end the label with * to make it required), [[textarea:key|Label]], [[checkbox:key|Label]], [[require-one:key1,key2|Message]] for a required choice, [[waive-required-if:key]] to waive all requirements when a checkbox is checked, [[payment-plans]] for the program's payment plan options from the database, and [[signature]] where the parent signs."
+							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]] (end the label with * to make it required), [[textarea:key|Label]], [[checkbox:key|Label]], [[require-one:key1,key2|Message]] for a required choice, [[waive-required-if:key]] to waive all requirements when a checkbox is checked, [[payment-plans]] to list all payment plans, [[tuition-plan]] to show just this child's tuition, selected plan, and due dates, and [[signature]] where the parent signs."
 						/>
 					</Box>
 				</DialogContent>
