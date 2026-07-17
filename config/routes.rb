@@ -13,7 +13,11 @@ Rails.application.routes.draw do
 		get 'public/programs/:id', to: 'programs#public_show'
 
 		resources :families, only: [:index, :show, :create, :update, :destroy]
-		resources :parents, only: [:index, :show, :create, :update, :destroy]
+		resources :parents, only: [:index, :show, :create, :update, :destroy] do
+			member do
+				post :invite
+			end
+		end
 		resources :children, only: [:index, :show, :create, :update, :destroy]
 		resources :programs, only: [:index, :show, :create, :update, :destroy]
 		resources :program_classes, only: [:index, :show, :create, :update, :destroy]

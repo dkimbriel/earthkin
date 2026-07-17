@@ -81,4 +81,34 @@ RSpec.describe 'Api::Parents', type: :request do
       expect(response).to have_http_status(:no_content)
     end
   end
+
+  describe 'POST /api/parents/:id/invite' do
+    let(:family) { create(:family) }
+
+    it 'creates a portal login and sends the welcome email' do
+      parent = create(:parent, family: family, email: 'newlogin@example.com', user: nil)
+
+      expect {
+        post "/api/parents/#{parent.id}/invite"
+      }.to change(User, :count).by(1)
+       .and change { ActionMailer::Base.deliveries.count }.by(1)
+
+      expect(response).to have_http_status(:ok)
+      parent.reload
+      expect(parent.user).to be_present
+      expect(parent.user.role).to eq('parent')
+      expect(parent.emails.by_type('welcome_email').last.status).to eq('sent')
+    end
+
+    it 'refuses when the parent already has a login' do
+      parent = create(:parent, family: family, user: create(:user, :parent))
+
+      expect {
+        post "/api/parents/#{parent.id}/invite"
+      }.not_to change(User, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include('already has a portal login')
+    end
+  end
 end

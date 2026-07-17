@@ -70,6 +70,7 @@ export const familiesApi = {
 
 export const parentsApi = {
 	list: () => api.get("/api/parents"),
+	invite: (id) => api.post(`/api/parents/${id}/invite`),
 	get: (id) => api.get(`/api/parents/${id}`),
 	create: (data) => api.post("/api/parents", { parent: data }),
 	update: (id, data) => api.patch(`/api/parents/${id}`, { parent: data }),

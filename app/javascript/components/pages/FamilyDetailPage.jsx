@@ -6,6 +6,7 @@ import {
 	Button,
 	Paper,
 	Chip,
+	Alert,
 	Dialog,
 	DialogTitle,
 	DialogContent,
@@ -25,7 +26,7 @@ import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignat
 import { useAuth } from "../../contexts/AuthContext";
 import FormDocument, { hasFormFields } from "../shared/FormDocument";
 
-const parentColumns = [
+const getParentColumns = (isAdmin, onInvite, invitingId) => [
 	{
 		key: "name",
 		label: "Name",
@@ -33,6 +34,28 @@ const parentColumns = [
 	},
 	{ key: "email", label: "Email" },
 	{ key: "phone", label: "Phone" },
+	{
+		key: "portal",
+		label: "Portal Login",
+		render: (row) =>
+			row.user_id ? (
+				<Chip label="Has login" color="success" size="small" />
+			) : isAdmin ? (
+				<Button
+					size="small"
+					variant="outlined"
+					disabled={invitingId === row.id}
+					onClick={(e) => {
+						e.stopPropagation();
+						onInvite(row);
+					}}
+				>
+					{invitingId === row.id ? "Sending..." : "Invite to Portal"}
+				</Button>
+			) : (
+				<Chip label="No login" size="small" variant="outlined" />
+			),
+	},
 ];
 
 const childColumns = [
@@ -100,6 +123,8 @@ export default function FamilyDetailPage() {
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [signatures, setSignatures] = useState([]);
 	const [auditTarget, setAuditTarget] = useState(null);
+	const [invitingId, setInvitingId] = useState(null);
+	const [inviteNotice, setInviteNotice] = useState(null);
 
 	const loadSignatures = async () => {
 		try {
@@ -147,6 +172,20 @@ export default function FamilyDetailPage() {
 		};
 		load();
 	}, [id]);
+
+	const handleInviteParent = async (parent) => {
+		setInvitingId(parent.id);
+		setInviteNotice(null);
+		try {
+			const result = await parentsApi.invite(parent.id);
+			setInviteNotice({ severity: "success", text: result.message });
+			loadFamily();
+		} catch (err) {
+			setInviteNotice({ severity: "error", text: err.message });
+		} finally {
+			setInvitingId(null);
+		}
+	};
 
 	const handleIssueForms = async (childId) => {
 		await formSignaturesApi.issueForChild(childId);
@@ -215,8 +254,13 @@ export default function FamilyDetailPage() {
 					onAdd={isAdmin ? () => setShowParentForm(true) : undefined}
 					addLabel="Add Parent"
 				/>
+				{inviteNotice && (
+					<Alert severity={inviteNotice.severity} sx={{ mb: 2 }} onClose={() => setInviteNotice(null)}>
+						{inviteNotice.text}
+					</Alert>
+				)}
 				<DataTable
-					columns={parentColumns}
+					columns={getParentColumns(isAdmin, handleInviteParent, invitingId)}
 					data={family.parents}
 					loading={false}
 					onDelete={isAdmin ? (item) => setDeleteTarget({ type: "parent", item }) : undefined}
