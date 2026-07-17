@@ -1,6 +1,13 @@
 class PaymentSelectionsController < ApplicationController
   layout 'public'
 
+  # The Venmo handle families send the enrollment fee to. Set VENMO_HANDLE in
+  # the environment; falls back to the school's current handle.
+  helper_method :venmo_handle
+  def venmo_handle
+    ENV.fetch('VENMO_HANDLE', '@earthkin')
+  end
+
   def show
     @application = EnrollmentApplication.includes(:program).find_by!(payment_selection_token: params[:token])
     @payment_plans = PaymentPlan.where(active: true).order(:display_order)
@@ -39,56 +46,16 @@ class PaymentSelectionsController < ApplicationController
     # Validate payment plan selection
     payment_plan = PaymentPlan.find_by(id: params[:payment_plan_id], active: true)
     unless payment_plan
-      flash[:error] = 'Please select a valid payment plan'
+      flash[:error] = 'Please select a payment plan to continue'
       render :show
       return
     end
 
-    # Validate demo payment form (basic validation)
-    unless valid_demo_payment_params?
-      flash[:error] = 'Please fill in all payment fields'
-      render :show
-      return
-    end
-
-    # Parse payment start date (defaults to program start date or current date)
-    payment_start_date = if params[:payment_start_date].present?
-                           Date.parse(params[:payment_start_date])
-                         else
-                           @program.start_date || Date.current
-                         end
-
-    begin
-      ActiveRecord::Base.transaction do
-        # 1. Store the selected payment plan
-        @application.update!(selected_payment_plan: payment_plan)
-
-        # 2. Process the enrollment fee payment using the existing workflow service
-        service = EnrollmentWorkflowService.new(@application)
-        service.process_enrollment_fee_payment(
-          payment_plan_id: payment_plan.id,
-          payment_method: 'card',
-          payment_date: Date.current,
-          payment_start_date: payment_start_date,
-          notes: "Online payment via payment selection page. Card ending in #{params[:card_number]&.last(4)}"
-        )
-      end
-
-      render :confirmed
-    rescue StandardError => e
-      Rails.logger.error "Payment selection failed: #{e.message}"
-      flash[:error] = 'There was an error processing your payment. Please try again.'
-      render :show
-    end
-  end
-
-  private
-
-  def valid_demo_payment_params?
-    params[:payment_plan_id].present? &&
-      params[:card_number].present? &&
-      params[:card_expiry].present? &&
-      params[:card_cvv].present? &&
-      params[:cardholder_name].present?
+    # Record the family's chosen plan. Payment is made out-of-band (Venmo),
+    # so we do NOT mark the fee paid or provision the enrollment here — the
+    # school confirms receipt and records the fee (via Record Fee Payment),
+    # which locks in the plan and creates the enrollment, schedule, and login.
+    @application.update!(selected_payment_plan: payment_plan)
+    render :confirmed
   end
 end

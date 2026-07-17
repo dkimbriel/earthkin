@@ -117,6 +117,20 @@
     font-size: 14px;
     color: #1565c0;
   }
+  .venmo-box {
+    background-color: #f1f8f4;
+    border: 1px solid #2e7d32;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+  .venmo-handle {
+    font-size: 26px;
+    font-weight: bold;
+    color: #2e7d32;
+    margin: 6px 0 14px 0;
+  }
   .section-title {
     font-size: 18px;
     font-weight: bold;
@@ -141,65 +155,57 @@
 
   <h3 class="section-title">1. Select Your Payment Plan</h3>
 
-  <% @application.payment_plan_options.each do |plan_option| %>
-    <label class="payment-plan-option" id="plan-option-<%= plan_option[:id] %>">
-      <%= radio_button_tag :payment_plan_id, plan_option[:id], @application.selected_payment_plan_id == plan_option[:id] %>
-      <div class="plan-name"><%= plan_option[:name] %></div>
-      <div class="plan-details"><%= plan_option[:description] %></div>
+  <% @payment_plans.each do |plan| %>
+    <% option = @application.payment_plan_options.find { |o| o[:id] == plan.id } || {} %>
+    <% schedule = plan.generate_schedule(@program.start_date || Date.current) %>
+    <% first_due = schedule.first && Date.parse(schedule.first['due_date']) %>
+    <label class="payment-plan-option" id="plan-option-<%= plan.id %>">
+      <%= radio_button_tag :payment_plan_id, plan.id, @application.selected_payment_plan_id == plan.id %>
+      <div class="plan-name"><%= plan.name %></div>
       <div class="plan-amount">
-        $<%= number_with_precision(plan_option[:total_amount], precision: 0) %> total
+        $<%= number_with_precision(option[:total_amount] || plan.total_amount, precision: 0) %> total
         <span style="font-size: 14px; font-weight: normal; color: #666;">
-          (<%= plan_option[:installment_count] %> payments of $<%= number_with_precision(plan_option[:installment_amount], precision: 0) %>)
+          (<%= plan.installment_count %> <%= 'payment'.pluralize(plan.installment_count) %> of $<%= number_with_precision(option[:installment_amount] || plan.installment_amount, precision: 0) %>)
         </span>
       </div>
+      <% if first_due %>
+        <div class="plan-details">
+          <% if plan.installment_count == 1 %>
+            Due <%= first_due.strftime('%B %-d, %Y') %>
+          <% else %>
+            First payment due <%= first_due.strftime('%B %-d, %Y') %>, then on the <%= first_due.day.ordinalize %> of each month
+          <% end %>
+        </div>
+      <% end %>
     </label>
   <% end %>
 
-  <div class="form-group" style="margin-top: 20px;">
-    <%= label_tag :payment_start_date, 'Payment Schedule Start Date', class: 'form-label' %>
-    <%= date_field_tag :payment_start_date, @program.start_date || Date.current, class: 'form-input', readonly: true, style: 'background-color: #f5f5f5; cursor: not-allowed;' %>
-    <p style="margin-top: 8px; font-size: 14px; color: #666;">
-      Your tuition payments will be due monthly starting from this date.
-    </p>
-  </div>
-
   <div class="fee-summary">
-    <h4>Enrollment Fee Due Today: $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %></h4>
+    <h4>Enrollment Fee: $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %></h4>
     <p style="margin: 0; font-size: 14px;">
       This non-refundable enrollment fee secures your child's spot. Your first tuition installment will be due according to your selected payment plan schedule.
     </p>
   </div>
 
-  <h3 class="section-title">2. Payment Information</h3>
+  <h3 class="section-title">2. Send Your Enrollment Fee via Venmo</h3>
 
-  <div class="demo-notice">
-    <strong>Demo Mode:</strong> This is a test payment form. No actual charges will be made. Enter any valid-looking card details to proceed.
+  <div class="venmo-box">
+    <p style="margin-top: 0;">Please send your <strong>$<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee</strong> to:</p>
+    <p class="venmo-handle"><%= venmo_handle %></p>
+    <p style="font-size: 14px; color: #555;">
+      In the Venmo note, include <strong><%= @application.full_child_name %></strong>'s name so we can match your payment.
+    </p>
+    <p style="font-size: 14px; color: #555; margin-bottom: 0;">
+      Prefer check or cash? Make checks payable to "Earthkin Nature School," or arrange cash in person — just let us know.
+    </p>
   </div>
 
-  <div class="card-inputs">
-    <div class="form-group">
-      <%= label_tag :cardholder_name, 'Cardholder Name', class: 'form-label' %>
-      <%= text_field_tag :cardholder_name, params[:cardholder_name], class: 'form-input', placeholder: 'Name on card', required: true %>
-    </div>
-
-    <div class="form-group">
-      <%= label_tag :card_number, 'Card Number', class: 'form-label' %>
-      <%= text_field_tag :card_number, params[:card_number], class: 'form-input', placeholder: '1234 5678 9012 3456', maxlength: 19, required: true %>
-    </div>
-
-    <div class="form-group">
-      <%= label_tag :card_expiry, 'Expiration Date', class: 'form-label' %>
-      <%= text_field_tag :card_expiry, params[:card_expiry], class: 'form-input', placeholder: 'MM/YY', maxlength: 5, required: true %>
-    </div>
-
-    <div class="form-group">
-      <%= label_tag :card_cvv, 'CVV', class: 'form-label' %>
-      <%= text_field_tag :card_cvv, params[:card_cvv], class: 'form-input', placeholder: '123', maxlength: 4, required: true %>
-    </div>
+  <div class="demo-notice">
+    Once you've sent your payment, click below to let us know your plan choice. We'll confirm your child's spot as soon as we receive your enrollment fee.
   </div>
 
   <div style="margin-top: 30px;">
-    <%= submit_tag "Pay $#{number_with_precision(@application.effective_enrollment_fee, precision: 0)} Enrollment Fee", class: 'btn btn-large', style: 'width: 100%;' %>
+    <%= submit_tag "I've Sent My Payment — Confirm My Plan", class: 'btn btn-large', style: 'width: 100%;' %>
   </div>
 
 <% end %>
@@ -219,19 +225,4 @@
     }
   });
 
-  // Format card number with spaces
-  document.getElementById('card_number').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\s/g, '').replace(/\D/g, '');
-    value = value.match(/.{1,4}/g)?.join(' ') || value;
-    e.target.value = value;
-  });
-
-  // Format expiry date
-  document.getElementById('card_expiry').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.length >= 2) {
-      value = value.slice(0, 2) + '/' + value.slice(2, 4);
-    }
-    e.target.value = value;
-  });
 </script>

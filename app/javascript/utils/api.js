@@ -29,6 +29,16 @@ async function request(url, options = {}) {
 	}
 
 	if (response.status === 422) {
+		// 422 is overloaded: Rails returns it both for an expired CSRF token
+		// (plain-text body) and for our own validation errors (JSON with
+		// `errors`/`error`). Only the former should be retried — retrying a
+		// validation error hides the real message and can double-submit a
+		// non-idempotent request (e.g. creating a duplicate record).
+		const body = await response.json().catch(() => null);
+		if (body && (body.errors || body.error)) {
+			throw new Error(body.errors?.join(", ") || body.error);
+		}
+
 		await refreshCsrfToken();
 		const retryResponse = await fetch(url, {
 			...options,

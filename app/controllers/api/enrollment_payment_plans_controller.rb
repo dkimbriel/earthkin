@@ -15,6 +15,11 @@ module Api
       payment_plan = PaymentPlan.find(enrollment_plan_params[:payment_plan_id])
       enrollment = ProgramEnrollment.find(enrollment_plan_params[:program_enrollment_id])
 
+      if enrollment.enrollment_payment_plan.present?
+        return render json: { error: 'This enrollment already has a payment plan. Remove the existing plan before assigning a new one.' },
+                      status: :unprocessable_entity
+      end
+
       enrollment_plan.total_amount = payment_plan.total_amount if enrollment_plan.total_amount.blank?
       enrollment_plan.enrollment_fee = 0 if enrollment_plan.enrollment_fee.blank?
 
