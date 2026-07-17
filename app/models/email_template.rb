@@ -11,6 +11,31 @@ class EmailTemplate < ApplicationRecord
     'application_status_update' => %w[parent_name status login_url]
   }.freeze
 
+  # Human-readable description of each token and where its value comes from.
+  # Shown as helper text in the template editor and the Help Center.
+  TOKEN_INFO = {
+    'parent_name' => "The parent/guardian's first name, from the application.",
+    'child_name' => "The child's first name, from the application.",
+    'program_name' => "The program's name (e.g. 2026-2027 Nature Preschool Program).",
+    'program_dates' => "The program's start and end dates.",
+    'class_days' => "The days class meets, from the program's Class Days field.",
+    'time_range' => "The program's start-end time.",
+    'tuition' => "The family's tuition amount. Uses a custom tuition if you've set one on the application (Tuition tab -> Edit Fees); otherwise the program's standard rate.",
+    'enrollment_fee' => "The enrollment fee. Uses a custom fee if set on the application; otherwise the program default ($150).",
+    'enrollment_link' => "A personalized link to the enrollment application form for this family.",
+    'meeting_datetime' => "The scheduled meet-and-greet date and time.",
+    'location_name' => "The meeting location's name.",
+    'location_address' => "The meeting location's street address.",
+    'handbook_url' => "The Family Handbook link (set once for the whole school).",
+    'date_options' => "The meet-and-greet times you proposed, shown as clickable links the family picks from.",
+    'payment_link' => "A personalized link to the family's payment-plan selection and enrollment-fee page.",
+    'login_url' => "A link to the family portal sign-in page.",
+    'password' => "The family's temporary password for their new portal account.",
+    'email' => "The parent's email address (also their portal login).",
+    'status' => "The application's current status.",
+    'payment_plan_summary' => "A summary of the family's selected payment plan and installment amount."
+  }.freeze
+
   # The starting copy for each workflow email. Editable in the portal;
   # deleting a template restores this wording on the next visit.
   DEFAULT_TEMPLATES = {

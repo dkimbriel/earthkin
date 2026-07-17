@@ -13,6 +13,8 @@ import {
 	MenuItem,
 	Alert,
 	Typography,
+	Tooltip,
+	Link,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DataTable from "../shared/DataTable";
@@ -23,7 +25,7 @@ import { emailsApi, emailTemplatesApi, formTemplatesApi, parentsApi } from "../.
 
 const STATUS_COLORS = { sent: "success", failed: "error", bounced: "error", queued: "warning", draft: "info" };
 
-function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
+function TemplateDialog({ open, onClose, initial, knownKeys, tokenInfo, onSaved }) {
 	const [form, setForm] = useState({
 		key: initial?.key || "",
 		name: initial?.name || "",
@@ -137,19 +139,28 @@ function TemplateDialog({ open, onClose, initial, knownKeys, onSaved }) {
 						{tokens.length > 0 && (
 							<Box>
 								<Typography variant="caption" color="text.secondary">
-									Tokens — click to insert at the cursor (filled in automatically when the email is sent):
+									Tokens fill in automatically when the email is sent. Click one to insert it at your cursor; hover to see where its value comes from.{" "}
+									<Link href="/help#email-tokens" target="_blank" rel="noopener">Full token guide</Link>
 								</Typography>
-								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5 }}>
+								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5, mb: 1 }}>
 									{tokens.map((t) => (
-										<Chip
-											key={t}
-											size="small"
-											label={t.replace(/_/g, " ")}
-											onClick={() => insertToken(t)}
-											clickable
-											color="success"
-											variant="outlined"
-										/>
+										<Tooltip key={t} title={tokenInfo?.[t] || ""} arrow>
+											<Chip
+												size="small"
+												label={t.replace(/_/g, " ")}
+												onClick={() => insertToken(t)}
+												clickable
+												color="success"
+												variant="outlined"
+											/>
+										</Tooltip>
+									))}
+								</Box>
+								<Box component="dl" sx={{ m: 0 }}>
+									{tokens.map((t) => (
+										<Typography key={t} variant="caption" color="text.secondary" component="div" sx={{ mb: 0.25 }}>
+											<strong>{`{{${t}}}`}</strong> — {tokenInfo?.[t] || ""}
+										</Typography>
 									))}
 								</Box>
 							</Box>
@@ -229,6 +240,7 @@ export default function EmailsPage() {
 	const [emails, setEmails] = useState([]);
 	const [templates, setTemplates] = useState([]);
 	const [knownKeys, setKnownKeys] = useState({});
+	const [tokenInfo, setTokenInfo] = useState({});
 	const [parents, setParents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [showCompose, setShowCompose] = useState(false);
@@ -251,6 +263,7 @@ export default function EmailsPage() {
 			setEmails(emailData);
 			setTemplates(templateData.templates);
 			setKnownKeys(templateData.known_keys);
+			setTokenInfo(templateData.token_info || {});
 			setFormTemplates(formTemplateData);
 		} finally {
 			setLoading(false);
@@ -406,6 +419,7 @@ export default function EmailsPage() {
 					}}
 					initial={editTemplate}
 					knownKeys={knownKeys}
+					tokenInfo={tokenInfo}
 					onSaved={load}
 				/>
 			)}

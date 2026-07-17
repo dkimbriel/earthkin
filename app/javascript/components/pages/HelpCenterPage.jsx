@@ -54,6 +54,26 @@ const SECTIONS = [
 		),
 	]),
 
+	S("email-tokens", "Email Tokens — What They Mean & How to Adjust Per Family", ["admin"], [
+		p("Tokens are the {{double-brace}} placeholders in an email template. When an email is sent, each token is replaced with real information for that specific family — you never type a family's name or amount into a template by hand. In the template editor, hover any token chip to see where its value comes from, and the same descriptions are listed right below the chips."),
+		p("Where the values come from:"),
+		list(
+			"Family & child details (parent name, child name) — from the family's enrollment application.",
+			"Program details (program name, dates, class days, times) — from the Program record.",
+			"Tuition — the family's tuition: a custom tuition if you've set one on their application, otherwise the program's standard rate.",
+			"Enrollment fee — a custom fee if set on the application, otherwise the program default ($150).",
+			"Links (enrollment link, payment link, login link) — generated automatically and unique to each family.",
+			"Meeting details (date/time, location) — from the meet-and-greet you scheduled.",
+			"Family Handbook link — set once for the whole school.",
+		]),
+		p("To adjust information for ONE family (without changing the template for everyone), you have two options:"),
+		steps(
+			"Change an amount for a family: open their application → Tuition tab → Edit Fees, and set a custom enrollment fee and/or custom tuition. The {{tuition}} and {{enrollment_fee}} tokens will then show that family's custom amount everywhere.",
+			"Change the wording for a one-off message: open the application → Communications tab and click the email you want. It opens a composer pre-filled with that family's email, tokens already filled in — edit any text freely, then send. This changes only that one message, not the saved template.",
+		),
+		p("Editing a template under Emails → Templates changes it for ALL families going forward. Use the per-family options above when only one family's communication needs to differ."),
+	]),
+
 	S("esign", "Enrollment Forms & E-Signatures", ["admin"], [
 		p("The four enrollment forms — Family Agreement & Waiver, Parent/Guardian Contact, Medication Administration, and Health & Medical Care — are signed electronically in the parent portal. When you click Send Enrollment Forms on an application (or Issue Enrollment Forms on a family page), pending forms appear in that family's portal."),
 		p("Parents read each form, type their full legal name, and sign. Each signature records who signed, when, from where, and an exact snapshot of the form text they agreed to. Signed paperwork lives on the family page, listed under each child."),

@@ -11,7 +11,8 @@ module Api
 			render json: {
 				templates: templates.as_json,
 				# Workflow emails and the tokens each supports
-				known_keys: EmailTemplate::KNOWN_KEYS
+				known_keys: EmailTemplate::KNOWN_KEYS,
+				token_info: EmailTemplate::TOKEN_INFO
 			}
 		end
 
