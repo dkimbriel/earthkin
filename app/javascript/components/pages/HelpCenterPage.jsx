@@ -65,7 +65,7 @@ const SECTIONS = [
 			"Links (enrollment link, payment link, login link) — generated automatically and unique to each family.",
 			"Meeting details (date/time, location) — from the meet-and-greet you scheduled.",
 			"Family Handbook link — set once for the whole school.",
-		]),
+		),
 		p("To adjust information for ONE family (without changing the template for everyone), you have two options:"),
 		steps(
 			"Change an amount for a family: open their application → Tuition tab → Edit Fees, and set a custom enrollment fee and/or custom tuition. The {{tuition}} and {{enrollment_fee}} tokens will then show that family's custom amount everywhere.",
