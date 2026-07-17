@@ -74,7 +74,7 @@ export default function Login() {
                         align="center"
                         color="text.secondary"
                     >
-                        Teacher Portal
+                        Earthkin Portal
                     </Typography>
 
                     <Box component="form" onSubmit={handleSubmit}>
