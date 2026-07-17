@@ -11,6 +11,8 @@ import {
 	TextField,
 	MenuItem,
 	Autocomplete,
+	FormControlLabel,
+	Checkbox,
 	Alert,
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
@@ -28,6 +30,7 @@ const EMPTY_FORM = {
 	description: "",
 	category: "general",
 	visibility: "all_staff",
+	visible_to_families: false,
 	teacher_ids: [],
 };
 
@@ -117,6 +120,15 @@ function ContentItemDialog({ open, onClose, onSubmit, initial, teachers, title }
 								)}
 							/>
 						)}
+						<FormControlLabel
+							control={
+								<Checkbox
+									checked={form.visible_to_families}
+									onChange={(e) => set("visible_to_families", e.target.checked)}
+								/>
+							}
+							label="Also show to families in the parent portal (e.g. Family Handbook, Gear & Attire List)"
+						/>
 					</Box>
 				</DialogContent>
 				<DialogActions>
@@ -185,10 +197,10 @@ export default function ContentPage() {
 				{
 					key: "visibility",
 					label: "Visible To",
-					render: (row) =>
-						row.visibility === "all_staff"
-							? "All staff"
-							: row.teacher_names.join(", ") || "No one yet",
+					render: (row) => {
+						const staff = row.visibility === "all_staff" ? "All staff" : (row.teacher_names.join(", ") || "No one yet");
+						return row.visible_to_families ? `${staff} + Families` : staff;
+					},
 				},
 			]
 			: []),

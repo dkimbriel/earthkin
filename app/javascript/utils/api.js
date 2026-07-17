@@ -185,6 +185,7 @@ export const emailTemplatesApi = {
 
 export const portalApi = {
 	overview: () => api.get("/api/portal/overview"),
+	content: () => api.get("/api/portal/content"),
 	events: () => api.get("/api/portal/events"),
 	payments: () => api.get("/api/portal/payments"),
 	forms: () => api.get("/api/portal/forms"),

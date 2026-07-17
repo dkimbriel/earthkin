@@ -79,6 +79,13 @@ module Api
 			}
 		end
 
+		def content
+			items = ContentItem.for_families.order(:category, :title)
+			render json: items.map { |i|
+				{ id: i.id, title: i.title, url: i.url, description: i.description, category: i.category }
+			}
+		end
+
 		def forms
 			signatures = EnrollmentFormSignature
 				.includes(:child, :form_template)

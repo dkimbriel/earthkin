@@ -106,6 +106,7 @@ Rails.application.routes.draw do
 		get 'portal/overview', to: 'portal#overview'
 		get 'portal/events', to: 'portal#events'
 		get 'portal/payments', to: 'portal#payments'
+		get 'portal/content', to: 'portal#content'
 		get 'portal/forms', to: 'portal#forms'
 		post 'portal/forms/:id/sign', to: 'portal#sign_form'
 		post 'portal/forms/:id/view', to: 'portal#view_form'

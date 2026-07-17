@@ -45,6 +45,42 @@ RSpec.describe 'Api::ContentItems', type: :request do
     end
   end
 
+  describe 'family visibility' do
+    let(:parent_user) { create(:user, :parent) }
+    let!(:parent) { create(:parent, family: create(:family), user: parent_user) }
+
+    before do
+      create(:content_item, title: 'Family Handbook', visible_to_families: true)
+      create(:content_item, title: 'Gear & Attire List', visible_to_families: true)
+      create(:content_item, title: 'Staff Only Manual', visible_to_families: false)
+    end
+
+    it 'admins can flag an item visible to families' do
+      sign_in admin
+      post '/api/content_items', params: {
+        content_item: { title: 'New Doc', url: 'https://drive.google.com/x', visible_to_families: true }
+      }
+      expect(response).to have_http_status(:created)
+      expect(ContentItem.last.visible_to_families).to be true
+    end
+
+    it 'families see only family-visible items in the portal' do
+      sign_in parent_user
+      get '/api/portal/content'
+
+      expect(response).to have_http_status(:ok)
+      titles = JSON.parse(response.body).map { |i| i['title'] }
+      expect(titles).to contain_exactly('Family Handbook', 'Gear & Attire List')
+      expect(titles).not_to include('Staff Only Manual')
+    end
+
+    it 'the family documents endpoint is parents-only' do
+      sign_in admin
+      get '/api/portal/content'
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
   describe 'teacher visibility' do
     let(:teacher_record) { create(:teacher) }
     let(:teacher_user) { create(:user, :teacher) }

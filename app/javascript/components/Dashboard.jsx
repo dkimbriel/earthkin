@@ -59,6 +59,7 @@ import EmailsPage from "./pages/EmailsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
+import ParentContentPage from "./pages/ParentContentPage";
 import ParentFormSignPage from "./pages/ParentFormSignPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 
@@ -122,6 +123,7 @@ export default function Dashboard() {
             { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
             { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
             { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
+            { path: "/documents", label: "Documents", icon: <FolderSharedIcon /> },
             helpNavItem,
         ]
         : isTeacher
@@ -308,6 +310,9 @@ export default function Dashboard() {
                         )}
                         {isParent && (
                             <Route path="/forms" element={<ParentFormsPage />} />
+                        )}
+                        {isParent && (
+                            <Route path="/documents" element={<ParentContentPage />} />
                         )}
                         {isParent && (
                             <Route path="/forms/:id/sign" element={<ParentFormSignPage />} />

@@ -34,7 +34,7 @@ module Api
 		end
 
 		def content_item_params
-			params.require(:content_item).permit(:title, :url, :description, :category, :visibility)
+			params.require(:content_item).permit(:title, :url, :description, :category, :visibility, :visible_to_families)
 		end
 
 		def assign_teachers(item)
