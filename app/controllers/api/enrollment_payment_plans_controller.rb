@@ -1,5 +1,13 @@
 module Api
   class EnrollmentPaymentPlansController < BaseController
+    def index
+      plans = EnrollmentPaymentPlan.includes(:payment_plan, :program_enrollment, :payments)
+      if params[:program_enrollment_id].present?
+        plans = plans.where(program_enrollment_id: params[:program_enrollment_id])
+      end
+      render json: plans.as_json(include: [:payment_plan, :program_enrollment], methods: [:total_paid])
+    end
+
     def show
       plan = EnrollmentPaymentPlan.includes(:payment_plan, :program_enrollment, :payments)
                                   .find(params[:id])

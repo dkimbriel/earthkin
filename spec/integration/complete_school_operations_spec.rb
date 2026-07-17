@@ -84,7 +84,7 @@ RSpec.describe 'Complete School Operations', type: :request do
           program_enrollment: {
             program_id: program.id,
             child_id: child_data['id'],
-            status: 'active',
+            status: 'confirmed',
             enrollment_date: Date.today
           }
         }
@@ -166,11 +166,13 @@ RSpec.describe 'Complete School Operations', type: :request do
     expect(response).to have_http_status(:success)
 
     # View all locations
+    create_list(:location, 2)
     get '/api/locations'
     locations = JSON.parse(response.body)
     expect(locations.length).to be >= 2
 
     # View all teachers
+    create_list(:teacher, 2)
     get '/api/teachers'
     teachers = JSON.parse(response.body)
     expect(teachers.length).to be >= 2

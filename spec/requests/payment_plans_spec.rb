@@ -105,11 +105,13 @@ RSpec.describe 'Api::PaymentPlans', type: :request do
     end
 
     it 'prevents deletion if enrollments exist' do
-      enrollment_payment_plan = create(:enrollment_payment_plan, payment_plan: payment_plan)
+      create(:enrollment_payment_plan, payment_plan: payment_plan)
 
       expect {
         delete "/api/payment_plans/#{payment_plan.id}"
-      }.to raise_error(ActiveRecord::DeleteRestrictionError)
+      }.not_to change(PaymentPlan, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
     end
   end
 end

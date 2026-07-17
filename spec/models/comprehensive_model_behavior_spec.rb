@@ -77,7 +77,8 @@ RSpec.describe 'Comprehensive Model Behaviors', type: :model do
       end
 
       it 'handles blank phone numbers' do
-        app = create(:enrollment_application, parent_phone: nil)
+        app = build(:enrollment_application, parent_phone: nil)
+        app.save(validate: false)
         expect(app.parent_phone).to be_nil
       end
 

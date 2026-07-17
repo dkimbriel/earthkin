@@ -10,7 +10,10 @@ RSpec.describe 'Api::EnrollmentPaymentPlans', type: :request do
 
   describe 'GET /api/enrollment_payment_plans' do
     before do
-      create_list(:enrollment_payment_plan, 3, program_enrollment: enrollment, payment_plan: payment_plan)
+      3.times do
+        enr = create(:program_enrollment, program: program)
+        create(:enrollment_payment_plan, program_enrollment: enr, payment_plan: payment_plan)
+      end
     end
 
     it 'returns all enrollment payment plans' do

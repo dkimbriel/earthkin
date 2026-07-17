@@ -11,7 +11,7 @@ module Api
 			# Group by week (Monday start)
 			weekly_data = classes.group_by { |pc| pc.date.beginning_of_week(:monday) }
 			                    .map do |week_start, week_classes|
-				revenue = week_classes.sum { |pc| pc.program.revenue_per_class }
+				revenue = week_classes.sum { |pc| pc.program.revenue_per_class.to_f }
 				{
 					week_start: week_start,
 					week_end: week_start + 6.days,
@@ -24,7 +24,7 @@ module Api
 							date: pc.date,
 							program_name: pc.program.name,
 							program_id: pc.program.id,
-							revenue: pc.program.revenue_per_class
+							revenue: pc.program.revenue_per_class.to_f
 						}
 					end
 				}

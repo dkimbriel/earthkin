@@ -6,7 +6,7 @@
 
 <h3>Payment Details</h3>
 <ul>
-  <li><strong>Amount:</strong> $<%= sprintf('%.2f', @payment.amount) %></li>
+  <li><strong>Amount:</strong> <%= number_to_currency(@payment.amount) %></li>
   <li><strong>Payment Date:</strong> <%= @payment.payment_date.strftime('%B %d, %Y') %></li>
   <li><strong>Payment Method:</strong> <%= @payment.payment_method.titleize %></li>
   <% if @payment.payment_type == 'enrollment_fee' %>
@@ -30,15 +30,15 @@
   <h3>Payment Plan Status</h3>
   <ul>
     <li><strong>Plan:</strong> <%= plan.payment_plan.name %></li>
-    <li><strong>Total Tuition:</strong> $<%= sprintf('%.2f', plan.total_amount) %></li>
-    <li><strong>Total Paid:</strong> $<%= sprintf('%.2f', total_paid) %></li>
-    <li><strong>Remaining Balance:</strong> $<%= sprintf('%.2f', remaining) %></li>
+    <li><strong>Total Tuition:</strong> <%= number_to_currency(plan.total_amount) %></li>
+    <li><strong>Total Paid:</strong> <%= number_to_currency(total_paid) %></li>
+    <li><strong>Remaining Balance:</strong> <%= number_to_currency(remaining) %></li>
   </ul>
 
   <% if remaining > 0 %>
     <% next_installment = plan.next_installment %>
     <% if next_installment %>
-      <p><strong>Next Payment:</strong> $<%= sprintf('%.2f', next_installment['amount']) %> due on <%= Date.parse(next_installment['due_date']).strftime('%B %d, %Y') %></p>
+      <p><strong>Next Payment:</strong> <%= number_to_currency(next_installment['amount']) %> due on <%= Date.parse(next_installment['due_date']).strftime('%B %d, %Y') %></p>
     <% end %>
   <% else %>
     <p style="color: green;"><strong>Your account is paid in full!</strong></p>

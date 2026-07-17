@@ -88,7 +88,7 @@ Rails.application.routes.draw do
 
 		resources :payment_plans, only: [:index, :show, :create, :update, :destroy]
 
-		resources :enrollment_payment_plans, only: [:show, :create, :update] do
+		resources :enrollment_payment_plans, only: [:index, :show, :create, :update] do
 			member do
 				post :record_enrollment_fee
 				post :record_installment_payment

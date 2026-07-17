@@ -29,7 +29,7 @@ RSpec.describe EnrollmentPaymentPlan, type: :model do
       create(:payment, :enrollment_fee, enrollment_payment_plan: enrollment_payment_plan, amount: 150)
       create(:payment, :with_payment_plan, enrollment_payment_plan: enrollment_payment_plan, amount: 280, payment_type: 'tuition')
 
-      expect(enrollment_payment_plan.total_paid).to eq(280.0)
+      expect(enrollment_payment_plan.tuition_paid).to eq(280.0)
     end
   end
 

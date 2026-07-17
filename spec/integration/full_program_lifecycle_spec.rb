@@ -28,7 +28,7 @@ RSpec.describe 'Full Program Lifecycle', type: :request do
       program_class: {
         program_id: program_id,
         name: 'Morning Explorers',
-        day_of_week: 'Monday',
+        date: '2027-03-02',
         start_time: '09:00',
         end_time: '12:00'
       }
@@ -39,7 +39,7 @@ RSpec.describe 'Full Program Lifecycle', type: :request do
       program_class: {
         program_id: program_id,
         name: 'Afternoon Adventurers',
-        day_of_week: 'Wednesday',
+        date: '2027-03-04',
         start_time: '13:00',
         end_time: '16:00'
       }
@@ -122,7 +122,7 @@ RSpec.describe 'Full Program Lifecycle', type: :request do
       program_enrollment: {
         program_id: program_id,
         child_id: child_id,
-        status: 'active',
+        status: 'confirmed',
         enrollment_date: Date.today
       }
     }

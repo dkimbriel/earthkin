@@ -67,7 +67,7 @@ RSpec.describe 'Api::ProgramEnrollments', type: :request do
           program_enrollment: {
             program_id: program.id,
             child_id: child.id,
-            status: 'active',
+            status: 'confirmed',
             rate_per_class: 50.0
           }
         }
@@ -82,11 +82,11 @@ RSpec.describe 'Api::ProgramEnrollments', type: :request do
 
     it 'updates the enrollment' do
       patch "/api/program_enrollments/#{enrollment.id}", params: {
-        program_enrollment: { status: 'withdrawn' }
+        program_enrollment: { status: 'cancelled' }
       }
 
       expect(response).to have_http_status(:success)
-      expect(enrollment.reload.status).to eq('withdrawn')
+      expect(enrollment.reload.status).to eq('cancelled')
     end
   end
 

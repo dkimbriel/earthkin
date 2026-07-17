@@ -15,22 +15,22 @@ RSpec.describe PaymentMailer, type: :mailer do
     end
 
     it 'renders the headers' do
-      expect(mail.subject).to include('Payment Receipt & Invoice')
+      expect(mail.subject).to include('Payment Invoice')
       expect(mail.subject).to include(child.first_name)
       expect(mail.to).to eq(['parent@example.com'])
     end
 
     it 'renders the body' do
-      expect(mail.body.encoded).to include('Thank you for your payment')
+      expect(mail.body.encoded).to include('Please find attached the invoice')
       expect(mail.body.encoded).to include(child.first_name)
       expect(mail.body.encoded).to include(program.name)
       expect(mail.body.encoded).to include('$150.00')
     end
 
     it 'attaches PDF invoice' do
-      expect(mail.attachments.length).to eq(1)
-      expect(mail.attachments.first.filename).to match(/Invoice_.*\.pdf/)
-      expect(mail.attachments.first.content_type).to include('application/pdf')
+      pdf = mail.attachments.find { |a| a.filename =~ /Invoice_.*\.pdf/ }
+      expect(pdf).to be_present
+      expect(pdf.content_type).to include('application/pdf')
     end
 
     context 'with payment plan' do

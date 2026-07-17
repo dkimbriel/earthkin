@@ -28,7 +28,9 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
           child_last_name: 'Johnson',
           child_date_of_birth: '2022-03-15',
           why_interested: 'Nature-based education',
-          child_description: 'Loves outdoor activities'
+          child_description: 'Loves outdoor activities',
+          is_local: 'yes',
+          referral_source: 'Instagram'
         }
       }
 
@@ -63,8 +65,8 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
       event_data = JSON.parse(response.body)
       event_id = event_data['id']
 
-      # Step 4: Complete meeting
-      post "/api/events/#{event_id}/confirm"
+      # Step 4: Complete meeting (advances the application to meeting_completed)
+      post "/api/events/#{event_id}/complete", params: { outcome_notes: 'Great fit' }
       expect(response).to have_http_status(:success)
 
       # Step 5: Process enrollment fee payment
@@ -193,7 +195,7 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
       }
 
       post '/api/enrollment_applications', params: invalid_params
-      expect(response).to have_http_status(:bad_request)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it 'requires authentication for admin endpoints' do

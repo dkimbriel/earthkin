@@ -9,8 +9,8 @@ RSpec.describe 'Api::Events', type: :request do
 
   describe 'GET /api/events' do
     before do
-      create(:event, eventable: application, event_type: 'meet_and_greet')
-      create(:event, eventable: application, event_type: 'orientation', status: 'completed')
+      create(:event, eventable: application, event_type: 'meet_and_greet', location: location)
+      create(:event, eventable: application, event_type: 'orientation', status: 'completed', location: location)
     end
 
     it 'returns all events' do

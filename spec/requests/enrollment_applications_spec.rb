@@ -95,7 +95,9 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
           child_last_name: 'Doe',
           child_date_of_birth: '2020-05-15',
           why_interested: 'Great program',
-          child_description: 'Active and curious'
+          child_description: 'Active and curious',
+          is_local: 'yes',
+          referral_source: 'Instagram'
         }
       }
     end
@@ -196,7 +198,7 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
   end
 
   describe 'POST /api/enrollment_applications/:id/process_fee_payment' do
-    let(:application) { create(:enrollment_application, :reviewed, program: program) }
+    let(:application) { create(:enrollment_application, program: program, status: 'meeting_completed') }
     let(:payment_plan) { create(:payment_plan, program: program) }
     let(:service) { instance_double(EnrollmentWorkflowService) }
     let(:enrollment) { create(:program_enrollment, program: program, enrollment_application: application) }
