@@ -17,9 +17,9 @@ class GmailApiDelivery
 		service = Google::Apis::GmailV1::GmailService.new
 		service.authorization = Signet::OAuth2::Client.new(access_token: integration.fresh_access_token!)
 
-		message = Google::Apis::GmailV1::Message.new(
-			raw: Base64.urlsafe_encode64(mail.to_s)
-		)
+		# The client library base64-encodes the raw field itself — pre-encoding
+		# double-encodes the message and Gmail rejects it as having no recipient.
+		message = Google::Apis::GmailV1::Message.new(raw: mail.to_s)
 		service.send_user_message('me', message)
 	rescue Signet::AuthorizationError, Google::Apis::AuthorizationError => e
 		# The stored refresh token was revoked or expired (Google expires them
