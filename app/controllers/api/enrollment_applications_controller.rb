@@ -79,7 +79,7 @@ module Api
           status: 'invited'
         )
         if existing
-          existing.assign_attributes(application_params.except(:application_id))
+          existing.assign_attributes(public_application_params.except(:application_id))
           existing.status = 'submitted'
           existing.submitted_at = Time.current
 
@@ -93,7 +93,7 @@ module Api
       end
 
       # Create new application if no valid existing application found
-      application = EnrollmentApplication.new(application_params.except(:application_id))
+      application = EnrollmentApplication.new(public_application_params.except(:application_id))
       application.status = 'submitted'
       application.submitted_at = Time.current
 
@@ -107,7 +107,7 @@ module Api
 
     def update
       application = EnrollmentApplication.find(params[:id])
-      application.update!(application_params)
+      application.update!(staff_application_params)
       render json: application
     end
 
@@ -375,18 +375,32 @@ module Api
 
     private
 
-    def application_params
+    # Fields a prospective family may set on the PUBLIC (unauthenticated) form.
+    # Deliberately excludes family_id/child_id (linkage is done by staff via the
+    # workflow, never mass-assigned), custom fees, and admin_notes — otherwise a
+    # submitter could self-discount tuition, forge notes, or attach their
+    # application to another family's record.
+    PUBLIC_APPLICATION_FIELDS = %i[
+      program_id application_id
+      parent_first_name parent_last_name parent_email parent_phone
+      parent2_first_name parent2_last_name parent2_email parent2_phone
+      child_first_name child_last_name child_date_of_birth child_race_ethnicity
+      why_interested child_description special_needs
+      dietary_restrictions previous_school_experience parent_expectations
+      is_local local_area referral_source
+    ].freeze
+
+    # Extra fields only trusted STAFF may set, via the authenticated update.
+    STAFF_ONLY_APPLICATION_FIELDS = %i[admin_notes custom_enrollment_fee custom_tuition_amount].freeze
+
+    def public_application_params
+      params.require(:enrollment_application).permit(*PUBLIC_APPLICATION_FIELDS, agreements: {})
+    end
+
+    def staff_application_params
       params.require(:enrollment_application).permit(
-        :program_id, :family_id, :child_id, :application_id,
-        :parent_first_name, :parent_last_name, :parent_email, :parent_phone,
-        :parent2_first_name, :parent2_last_name, :parent2_email, :parent2_phone,
-        :child_first_name, :child_last_name, :child_date_of_birth,
-        :child_race_ethnicity,
-        :why_interested, :child_description, :special_needs,
-        :dietary_restrictions, :previous_school_experience, :parent_expectations,
-        :is_local, :local_area, :referral_source,
-        :admin_notes,
-        :custom_enrollment_fee, :custom_tuition_amount,
+        *(PUBLIC_APPLICATION_FIELDS - [:application_id]),
+        *STAFF_ONLY_APPLICATION_FIELDS,
         agreements: {}
       )
     end

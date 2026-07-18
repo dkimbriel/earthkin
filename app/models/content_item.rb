@@ -6,7 +6,7 @@ class ContentItem < ApplicationRecord
   has_many :teachers, through: :content_item_teachers
 
   validates :title, presence: true
-  validates :url, presence: true, format: { with: %r{\Ahttps?://}, message: 'must be a full link (https://...)' }
+  validates :url, presence: true, format: { with: %r{\Ahttps?://\S+\z}, message: 'must be a full link (https://...)' }
   validates :visibility, inclusion: { in: VISIBILITIES }
 
   # Items families can see in the parent portal.

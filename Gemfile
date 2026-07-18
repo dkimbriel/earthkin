@@ -21,6 +21,7 @@ gem 'sass-rails', '>= 6'
 gem 'bootsnap', '>= 1.4.4', require: false
 
 gem 'devise'
+gem 'rack-attack' # Rate limiting / throttling for auth and public endpoints
 gem 'prawn' # PDF generation
 gem 'prawn-table' # Table support for PDFs
 
@@ -48,6 +49,8 @@ group :development do
   # Ruby linter
   gem 'rubocop', require: false
   gem 'rubocop-rails', require: false
+  # Static security scanner for Rails
+  gem 'brakeman', require: false
   # Display performance information such as SQL time and flame graphs for each request in your browser.
   # Can be configured to work on production as well see: https://github.com/MiniProfiler/rack-mini-profiler/blob/master/README.md
   gem 'listen', '~> 3.3'
