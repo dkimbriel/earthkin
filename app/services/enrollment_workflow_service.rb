@@ -82,6 +82,7 @@ class EnrollmentWorkflowService
 
       # 5. Create payment plan selection with schedule based on start date
       payment_plan = PaymentPlan.find(payment_plan_id)
+      @application.update!(selected_payment_plan: payment_plan)
       start_date = payment_start_date || @application.program.start_date || Date.current
       enrollment_payment_plan = create_enrollment_payment_plan(enrollment, payment_plan, start_date)
 

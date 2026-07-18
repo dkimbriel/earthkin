@@ -259,6 +259,14 @@ export default function EnrollmentApplicationDetailPage() {
         }
     };
 
+    const openFeeDialog = () => {
+        setFeeForm((prev) => ({
+            ...prev,
+            payment_plan_id: application.selected_payment_plan?.id || "",
+        }));
+        setShowFeeDialog(true);
+    };
+
     const handleProcessFeePayment = async () => {
         try {
             await enrollmentApplicationsApi.processFeePayment(id, feeForm);
@@ -464,24 +472,27 @@ export default function EnrollmentApplicationDetailPage() {
                     )}
 
                     {application.status === "fee_requested" && (
-                        <>
-                            <ActionButtonWithEmail
-                                variant="outlined"
-                                startIcon={<EmailIcon />}
-                                onClick={() => handleSendEmail("enrollment_fee_request")}
-                                emailDescription="Resend fee request email with payment instructions"
-                            >
-                                Resend Fee Request Email
-                            </ActionButtonWithEmail>
-                            <Button
-                                variant="contained"
-                                startIcon={<PaymentIcon />}
-                                onClick={() => setShowFeeDialog(true)}
-                                color="success"
-                            >
-                                Select Payment Plan & Record Payment
-                            </Button>
-                        </>
+                        <ActionButtonWithEmail
+                            variant="outlined"
+                            startIcon={<EmailIcon />}
+                            onClick={() => handleSendEmail("enrollment_fee_request")}
+                            emailDescription="Resend fee request email with payment instructions"
+                        >
+                            Resend Fee Request Email
+                        </ActionButtonWithEmail>
+                    )}
+
+                    {["submitted", "reviewed", "meeting_scheduled", "meeting_completed", "fee_requested"].includes(
+                        application.status,
+                    ) && (
+                        <Button
+                            variant="contained"
+                            startIcon={<PaymentIcon />}
+                            onClick={openFeeDialog}
+                            color="success"
+                        >
+                            Select Payment Plan & Record Payment
+                        </Button>
                     )}
 
                     {application.status === "fee_paid" && (
@@ -506,6 +517,33 @@ export default function EnrollmentApplicationDetailPage() {
                         </Button>
                     )}
                 </Box>
+
+                {/* Parent's payment plan selection - visible regardless of tab */}
+                {application.selected_payment_plan &&
+                    !["fee_paid", "signing_docs", "enrolled"].includes(application.status) && (
+                        <Alert
+                            severity="success"
+                            icon={<CheckCircleIcon />}
+                            sx={{ mb: 2 }}
+                            action={
+                                <Button
+                                    color="inherit"
+                                    size="small"
+                                    startIcon={<PaymentIcon />}
+                                    onClick={openFeeDialog}
+                                >
+                                    Record Payment
+                                </Button>
+                            }
+                        >
+                            <Typography variant="body2" fontWeight="medium">
+                                Parent selected the {application.selected_payment_plan.name} plan
+                            </Typography>
+                            <Typography variant="body2">
+                                Record their enrollment fee payment to lock in this plan and create the enrollment.
+                            </Typography>
+                        </Alert>
+                    )}
 
                 <Divider />
 
