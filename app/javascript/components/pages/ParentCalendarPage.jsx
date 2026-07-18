@@ -56,7 +56,28 @@ export default function ParentCalendarPage() {
                 <Chip size="small" label="School Events" sx={{ backgroundColor: "#7b1fa2", color: "white" }} />
             </Stack>
 
-            <Paper sx={{ p: 2 }}>
+            <Paper sx={(theme) => ({
+                p: 2,
+                // Theme FullCalendar's toolbar buttons to match the app's green
+                // palette instead of its off-theme default navy/grey.
+                "& .fc": {
+                    "--fc-button-bg-color": theme.palette.primary.main,
+                    "--fc-button-border-color": theme.palette.primary.main,
+                    "--fc-button-hover-bg-color": theme.palette.primary.dark,
+                    "--fc-button-hover-border-color": theme.palette.primary.dark,
+                    "--fc-button-active-bg-color": theme.palette.primary.dark,
+                    "--fc-button-active-border-color": theme.palette.primary.dark,
+                    "--fc-button-text-color": theme.palette.primary.contrastText,
+                },
+                "& .fc .fc-button": {
+                    textTransform: "capitalize",
+                    boxShadow: "none",
+                    fontWeight: 500,
+                },
+                "& .fc .fc-button:focus, & .fc .fc-button:focus-visible": {
+                    boxShadow: `0 0 0 2px ${theme.palette.primary.light}`,
+                },
+            })}>
                 <FullCalendar
                     plugins={[dayGridPlugin]}
                     initialView="dayGridMonth"

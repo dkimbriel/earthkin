@@ -16,6 +16,7 @@ import {
     TextField,
     MenuItem,
     Snackbar,
+    Tooltip,
     Tabs,
     Tab,
 } from "@mui/material";
@@ -63,7 +64,7 @@ function TabPanel({ children, value, index, ...other }) {
     );
 }
 
-const TAB_NAMES = ["overview", "application", "communications", "tuition"];
+const TAB_NAMES = ["overview", "application", "communications", "payment-plan"];
 
 export default function EnrollmentApplicationDetailPage() {
     const { id } = useParams();
@@ -366,6 +367,16 @@ export default function EnrollmentApplicationDetailPage() {
     if (loading) return <Typography>Loading...</Typography>;
     if (!application) return <Typography>Application not found</Typography>;
 
+    // Single source of truth for the family's payment plan. Once the fee is
+    // recorded, the enrollment's locked-in plan is authoritative; before that,
+    // it's the plan the parent tentatively selected. These can differ (parent
+    // picks one, admin records another), so we must never treat both as
+    // "selected" — otherwise two plans light up at once.
+    const lockedPlan =
+        application.program_enrollment?.enrollment_payment_plan?.payment_plan;
+    const selectedPlan = lockedPlan || application.selected_payment_plan;
+    const goToPaymentPlanTab = () => setSearchParams({ tab: "payment-plan" });
+
     // Find meet and greet event - prefer scheduled/confirmed over pending_selection
     const meetAndGreetEvents =
         application.events?.filter((e) => e.event_type === "meet_and_greet") ||
@@ -421,16 +432,32 @@ export default function EnrollmentApplicationDetailPage() {
                             color="primary"
                         />
                         {(() => {
-                            const planName =
-                                application.selected_payment_plan?.name ||
-                                application.program_enrollment?.enrollment_payment_plan?.payment_plan?.name;
-                            return planName ? (
-                                <Chip
-                                    icon={<PaymentIcon />}
-                                    label={`Plan: ${planName}`}
-                                    color="success"
-                                />
-                            ) : null;
+                            if (!selectedPlan) return null;
+                            // Pull the full plan (with installment details) from the
+                            // program's plans; selectedPlan itself may be a lighter object.
+                            const fullPlan =
+                                application.payment_plans?.find((p) => p.id === selectedPlan.id) ||
+                                selectedPlan;
+                            const total = application.custom_tuition_amount
+                                ? parseFloat(application.custom_tuition_amount)
+                                : parseFloat(fullPlan.total_amount);
+                            const count = fullPlan.installment_count;
+                            const perPayment =
+                                count && !Number.isNaN(total) ? (total / count).toFixed(2) : null;
+                            const detail = count && perPayment ? ` · ${count} × $${perPayment}` : "";
+                            const locked = Boolean(lockedPlan);
+                            return (
+                                <Tooltip title={`${locked ? "Enrolled on" : "Parent selected"} this plan — view details`}>
+                                    <Chip
+                                        icon={<PaymentIcon />}
+                                        label={`${fullPlan.name}${detail}`}
+                                        color="success"
+                                        variant={locked ? "filled" : "outlined"}
+                                        onClick={goToPaymentPlanTab}
+                                        clickable
+                                    />
+                                </Tooltip>
+                            );
                         })()}
                         {!["declined", "enrolled"].includes(
                             application.status,
@@ -592,7 +619,7 @@ export default function EnrollmentApplicationDetailPage() {
                     <Tab
                         icon={<PaymentIcon />}
                         iconPosition="start"
-                        label="Tuition"
+                        label="Payment Plan"
                         sx={{ textTransform: "none" }}
                     />
                 </Tabs>
@@ -1006,7 +1033,7 @@ export default function EnrollmentApplicationDetailPage() {
                     )}
                 </TabPanel>
 
-                {/* Tab: Tuition */}
+                {/* Tab: Payment Plan */}
                 <TabPanel value={activeTab} index={3}>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
                         {/* Tuition Summary */}
@@ -1079,11 +1106,7 @@ export default function EnrollmentApplicationDetailPage() {
 
                             {/* Selection Status Message */}
                             {(() => {
-                                const hasSelectedPlan =
-                                    application.selected_payment_plan ||
-                                    application.program_enrollment?.enrollment_payment_plan?.payment_plan;
-
-                                if (hasSelectedPlan) {
+                                if (selectedPlan) {
                                     return null; // Selected plan will be highlighted below
                                 } else if (application.status === "fee_requested") {
                                     return (
@@ -1114,9 +1137,7 @@ export default function EnrollmentApplicationDetailPage() {
                             {application.payment_plans && application.payment_plans.length > 0 ? (
                                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                                     {application.payment_plans.map((plan) => {
-                                        const isSelected =
-                                            application.selected_payment_plan?.id === plan.id ||
-                                            application.program_enrollment?.enrollment_payment_plan?.payment_plan?.id === plan.id;
+                                        const isSelected = selectedPlan?.id === plan.id;
 
                                         // Calculate effective amounts based on custom tuition
                                         const hasCustomTuition = !!application.custom_tuition_amount;

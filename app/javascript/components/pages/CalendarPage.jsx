@@ -315,12 +315,31 @@ export default function CalendarPage() {
                 />
             </Stack>
 
-            <Paper sx={{
+            <Paper sx={(theme) => ({
                 p: 2,
                 "& .fc-event": {
                     cursor: "pointer",
                 },
-            }}>
+                // Theme FullCalendar's toolbar buttons to match the app's green
+                // palette instead of its off-theme default navy/grey.
+                "& .fc": {
+                    "--fc-button-bg-color": theme.palette.primary.main,
+                    "--fc-button-border-color": theme.palette.primary.main,
+                    "--fc-button-hover-bg-color": theme.palette.primary.dark,
+                    "--fc-button-hover-border-color": theme.palette.primary.dark,
+                    "--fc-button-active-bg-color": theme.palette.primary.dark,
+                    "--fc-button-active-border-color": theme.palette.primary.dark,
+                    "--fc-button-text-color": theme.palette.primary.contrastText,
+                },
+                "& .fc .fc-button": {
+                    textTransform: "capitalize",
+                    boxShadow: "none",
+                    fontWeight: 500,
+                },
+                "& .fc .fc-button:focus, & .fc .fc-button:focus-visible": {
+                    boxShadow: `0 0 0 2px ${theme.palette.primary.light}`,
+                },
+            })}>
                 <FullCalendar
                     plugins={[dayGridPlugin, interactionPlugin]}
                     initialView="dayGridMonth"
