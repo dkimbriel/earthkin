@@ -28,6 +28,7 @@ import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const getPaymentColumns = (onSendInvoice) => [
     {
@@ -253,7 +254,7 @@ export default function EnrollmentDetailPage() {
     ];
 
     if (loading) {
-        return <Typography>Loading...</Typography>;
+        return <EarthkinLoader />;
     }
 
     if (!enrollment) {

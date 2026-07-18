@@ -6,13 +6,13 @@ import {
   Typography,
   Paper,
   Alert,
-  CircularProgress,
   Card,
   CardContent,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import EnrollmentFormContent from '../enrollment/EnrollmentFormContent';
 import { programsApi } from '../../utils/api';
+import EarthkinLoader from '../shared/EarthkinLoader';
 
 export default function PublicEnrollmentPage() {
   const [searchParams] = useSearchParams();
@@ -51,7 +51,7 @@ export default function PublicEnrollmentPage() {
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
-        <CircularProgress />
+        <EarthkinLoader />
       </Box>
     );
   }

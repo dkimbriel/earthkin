@@ -15,6 +15,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TokenEditor from "../shared/TokenEditor";
 import { emailTemplatesApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const TEMPLATES_TAB = "/emails?tab=templates";
 
@@ -86,7 +87,7 @@ export default function EmailTemplateEditPage() {
 		}
 	};
 
-	if (loading) return <Typography>Loading...</Typography>;
+	if (loading) return <EarthkinLoader />;
 
 	return (
 		<Box>

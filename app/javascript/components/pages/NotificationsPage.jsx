@@ -18,6 +18,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { notificationsApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const EVENT_ICON = {
 	meeting_scheduled: <EventIcon />,
@@ -85,7 +86,7 @@ export default function NotificationsPage() {
 
 			<Paper variant="outlined">
 				{loading ? (
-					<Typography sx={{ p: 3 }} color="text.secondary">Loading...</Typography>
+					<EarthkinLoader minHeight={160} />
 				) : notifications.length === 0 ? (
 					<Box sx={{ p: 5, textAlign: "center", color: "text.secondary" }}>
 						<NotificationsIcon sx={{ fontSize: 48, opacity: 0.4 }} />

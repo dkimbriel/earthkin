@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Box, Paper, Typography, CircularProgress, Chip, Stack, Alert } from "@mui/material";
+import { Box, Paper, Typography, Chip, Stack, Alert } from "@mui/material";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import { portalApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function ParentCalendarPage() {
     const [data, setData] = useState(null);
@@ -20,7 +21,7 @@ export default function ParentCalendarPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

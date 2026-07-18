@@ -25,6 +25,7 @@ import PageHeader from "../shared/PageHeader";
 import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignaturesApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import FormDocument, { hasFormFields } from "../shared/FormDocument";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const getParentColumns = (isAdmin, onInvite, invitingId) => [
 	{
@@ -231,7 +232,7 @@ export default function FamilyDetailPage() {
 	];
 
 	if (loading) {
-		return <Typography>Loading...</Typography>;
+		return <EarthkinLoader />;
 	}
 
 	if (!family) {

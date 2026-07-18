@@ -121,11 +121,19 @@ export default function ComposeEmailDialog({
 								fullWidth
 							>
 								<MenuItem value="">Type an address instead</MenuItem>
-								{parents.map((p) => (
-									<MenuItem key={p.id} value={p.id}>
-										{p.first_name} {p.last_name} ({p.email})
-									</MenuItem>
-								))}
+								{[...parents]
+									.sort((a, b) =>
+										`${a.first_name} ${a.last_name}`.localeCompare(
+											`${b.first_name} ${b.last_name}`,
+											undefined,
+											{ sensitivity: "base" }
+										)
+									)
+									.map((p) => (
+										<MenuItem key={p.id} value={p.id}>
+											{p.first_name} {p.last_name} ({p.email})
+										</MenuItem>
+									))}
 							</TextField>
 						</Box>
 					)}

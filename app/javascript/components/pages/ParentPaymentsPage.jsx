@@ -6,7 +6,6 @@ import {
     CardContent,
     Chip,
     Alert,
-    CircularProgress,
     Stack,
     Table,
     TableHead,
@@ -15,6 +14,7 @@ import {
     TableCell,
 } from "@mui/material";
 import { portalApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const money = (v) => `$${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
@@ -48,7 +48,7 @@ export default function ParentPaymentsPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

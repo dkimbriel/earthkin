@@ -11,6 +11,8 @@ import {
 	DialogContent,
 	DialogActions,
 	Typography,
+	TextField,
+	MenuItem,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DataTable from "../shared/DataTable";
@@ -36,6 +38,8 @@ export default function EmailsPage() {
 	const [viewEmail, setViewEmail] = useState(null);
 	const [formTemplates, setFormTemplates] = useState([]);
 	const [deleteTarget, setDeleteTarget] = useState(null);
+	const [toFilter, setToFilter] = useState("all");
+	const [typeFilter, setTypeFilter] = useState("all");
 
 	const setTab = (index) => {
 		if (index === 0) setSearchParams({});
@@ -99,6 +103,20 @@ export default function EmailsPage() {
 	const drafts = emails.filter((e) => e.status === "draft");
 	const log = emails.filter((e) => e.status !== "draft");
 
+	// Filter options for the Sent & Log tab, derived from the log itself.
+	const toOptions = [...new Set(log.map((e) => e.recipient).filter(Boolean))].sort((a, b) =>
+		a.localeCompare(b, undefined, { sensitivity: "base" })
+	);
+	const typeOptions = [...new Set(log.map((e) => e.email_type).filter(Boolean))].sort((a, b) =>
+		a.localeCompare(b, undefined, { sensitivity: "base" })
+	);
+	const filteredLog = log.filter(
+		(e) =>
+			(toFilter === "all" || e.recipient === toFilter) &&
+			(typeFilter === "all" || e.email_type === typeFilter)
+	);
+	const logFiltersActive = toFilter !== "all" || typeFilter !== "all";
+
 	return (
 		<Box>
 			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
@@ -123,13 +141,59 @@ export default function EmailsPage() {
 			</Tabs>
 
 			{tab === 0 && (
-				<DataTable
-					columns={emailColumns}
-					data={log}
-					loading={loading}
-					onRowClick={(row) => setViewEmail(row)}
-					emptyMessage="No emails sent yet."
-				/>
+				<>
+					<Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
+						<TextField
+							select
+							label="To"
+							size="small"
+							value={toFilter}
+							onChange={(e) => setToFilter(e.target.value)}
+							sx={{ minWidth: 240 }}
+						>
+							<MenuItem value="all">All recipients</MenuItem>
+							{toOptions.map((r) => (
+								<MenuItem key={r} value={r}>{r}</MenuItem>
+							))}
+						</TextField>
+						<TextField
+							select
+							label="Type"
+							size="small"
+							value={typeFilter}
+							onChange={(e) => setTypeFilter(e.target.value)}
+							sx={{ minWidth: 200 }}
+						>
+							<MenuItem value="all">All types</MenuItem>
+							{typeOptions.map((t) => (
+								<MenuItem key={t} value={t}>{t.replace(/_/g, " ")}</MenuItem>
+							))}
+						</TextField>
+						{logFiltersActive && (
+							<Button
+								size="small"
+								onClick={() => {
+									setToFilter("all");
+									setTypeFilter("all");
+								}}
+							>
+								Clear filters
+							</Button>
+						)}
+						{logFiltersActive && (
+							<Typography variant="body2" color="text.secondary">
+								{filteredLog.length} of {log.length}
+							</Typography>
+						)}
+					</Box>
+					<DataTable
+						columns={emailColumns}
+						data={filteredLog}
+						loading={loading}
+						onRowClick={(row) => setViewEmail(row)}
+						emptyMessage={logFiltersActive ? "No emails match these filters." : "No emails sent yet."}
+					/>
+				</>
 			)}
 
 			{tab === 1 && (

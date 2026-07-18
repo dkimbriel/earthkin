@@ -10,13 +10,13 @@ import {
 	Alert,
 	Stack,
 	Divider,
-	CircularProgress,
 } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import PageHeader from "../shared/PageHeader";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import { integrationsApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const RETURN_MESSAGES = {
 	connected: { severity: "success", text: "Gmail connected successfully." },
@@ -77,7 +77,7 @@ export default function IntegrationsPage() {
 	if (loading) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", mt: 6 }}>
-				<CircularProgress />
+				<EarthkinLoader />
 			</Box>
 		);
 	}
