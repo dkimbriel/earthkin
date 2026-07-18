@@ -420,6 +420,18 @@ export default function EnrollmentApplicationDetailPage() {
                             label={formatStatusLabel(application.status)}
                             color="primary"
                         />
+                        {(() => {
+                            const planName =
+                                application.selected_payment_plan?.name ||
+                                application.program_enrollment?.enrollment_payment_plan?.payment_plan?.name;
+                            return planName ? (
+                                <Chip
+                                    icon={<PaymentIcon />}
+                                    label={`Plan: ${planName}`}
+                                    color="success"
+                                />
+                            ) : null;
+                        })()}
                         {!["declined", "enrolled"].includes(
                             application.status,
                         ) && (

@@ -52,6 +52,19 @@ const columns = [
     ),
   },
   {
+    key: 'selected_payment_plan',
+    label: 'Payment Plan',
+    render: (row) => row.selected_payment_plan ? (
+      <Chip
+        label={row.selected_payment_plan.name}
+        color="success"
+        size="small"
+      />
+    ) : (
+      <Chip label="Not selected" variant="outlined" size="small" />
+    ),
+  },
+  {
     key: 'submitted_at',
     label: 'Submitted',
     render: (row) => row.submitted_at ?

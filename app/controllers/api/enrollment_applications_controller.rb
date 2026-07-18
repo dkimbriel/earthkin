@@ -4,7 +4,7 @@ module Api
     skip_before_action :require_staff!, only: [:create]
 
     def index
-      applications = EnrollmentApplication.includes(:program, :child, :family, events: :location)
+      applications = EnrollmentApplication.includes(:program, :child, :family, :selected_payment_plan, events: :location)
                                           .order(created_at: :desc)
 
       # Filter by status if provided
@@ -16,6 +16,7 @@ module Api
           program: { only: [:id, :name, :start_date, :end_date] },
           child: { only: [:id, :first_name, :last_name] },
           family: { only: [:id, :name] },
+          selected_payment_plan: { only: [:id, :name] },
           events: {
             only: [:id, :event_type, :scheduled_at, :status, :proposed_dates],
             include: { location: { only: [:id, :name] } }
