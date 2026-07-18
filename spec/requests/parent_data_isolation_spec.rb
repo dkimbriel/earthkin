@@ -155,6 +155,74 @@ RSpec.describe 'Parent data isolation', type: :request do
     end
   end
 
+  describe 'the public enrollment form cannot mass-assign privileged fields' do
+    it 'ignores family_id, child_id, custom fees, and admin_notes on create' do
+      post '/api/enrollment_applications', params: {
+        enrollment_application: {
+          program_id: program.id,
+          parent_first_name: 'Me',
+          parent_last_name: 'Parent',
+          parent_email: 'me@example.com',
+          parent_phone: '(555) 123-4567',
+          child_first_name: 'Second',
+          child_last_name: 'Kid',
+          child_date_of_birth: 4.years.ago.to_date.to_s,
+          child_description: 'A curious kid who loves the outdoors.',
+          why_interested: 'Sibling already enrolled!',
+          is_local: 'yes',
+          referral_source: 'Word of mouth',
+          # Malicious extras that must be ignored:
+          family_id: other_family.id,
+          child_id: other_child.id,
+          custom_enrollment_fee: 0,
+          custom_tuition_amount: 1,
+          admin_notes: 'VIP - waive everything'
+        }
+      }
+
+      expect(response).to have_http_status(:created)
+      app = EnrollmentApplication.order(:created_at).last
+      expect(app.family_id).to be_nil
+      expect(app.child_id).to be_nil
+      expect(app.custom_enrollment_fee).to be_nil
+      expect(app.custom_tuition_amount).to be_nil
+      expect(app.admin_notes).to be_nil
+    end
+  end
+
+  describe 'portal document endpoints reject cross-family ids' do
+    it '404s viewing or downloading another family\'s signed form' do
+      sign_out parent_user
+      admin = create(:user)
+      sign_in admin
+      post '/api/enrollment_form_signatures', params: { child_id: other_child.id }
+      sign_out admin
+      sign_in parent_user
+
+      other_signature = other_child.enrollment_form_signatures.first
+
+      post "/api/portal/forms/#{other_signature.id}/view"
+      expect(response).to have_http_status(:not_found)
+
+      get "/api/portal/forms/#{other_signature.id}/pdf"
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
+  describe 'public token endpoints reject unknown tokens' do
+    before { sign_out parent_user }
+
+    it '404s a bogus payment-selection token' do
+      get '/payment/not-a-real-token'
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it '404s a bogus meeting-confirmation token' do
+      get '/meetings/not-a-real-token/confirm'
+      expect(response).to have_http_status(:not_found)
+    end
+  end
+
   describe 'anonymous users' do
     before { sign_out parent_user }
 

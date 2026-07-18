@@ -101,7 +101,7 @@ module Api
 		end
 
 		def sign_form
-			signature = family_form_signatures.find(params[:id])
+			signature = owned_form_signature
 
 			signature.sign!(
 				name: params[:signed_by_name],
@@ -120,7 +120,7 @@ module Api
 		end
 
 		def form_pdf
-			signature = family_form_signatures.find(params[:id])
+			signature = owned_form_signature
 			generator = FormSignaturePdfGenerator.new(signature)
 			send_data generator.render,
 			          filename: generator.filename,
@@ -130,7 +130,7 @@ module Api
 
 		# Logged when a parent opens a form to read it — part of the audit trail.
 		def view_form
-			signature = family_form_signatures.find(params[:id])
+			signature = owned_form_signature
 			signature.record_view!(
 				email: current_user.email,
 				ip: request.remote_ip,
@@ -157,6 +157,17 @@ module Api
 
 		def family_form_signatures
 			EnrollmentFormSignature.where(child_id: family.children.select(:id))
+		end
+
+		# Loads a form signature for an id action, scoped to this family, with a
+		# redundant ownership re-check. Belt-and-suspenders: even if the scope
+		# above is ever loosened in a refactor, a record whose child isn't in
+		# this family still 404s rather than leaking across families.
+		def owned_form_signature
+			signature = family_form_signatures.find(params[:id])
+			raise ActiveRecord::RecordNotFound unless family.children.exists?(id: signature.child_id)
+
+			signature
 		end
 
 		# The filled-in field values from the form document: flat key ->
