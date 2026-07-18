@@ -19,11 +19,13 @@ class EnrollmentFormSignature < ApplicationRecord
 
   # The form as presented to the family: the template body with dynamic
   # markers expanded. [[payment-plans]] becomes one checkbox per active
-  # payment plan of the child's program, straight from the database.
+  # payment plan of the child's program, straight from the database, and
+  # {{tokens}} are filled in with the family's real details.
   def rendered_body
-    form_template.body.to_s
-                 .gsub('[[payment-plans]]') { payment_plan_options_markup }
-                 .gsub('[[tuition-plan]]') { tuition_plan_markup }
+    expanded = form_template.body.to_s
+                            .gsub('[[payment-plans]]') { payment_plan_options_markup }
+                            .gsub('[[tuition-plan]]') { tuition_plan_markup }
+    interpolate_tokens(expanded)
   end
 
   # Field values to pre-check when the parent opens the form — currently the
@@ -82,10 +84,20 @@ class EnrollmentFormSignature < ApplicationRecord
     }
   end
 
-  private
-
+  # The enrollment this form is tied to, used to build token values and
+  # payment-plan markup. Public so FormTokenVars can read it.
   def enrollment
     enrollment_application&.program_enrollment || child.program_enrollments.order(:created_at).last
+  end
+
+  private
+
+  def interpolate_tokens(text)
+    vars = FormTokenVars.for(self)
+    text.gsub(/{{\s*(\w+)\s*}}/) do
+      key = Regexp.last_match(1)
+      (vars[key.to_sym] || vars[key]).to_s
+    end
   end
 
   def payment_plan_options_markup

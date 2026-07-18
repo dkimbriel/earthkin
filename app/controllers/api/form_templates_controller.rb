@@ -6,7 +6,11 @@ module Api
 
 		def index
 			FormTemplate.ensure_defaults!
-			render json: FormTemplate.order(:name).as_json
+			render json: {
+				forms: FormTemplate.order(:name).as_json,
+				known_tokens: FormTemplate::KNOWN_TOKENS,
+				token_info: FormTemplate::TOKEN_INFO
+			}
 		end
 
 		def update
