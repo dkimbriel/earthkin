@@ -43,6 +43,7 @@ import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
 import GenerateClassesDialog from "../shared/GenerateClassesDialog";
+import EarthkinLoader from "../shared/EarthkinLoader";
 import { useAuth } from "../../contexts/AuthContext";
 import {
     programsApi,
@@ -471,7 +472,7 @@ export default function ProgramDetailPage() {
     ];
 
     if (loading) {
-        return <Typography>Loading...</Typography>;
+        return <EarthkinLoader />;
     }
 
     if (!program) {

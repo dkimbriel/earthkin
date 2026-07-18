@@ -4,7 +4,6 @@ import {
     Box,
     Paper,
     Typography,
-    CircularProgress,
     Chip,
     Stack,
     Button,
@@ -24,6 +23,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { programClassesApi, eventsApi, locationsApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const EVENT_TYPE_OPTIONS = [
     { value: "open_house", label: "Open House" },
@@ -278,7 +278,7 @@ export default function CalendarPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

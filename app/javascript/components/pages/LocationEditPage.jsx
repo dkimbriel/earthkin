@@ -7,10 +7,10 @@ import {
 	Paper,
 	TextField,
 	Alert,
-	CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { locationsApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function LocationEditPage() {
 	const { id } = useParams();
@@ -64,7 +64,7 @@ export default function LocationEditPage() {
 	if (loading) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-				<CircularProgress />
+				<EarthkinLoader />
 			</Box>
 		);
 	}

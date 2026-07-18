@@ -12,11 +12,11 @@ import {
 	TableRow,
 	Collapse,
 	IconButton,
-	CircularProgress,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { reportsApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 function WeekRow({ week, navigate }) {
 	const [open, setOpen] = useState(false);
@@ -138,7 +138,7 @@ export default function DashboardPage() {
 	if (loading) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-				<CircularProgress />
+				<EarthkinLoader />
 			</Box>
 		);
 	}

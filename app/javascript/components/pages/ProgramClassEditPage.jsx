@@ -7,7 +7,6 @@ import {
 	Paper,
 	TextField,
 	Alert,
-	CircularProgress,
 	MenuItem,
 	List,
 	ListItem,
@@ -22,6 +21,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AddIcon from "@mui/icons-material/Add";
 import { programClassesApi, locationsApi, programEnrollmentsApi, teachersApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function ProgramClassEditPage() {
 	const { id } = useParams();
@@ -120,7 +120,7 @@ export default function ProgramClassEditPage() {
 	if (loading) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-				<CircularProgress />
+				<EarthkinLoader />
 			</Box>
 		);
 	}

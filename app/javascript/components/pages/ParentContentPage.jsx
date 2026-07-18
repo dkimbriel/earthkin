@@ -7,11 +7,11 @@ import {
     Link,
     Chip,
     Alert,
-    CircularProgress,
     Stack,
 } from "@mui/material";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { portalApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function ParentContentPage() {
     const [items, setItems] = useState(null);
@@ -29,7 +29,7 @@ export default function ParentContentPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

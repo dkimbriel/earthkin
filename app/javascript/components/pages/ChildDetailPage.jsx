@@ -4,6 +4,7 @@ import { Box, Typography, Button, Paper, Chip } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DataTable from "../shared/DataTable";
 import { childrenApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const enrollmentColumns = [
 	{
@@ -49,7 +50,7 @@ export default function ChildDetailPage() {
 	}, [id]);
 
 	if (loading) {
-		return <Typography>Loading...</Typography>;
+		return <EarthkinLoader />;
 	}
 
 	if (!child) {

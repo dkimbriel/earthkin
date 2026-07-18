@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
-import { CssBaseline, Box, Typography } from "@mui/material";
+import { CssBaseline, Box } from "@mui/material";
 import theme from "../theme";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import ErrorBoundary from "./ErrorBoundary";
@@ -9,6 +9,7 @@ import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import Dashboard from "./Dashboard";
 import PublicEnrollmentPage from "./pages/PublicEnrollmentPage";
+import EarthkinLoader from "./shared/EarthkinLoader";
 
 function ProtectedRoute({ children }) {
 	const { user, loading } = useAuth();
@@ -23,7 +24,7 @@ function ProtectedRoute({ children }) {
 					minHeight: "100vh",
 				}}
 			>
-				<Typography>Loading...</Typography>
+				<EarthkinLoader />
 			</Box>
 		);
 	}
@@ -44,7 +45,7 @@ function PublicRoute({ children }) {
 					minHeight: "100vh",
 				}}
 			>
-				<Typography>Loading...</Typography>
+				<EarthkinLoader />
 			</Box>
 		);
 	}

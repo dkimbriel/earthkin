@@ -9,9 +9,9 @@ import {
 	IconButton,
 	Typography,
 	Box,
-	CircularProgress,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EarthkinLoader from "./EarthkinLoader";
 
 export default function DataTable({
 	columns,
@@ -26,7 +26,7 @@ export default function DataTable({
 	if (loading) {
 		return (
 			<Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-				<CircularProgress />
+				<EarthkinLoader />
 			</Box>
 		);
 	}

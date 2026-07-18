@@ -7,7 +7,6 @@ import {
     CardContent,
     Chip,
     Alert,
-    CircularProgress,
     Stack,
     Button,
     Dialog,
@@ -21,6 +20,7 @@ import {
 } from "@mui/material";
 import { portalApi } from "../../utils/api";
 import FormDocument, { hasFormFields, SIGNATURE_FONT } from "../shared/FormDocument";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function ParentFormsPage() {
     const navigate = useNavigate();
@@ -44,7 +44,7 @@ export default function ParentFormsPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

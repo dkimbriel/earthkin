@@ -6,7 +6,6 @@ import {
     Button,
     Paper,
     Alert,
-    CircularProgress,
     TextField,
     FormControlLabel,
     Checkbox,
@@ -18,6 +17,7 @@ import DownloadIcon from "@mui/icons-material/Download";
 import DrawIcon from "@mui/icons-material/Draw";
 import { portalApi } from "../../utils/api";
 import FormDocument, { hasFormFields, validateForm, SIGNATURE_FONT } from "../shared/FormDocument";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function ParentFormSignPage() {
     const { id } = useParams();
@@ -104,7 +104,7 @@ export default function ParentFormSignPage() {
     if (loading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-                <CircularProgress />
+                <EarthkinLoader />
             </Box>
         );
     }

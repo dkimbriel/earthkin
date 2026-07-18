@@ -41,6 +41,7 @@ import PaymentPlanSelector from "../enrollment/PaymentPlanSelector";
 import EmailTimeline from "../enrollment/EmailTimeline";
 import ComposeEmailDialog from "../shared/ComposeEmailDialog";
 import ActionButtonWithEmail from "../enrollment/ActionButtonWithEmail";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const formatStatusLabel = (status) => {
     return status
@@ -364,7 +365,7 @@ export default function EnrollmentApplicationDetailPage() {
         }
     };
 
-    if (loading) return <Typography>Loading...</Typography>;
+    if (loading) return <EarthkinLoader />;
     if (!application) return <Typography>Application not found</Typography>;
 
     // Single source of truth for the family's payment plan. Once the fee is

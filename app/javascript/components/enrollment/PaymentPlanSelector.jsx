@@ -9,9 +9,9 @@ import {
   FormControlLabel,
   Chip,
   Alert,
-  CircularProgress,
 } from '@mui/material';
 import { paymentPlansApi } from '../../utils/api';
+import EarthkinLoader from '../shared/EarthkinLoader';
 
 export default function PaymentPlanSelector({ programId, value, onChange }) {
   const [plans, setPlans] = useState([]);
@@ -35,7 +35,7 @@ export default function PaymentPlanSelector({ programId, value, onChange }) {
     }
   };
 
-  if (loading) return <CircularProgress />;
+  if (loading) return <EarthkinLoader />;
   if (error) return <Alert severity="error">{error}</Alert>;
 
   return (

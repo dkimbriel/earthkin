@@ -16,6 +16,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import { teachersApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 export default function TeacherDetailPage() {
 	const { user } = useAuth();
@@ -90,7 +91,7 @@ export default function TeacherDetailPage() {
 	};
 
 	if (loading) {
-		return <Typography>Loading...</Typography>;
+		return <EarthkinLoader />;
 	}
 
 	if (!teacher) {

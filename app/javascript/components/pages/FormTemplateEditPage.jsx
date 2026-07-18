@@ -14,6 +14,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import TokenEditor from "../shared/TokenEditor";
 import { formTemplatesApi } from "../../utils/api";
+import EarthkinLoader from "../shared/EarthkinLoader";
 
 const FORMS_TAB = "/emails?tab=forms";
 
@@ -71,7 +72,7 @@ export default function FormTemplateEditPage() {
 		}
 	};
 
-	if (loading) return <Typography>Loading...</Typography>;
+	if (loading) return <EarthkinLoader />;
 
 	return (
 		<Box>

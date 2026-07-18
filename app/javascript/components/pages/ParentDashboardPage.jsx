@@ -6,10 +6,10 @@ import {
   CardContent,
   Chip,
   Alert,
-  CircularProgress,
   Stack,
 } from '@mui/material';
 import { portalApi } from '../../utils/api';
+import EarthkinLoader from '../shared/EarthkinLoader';
 
 const STATUS_COLORS = { confirmed: 'success', pending: 'warning', cancelled: 'default' };
 
@@ -35,7 +35,7 @@ export default function ParentDashboardPage() {
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-        <CircularProgress />
+        <EarthkinLoader />
       </Box>
     );
   }
