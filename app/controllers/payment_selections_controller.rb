@@ -56,6 +56,7 @@ class PaymentSelectionsController < ApplicationController
     # school confirms receipt and records the fee (via Record Fee Payment),
     # which locks in the plan and creates the enrollment, schedule, and login.
     @application.update!(selected_payment_plan: payment_plan)
+    AdminNotifier.payment_plan_selected(@application, payment_plan)
     render :confirmed
   end
 end

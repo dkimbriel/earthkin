@@ -44,6 +44,12 @@ const SECTIONS = [
 		note("Emails send through the school Gmail account connected under Integrations. If emails show as failed, check that Gmail is still connected."),
 	]),
 
+	S("notifications", "Notifications", ["admin"], [
+		p("The Notifications item in the left menu is your inbox for the moments a family acts on their own. You get an alert whenever a family schedules a meet & greet, selects a payment plan, or signs an enrollment form — the three steps that happen outside the portal and are easy to miss otherwise. A badge on the menu item shows how many are unread."),
+		p("Click a notification to jump straight to that family's application; opening it marks it read, and Mark all read clears the badge. Each alert is also emailed to the school's connected Gmail (to a “+alerts” sub-address so it lands cleanly in your inbox and can be filtered), so you're covered whether you're in the portal or your email."),
+		note("Notifications are for admins only — teachers and parents never see them. Email alerts require Gmail to be connected under Integrations; if it isn't, the in-app inbox still fills up normally."),
+	]),
+
 	S("templates", "Editing Email Templates", ["admin"], [
 		p("Emails → Templates lists every email the portal sends, pre-filled with its current wording. Click one to edit the subject and body. The green chips are tokens — placeholders like the parent's name or the payment link that get filled in automatically when each email is sent. Click a token to insert it at your cursor. Tokens can be deleted or moved but not mistyped, so you can't accidentally break an email."),
 		img("template-editor", "The template editor with token chips"),
