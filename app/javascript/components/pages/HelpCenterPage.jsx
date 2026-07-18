@@ -78,8 +78,37 @@ const SECTIONS = [
 		p("The four enrollment forms — Family Agreement & Waiver, Parent/Guardian Contact, Medication Administration, and Health & Medical Care — are signed electronically in the parent portal. When you click Send Enrollment Forms on an application (or Issue Enrollment Forms on a family page), pending forms appear in that family's portal."),
 		p("Parents read each form, type their full legal name, and sign. Each signature records who signed, when, from where, and an exact snapshot of the form text they agreed to. Signed paperwork lives on the family page, listed under each child."),
 		img("family-detail", "A family page with enrollment paperwork status per child"),
-		p("Edit the text of the four forms under Emails → Enrollment Forms. Parents signing after an edit always sign (and store) the text as it read at that moment."),
+		p("Edit the text of the four forms under Emails → Enrollment Forms — each opens a full-page editor. Parents signing after an edit always sign (and store) the text as it read at that moment. See Editing Enrollment Forms below for the formatting, fill-in fields, and tokens you can use."),
 		img("enrollment-form-text", "Editing enrollment form text"),
+	]),
+
+	S("form-tokens", "Editing Enrollment Forms — Formatting, Fields & Tokens", ["admin"], [
+		p("Open Emails → Enrollment Forms and click a form to open its full-page editor. A form's text is made of three things: plain formatting, interactive fill-in fields the parent completes, and tokens that fill in the family's details automatically."),
+		p("Formatting:"),
+		list(
+			"Headings — start a line with #, ##, or ### for large, medium, or small headings.",
+			"**bold** — wrap text in double asterisks.",
+			"Bullets — start a line with a dash and a space.",
+		),
+		p("Fill-in fields (the parent completes these when signing). Type them exactly, using a short key that stores the answer:"),
+		list(
+			"[[text:key|Label]] — a single-line answer. End the label with * to make it required, e.g. [[text:allergies|Allergies*]].",
+			"[[textarea:key|Label]] — a multi-line answer.",
+			"[[checkbox:key|Label]] — a checkbox.",
+			"[[require-one:key1,key2|Message]] — requires at least one of the listed checkboxes to be checked.",
+			"[[waive-required-if:key]] — checking that checkbox waives all other required fields (e.g. “my child takes no medication”).",
+			"[[signature]] — where the parent types their legal name to sign. [[date]] — the signing date.",
+			"[[payment-plans]] — lists every payment plan as choosable options. [[tuition-plan]] — shows just this child's tuition, selected plan, and due dates.",
+		),
+		p("Tokens are the {{double-brace}} placeholders that fill in with the family's real details the moment a parent opens the form — you never type a child's or parent's name into a form by hand. Click a token chip in the editor to insert it; hover any chip to see where its value comes from. Available tokens:"),
+		list(
+			"{{child_name}} — the enrolling child's full name.",
+			"{{parent_name}} / {{parent2_name}} — the parent/guardian names from the application (parent2 is blank if there isn't a second guardian).",
+			"{{program_name}} — the program the child is enrolling in.",
+			"{{school_name}} — the school name. {{school_year}} — the program's school year (e.g. 2026–2027).",
+			"{{current_date}} — today's date when the parent opens the form.",
+		),
+		note("Tokens are checked when you save — an unknown or mistyped token is rejected, so a form can't go out with a broken placeholder. Editing a form changes it for every family who signs it from that point on."),
 	]),
 
 	S("programs", "Programs, Classes & Payment Plans", ["admin"], [

@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
 	Box,
 	Chip,
@@ -9,248 +10,37 @@ import {
 	DialogTitle,
 	DialogContent,
 	DialogActions,
-	TextField,
-	MenuItem,
-	Alert,
 	Typography,
-	Tooltip,
-	Link,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DataTable from "../shared/DataTable";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import ComposeEmailDialog from "../shared/ComposeEmailDialog";
-import TokenEditor from "../shared/TokenEditor";
 import { emailsApi, emailTemplatesApi, formTemplatesApi, parentsApi } from "../../utils/api";
 
 const STATUS_COLORS = { sent: "success", failed: "error", bounced: "error", queued: "warning", draft: "info" };
 
-function TemplateDialog({ open, onClose, initial, knownKeys, tokenInfo, onSaved }) {
-	const [form, setForm] = useState({
-		key: initial?.key || "",
-		name: initial?.name || "",
-		subject: initial?.subject || "",
-		body: initial?.body || "",
-	});
-	const [error, setError] = useState(null);
-	const [busy, setBusy] = useState(false);
-	const subjectEditor = useRef(null);
-	const bodyEditor = useRef(null);
-	const lastFocused = useRef("body");
-
-	const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
-	const tokens = form.key ? knownKeys[form.key] || [] : [];
-
-	const insertToken = (token) => {
-		const editor = lastFocused.current === "subject" ? subjectEditor : bodyEditor;
-		editor.current?.insertToken(token);
-	};
-
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setError(null);
-		setBusy(true);
-		try {
-			if (initial?.id) {
-				await emailTemplatesApi.update(initial.id, form);
-			} else {
-				await emailTemplatesApi.create(form);
-			}
-			onSaved();
-			onClose();
-		} catch (err) {
-			setError(err.message);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<form onSubmit={handleSubmit}>
-				<DialogTitle>{initial?.id ? `Edit ${initial.name}` : "New Template"}</DialogTitle>
-				<DialogContent>
-					{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-						<TextField
-							select
-							label="Workflow email"
-							value={form.key}
-							onChange={(e) => set("key", e.target.value)}
-							fullWidth
-							disabled={!!initial?.key}
-							helperText={
-								initial?.key
-									? "This template is the wording used for this workflow email."
-									: "Pick a workflow email to edit its wording, or leave as 'None' for a reusable manual-email template."
-							}
-						>
-							<MenuItem value="">None (manual email template)</MenuItem>
-							{Object.keys(knownKeys).map((k) => (
-								<MenuItem key={k} value={k}>{k.replace(/_/g, " ")}</MenuItem>
-							))}
-						</TextField>
-						<TextField
-							label="Template Name"
-							value={form.name}
-							onChange={(e) => set("name", e.target.value)}
-							required
-							fullWidth
-						/>
-						{form.key ? (
-							<>
-								<TokenEditor
-									ref={subjectEditor}
-									label="Subject"
-									value={form.subject}
-									onChange={(v) => set("subject", v)}
-									onFocus={() => (lastFocused.current = "subject")}
-								/>
-								<TokenEditor
-									ref={bodyEditor}
-									label="Body"
-									value={form.body}
-									onChange={(v) => set("body", v)}
-									onFocus={() => (lastFocused.current = "body")}
-									multiline
-									minRows={14}
-								/>
-							</>
-						) : (
-							<>
-								<TextField
-									label="Subject"
-									value={form.subject}
-									onChange={(e) => set("subject", e.target.value)}
-									required
-									fullWidth
-								/>
-								<TextField
-									label="Body"
-									value={form.body}
-									onChange={(e) => set("body", e.target.value)}
-									multiline
-									rows={12}
-									required
-									fullWidth
-								/>
-							</>
-						)}
-						{tokens.length > 0 && (
-							<Box>
-								<Typography variant="caption" color="text.secondary">
-									Tokens fill in automatically when the email is sent. Click one to insert it at your cursor; hover to see where its value comes from.{" "}
-									<Link href="/help#email-tokens" target="_blank" rel="noopener">Full token guide</Link>
-								</Typography>
-								<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 0.5, mb: 1 }}>
-									{tokens.map((t) => (
-										<Tooltip key={t} title={tokenInfo?.[t] || ""} arrow>
-											<Chip
-												size="small"
-												label={t.replace(/_/g, " ")}
-												onClick={() => insertToken(t)}
-												clickable
-												color="success"
-												variant="outlined"
-											/>
-										</Tooltip>
-									))}
-								</Box>
-								<Box component="dl" sx={{ m: 0 }}>
-									{tokens.map((t) => (
-										<Typography key={t} variant="caption" color="text.secondary" component="div" sx={{ mb: 0.25 }}>
-											<strong>{`{{${t}}}`}</strong> — {tokenInfo?.[t] || ""}
-										</Typography>
-									))}
-								</Box>
-							</Box>
-						)}
-					</Box>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={onClose}>Cancel</Button>
-					<Button type="submit" variant="contained" disabled={busy}>
-						{busy ? "Saving..." : "Save"}
-					</Button>
-				</DialogActions>
-			</form>
-		</Dialog>
-	);
-}
-
-function FormTemplateDialog({ open, onClose, initial, onSaved }) {
-	const [form, setForm] = useState({ name: initial.name, body: initial.body });
-	const [error, setError] = useState(null);
-	const [busy, setBusy] = useState(false);
-
-	const handleSubmit = async (e) => {
-		e.preventDefault();
-		setError(null);
-		setBusy(true);
-		try {
-			await formTemplatesApi.update(initial.id, form);
-			onSaved();
-			onClose();
-		} catch (err) {
-			setError(err.message);
-		} finally {
-			setBusy(false);
-		}
-	};
-
-	return (
-		<Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-			<form onSubmit={handleSubmit}>
-				<DialogTitle>Edit {initial.name}</DialogTitle>
-				<DialogContent>
-					{error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-					<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-						<TextField
-							label="Form Name"
-							value={form.name}
-							onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-							required
-							fullWidth
-						/>
-						<TextField
-							label="Form Text (what parents read and sign)"
-							value={form.body}
-							onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))}
-							multiline
-							rows={16}
-							required
-							fullWidth
-							helperText="Formatting: # / ## / ### headings, **bold**, - bullets. Fill-in fields: [[text:key|Label]] (end the label with * to make it required), [[textarea:key|Label]], [[checkbox:key|Label]], [[require-one:key1,key2|Message]] for a required choice, [[waive-required-if:key]] to waive all requirements when a checkbox is checked, [[payment-plans]] to list all payment plans, [[tuition-plan]] to show just this child's tuition, selected plan, and due dates, and [[signature]] where the parent signs."
-						/>
-					</Box>
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={onClose}>Cancel</Button>
-					<Button type="submit" variant="contained" disabled={busy}>
-						{busy ? "Saving..." : "Save"}
-					</Button>
-				</DialogActions>
-			</form>
-		</Dialog>
-	);
-}
+const TAB_NAMES = ["log", "drafts", "templates", "forms"];
 
 export default function EmailsPage() {
-	const [tab, setTab] = useState(0);
+	const navigate = useNavigate();
+	const [searchParams, setSearchParams] = useSearchParams();
+	const tab = Math.max(0, TAB_NAMES.indexOf(searchParams.get("tab")));
+
 	const [emails, setEmails] = useState([]);
 	const [templates, setTemplates] = useState([]);
-	const [knownKeys, setKnownKeys] = useState({});
-	const [tokenInfo, setTokenInfo] = useState({});
 	const [parents, setParents] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [showCompose, setShowCompose] = useState(false);
 	const [editDraft, setEditDraft] = useState(null);
 	const [viewEmail, setViewEmail] = useState(null);
-	const [showTemplateForm, setShowTemplateForm] = useState(false);
-	const [editTemplate, setEditTemplate] = useState(null);
 	const [formTemplates, setFormTemplates] = useState([]);
-	const [editFormTemplate, setEditFormTemplate] = useState(null);
 	const [deleteTarget, setDeleteTarget] = useState(null);
+
+	const setTab = (index) => {
+		if (index === 0) setSearchParams({});
+		else setSearchParams({ tab: TAB_NAMES[index] });
+	};
 
 	const load = async () => {
 		setLoading(true);
@@ -262,9 +52,7 @@ export default function EmailsPage() {
 			]);
 			setEmails(emailData);
 			setTemplates(templateData.templates);
-			setKnownKeys(templateData.known_keys);
-			setTokenInfo(templateData.token_info || {});
-			setFormTemplates(formTemplateData);
+			setFormTemplates(formTemplateData.forms);
 		} finally {
 			setLoading(false);
 		}
@@ -316,7 +104,7 @@ export default function EmailsPage() {
 			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
 				<Typography variant="h5" component="h1">Emails</Typography>
 				{tab === 2 && (
-					<Button variant="contained" startIcon={<AddIcon />} onClick={() => setShowTemplateForm(true)}>
+					<Button variant="contained" startIcon={<AddIcon />} onClick={() => navigate("/emails/templates/new")}>
 						New Template
 					</Button>
 				)}
@@ -360,7 +148,7 @@ export default function EmailsPage() {
 					columns={templateColumns}
 					data={templates}
 					loading={loading}
-					onRowClick={(row) => setEditTemplate(row)}
+					onRowClick={(row) => navigate(`/emails/templates/${row.id}/edit`)}
 					onDelete={(row) => setDeleteTarget({ type: "template", row })}
 					emptyMessage="No templates yet. Templates can override workflow emails or seed manual emails."
 				/>
@@ -378,18 +166,8 @@ export default function EmailsPage() {
 					]}
 					data={formTemplates}
 					loading={loading}
-					onRowClick={(row) => setEditFormTemplate(row)}
+					onRowClick={(row) => navigate(`/emails/forms/${row.id}/edit`)}
 					emptyMessage="Forms appear here once loaded."
-				/>
-			)}
-
-			{editFormTemplate && (
-				<FormTemplateDialog
-					key={editFormTemplate.id}
-					open
-					onClose={() => setEditFormTemplate(null)}
-					initial={editFormTemplate}
-					onSaved={load}
 				/>
 			)}
 
@@ -406,21 +184,6 @@ export default function EmailsPage() {
 					parents={parents}
 					onSaved={load}
 					onSent={load}
-				/>
-			)}
-
-			{(showTemplateForm || editTemplate) && (
-				<TemplateDialog
-					key={editTemplate?.id || "new"}
-					open
-					onClose={() => {
-						setShowTemplateForm(false);
-						setEditTemplate(null);
-					}}
-					initial={editTemplate}
-					knownKeys={knownKeys}
-					tokenInfo={tokenInfo}
-					onSaved={load}
 				/>
 			)}
 

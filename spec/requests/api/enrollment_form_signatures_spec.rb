@@ -319,11 +319,38 @@ RSpec.describe 'Enrollment form signatures', type: :request do
     end
   end
 
+  describe '{{token}} substitution' do
+    it "fills in the family's details when rendering a form" do
+      program = create(:program, name: '2026-2027 Nature Preschool', start_date: Date.new(2026, 8, 24), end_date: Date.new(2027, 5, 30))
+      enrollment = create(:program_enrollment, child: child, program: program)
+      application = create(:enrollment_application, program: program, child: child,
+                                                    parent_first_name: 'Dana', parent_last_name: 'Rivera',
+                                                    program_enrollment: enrollment)
+      template = FormTemplate.find_or_create_by!(key: 'family_agreement') { |t| t.name = 'Family Agreement & Waiver' }
+      template.update!(body: "{{child_name}} enrolls in {{program_name}} for {{school_year}}, signed by {{parent_name}}.")
+      sig = EnrollmentFormSignature.create!(child: child, form_template: template, enrollment_application: application)
+
+      body = sig.rendered_body
+      expect(body).to include(child.full_name)
+      expect(body).to include('2026-2027 Nature Preschool')
+      expect(body).to include('2026–2027')
+      expect(body).to include('Dana Rivera')
+      expect(body).not_to include('{{')
+    end
+
+    it 'rejects an unknown token when saving a form template' do
+      template = FormTemplate.find_or_create_by!(key: 'family_agreement') { |t| t.name = 'Family Agreement & Waiver' }
+      template.body = 'Hello {{not_a_real_token}}'
+      expect(template).not_to be_valid
+      expect(template.errors[:base].join).to include('not_a_real_token')
+    end
+  end
+
   describe 'form templates' do
     it 'admins can edit form text' do
       sign_in admin
       get '/api/form_templates'
-      template = JSON.parse(response.body).first
+      template = JSON.parse(response.body)['forms'].first
 
       patch "/api/form_templates/#{template['id']}", params: {
         form_template: { body: 'Updated waiver text.' }

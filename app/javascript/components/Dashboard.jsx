@@ -56,6 +56,8 @@ import IntegrationsPage from "./pages/IntegrationsPage";
 import UsersPage from "./pages/UsersPage";
 import ContentPage from "./pages/ContentPage";
 import EmailsPage from "./pages/EmailsPage";
+import EmailTemplateEditPage from "./pages/EmailTemplateEditPage";
+import FormTemplateEditPage from "./pages/FormTemplateEditPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
@@ -366,6 +368,15 @@ export default function Dashboard() {
                         )}
                         {user?.role === "admin" && (
                             <Route path="/emails" element={<EmailsPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/emails/templates/new" element={<EmailTemplateEditPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/emails/templates/:id/edit" element={<EmailTemplateEditPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/emails/forms/:id/edit" element={<FormTemplateEditPage />} />
                         )}
                         {user?.super_admin && (
                             <Route
