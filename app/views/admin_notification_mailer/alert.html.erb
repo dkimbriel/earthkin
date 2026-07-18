@@ -1,0 +1,11 @@
+<h2 style="font-family: 'Comfortaa', Helvetica, Arial, sans-serif; color: #2e7d32;"><%= @notification.title %></h2>
+
+<% if @notification.body.present? %>
+  <p><%= @notification.body %></p>
+<% end %>
+
+<p style="color: #666; font-size: 13px;">This is an automatic admin alert from the Earthkin portal.</p>
+
+<p>
+  <a href="<%= @portal_url %>" style="color: #2e7d32;">Open the notifications inbox</a>
+</p>

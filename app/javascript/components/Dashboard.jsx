@@ -5,7 +5,7 @@ import {
     Navigate,
     useNavigate,
 } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Avatar,
     Box,
@@ -31,8 +31,10 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import EmailIcon from "@mui/icons-material/Email";
+import NotificationsIcon from "@mui/icons-material/Notifications";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import { useAuth } from "../contexts/AuthContext";
+import { notificationsApi } from "../utils/api";
 
 import DashboardPage from "./pages/DashboardPage";
 import ParentDashboardPage from "./pages/ParentDashboardPage";
@@ -58,6 +60,7 @@ import ContentPage from "./pages/ContentPage";
 import EmailsPage from "./pages/EmailsPage";
 import EmailTemplateEditPage from "./pages/EmailTemplateEditPage";
 import FormTemplateEditPage from "./pages/FormTemplateEditPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
@@ -81,6 +84,7 @@ const baseNavItems = [
 // Admin-only pages.
 const adminNavItems = [
     { path: "/emails", label: "Emails", icon: <EmailIcon /> },
+    { path: "/notifications", label: "Notifications", icon: <NotificationsIcon /> },
     { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
 ];
 
@@ -93,6 +97,26 @@ export default function Dashboard() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+    const isAdmin = user?.role === "admin";
+
+    // Keep the sidebar's unread badge roughly current for admins.
+    useEffect(() => {
+        if (!isAdmin) return undefined;
+        let active = true;
+        const refresh = () =>
+            notificationsApi
+                .list()
+                .then((data) => active && setUnreadNotifications(data.unread_count || 0))
+                .catch(() => {});
+        refresh();
+        const interval = setInterval(refresh, 60000);
+        return () => {
+            active = false;
+            clearInterval(interval);
+        };
+    }, [isAdmin]);
 
     // Single source of truth for the nav bar height, shared by the fixed header
     // and the two layout spacers below it so they always line up.
@@ -156,6 +180,14 @@ export default function Dashboard() {
                             >
                                 <ListItemIcon>{item.icon}</ListItemIcon>
                                 <ListItemText primary={item.label} />
+                                {item.path === "/notifications" && unreadNotifications > 0 && (
+                                    <Chip
+                                        label={unreadNotifications}
+                                        color="primary"
+                                        size="small"
+                                        sx={{ height: 20, minWidth: 20, "& .MuiChip-label": { px: 0.75 } }}
+                                    />
+                                )}
                             </ListItemButton>
                         </ListItem>
                     ))}
@@ -368,6 +400,9 @@ export default function Dashboard() {
                         )}
                         {user?.role === "admin" && (
                             <Route path="/emails" element={<EmailsPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/notifications" element={<NotificationsPage />} />
                         )}
                         {user?.role === "admin" && (
                             <Route path="/emails/templates/new" element={<EmailTemplateEditPage />} />

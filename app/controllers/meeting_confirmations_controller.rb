@@ -47,6 +47,8 @@ class MeetingConfirmationsController < ApplicationController
       email_service = EmailTrackingService.new(@application)
       email_service.send_email('EnrollmentMailer', 'meeting_scheduled', [@event.id], { event_id: @event.id })
 
+      AdminNotifier.meeting_scheduled(@application, @event)
+
       render :confirmed
     rescue ArgumentError => e
       flash[:error] = e.message

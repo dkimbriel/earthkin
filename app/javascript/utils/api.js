@@ -183,6 +183,12 @@ export const emailTemplatesApi = {
 	delete: (id) => api.delete(`/api/email_templates/${id}`),
 };
 
+export const notificationsApi = {
+	list: () => api.get("/api/notifications"),
+	markRead: (id) => api.patch(`/api/notifications/${id}/mark_read`),
+	markAllRead: () => api.patch("/api/notifications/mark_all_read"),
+};
+
 export const portalApi = {
 	overview: () => api.get("/api/portal/overview"),
 	content: () => api.get("/api/portal/content"),

@@ -112,6 +112,8 @@ module Api
 				form_fields: sanitized_form_fields
 			)
 
+			AdminNotifier.form_signed(signature)
+
 			render json: signature.as_json
 		rescue ArgumentError => e
 			render json: { error: e.message }, status: :unprocessable_content

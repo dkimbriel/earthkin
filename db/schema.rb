@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_18_000002) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_18_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -251,6 +251,19 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000002) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "notifications", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "event_type", null: false
+    t.string "title", null: false
+    t.text "body"
+    t.uuid "enrollment_application_id"
+    t.datetime "read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_at"], name: "index_notifications_on_created_at"
+    t.index ["enrollment_application_id"], name: "index_notifications_on_enrollment_application_id"
+    t.index ["read_at"], name: "index_notifications_on_read_at"
+  end
+
   create_table "parents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "first_name"
     t.string "last_name"
@@ -404,6 +417,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000002) do
   add_foreign_key "enrollment_payment_plans", "program_enrollments"
   add_foreign_key "events", "locations"
   add_foreign_key "gmail_integrations", "users", column: "connected_by_id"
+  add_foreign_key "notifications", "enrollment_applications"
   add_foreign_key "parents", "families"
   add_foreign_key "parents", "users"
   add_foreign_key "payment_plans", "programs"

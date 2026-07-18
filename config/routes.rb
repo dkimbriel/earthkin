@@ -96,6 +96,15 @@ Rails.application.routes.draw do
 		end
 
 		resources :form_templates, only: [:index, :update]
+
+		resources :notifications, only: [:index] do
+			member do
+				patch :mark_read
+			end
+			collection do
+				patch :mark_all_read
+			end
+		end
 		resources :enrollment_form_signatures, only: [:index, :create] do
 			member do
 				get :pdf
