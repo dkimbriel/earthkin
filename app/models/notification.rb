@@ -1,21 +1,19 @@
 class Notification < ApplicationRecord
   belongs_to :enrollment_application, optional: true
+  has_many :notification_reads, dependent: :delete_all
 
   EVENT_TYPES = %w[meeting_scheduled payment_plan_selected form_signed].freeze
 
   validates :event_type, inclusion: { in: EVENT_TYPES }
   validates :title, presence: true
 
-  scope :unread, -> { where(read_at: nil) }
   scope :recent, -> { order(created_at: :desc) }
 
-  def read?
-    read_at.present?
-  end
-
-  def mark_read!
-    update!(read_at: Time.current) unless read?
-  end
+  # Notifications that the given user has not marked read. Read status is
+  # tracked per user via notification_reads, so each admin has their own.
+  scope :unread_for, ->(user) {
+    where.not(id: NotificationRead.where(user_id: user.id).select(:notification_id))
+  }
 
   def as_json(_options = {})
     {
@@ -24,8 +22,6 @@ class Notification < ApplicationRecord
       title: title,
       body: body,
       enrollment_application_id: enrollment_application_id,
-      read: read?,
-      read_at: read_at,
       created_at: created_at
     }
   end

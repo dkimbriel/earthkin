@@ -8,6 +8,7 @@ class User < ApplicationRecord
 
 	has_one :teacher, dependent: :nullify
 	has_one :parent, dependent: :nullify
+	has_many :notification_reads, dependent: :delete_all
 
 	validates :role, inclusion: { in: ROLES }
 

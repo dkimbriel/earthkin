@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Box, Typography, Paper, Chip, Divider, Link as MuiLink } from "@mui/material";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -227,6 +228,17 @@ export default function HelpCenterPage() {
 	const { user } = useAuth();
 	const role = user?.role || "parent";
 	const sections = SECTIONS.filter((s) => s.roles.includes(role));
+
+	// Deep links like /help#email-tokens arrive before the sections have
+	// rendered (and before auth resolves the role), so the browser's native
+	// hash scroll finds nothing. Scroll to the target once sections are in the
+	// DOM for the current role.
+	useEffect(() => {
+		const hash = window.location.hash.replace(/^#/, "");
+		if (!hash) return;
+		const el = document.getElementById(hash);
+		if (el) el.scrollIntoView();
+	}, [role]);
 
 	return (
 		<Box sx={{ maxWidth: 900, mx: "auto" }}>

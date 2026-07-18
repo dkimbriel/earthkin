@@ -81,10 +81,12 @@ const baseNavItems = [
     { path: "/content", label: "Content", icon: <FolderSharedIcon /> },
 ];
 
+// Pinned to the very top of the admin nav so alerts are the first thing seen.
+const notificationsNavItem = { path: "/notifications", label: "Notifications", icon: <NotificationsIcon /> };
+
 // Admin-only pages.
 const adminNavItems = [
     { path: "/emails", label: "Emails", icon: <EmailIcon /> },
-    { path: "/notifications", label: "Notifications", icon: <NotificationsIcon /> },
     { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
 ];
 
@@ -155,8 +157,9 @@ export default function Dashboard() {
         : isTeacher
             ? [...teacherNavItems, helpNavItem]
             : [
+                ...(isAdmin ? [notificationsNavItem] : []),
                 ...baseNavItems,
-                ...(user?.role === "admin" ? adminNavItems : []),
+                ...(isAdmin ? adminNavItems : []),
                 ...(user?.super_admin ? superAdminNavItems : []),
                 helpNavItem,
             ];
