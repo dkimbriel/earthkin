@@ -150,8 +150,11 @@ module Api
     def process_fee_payment
       application = EnrollmentApplication.find(params[:id])
 
-      # Only allow processing fee payment from appropriate statuses
-      unless %w[meeting_completed fee_requested].include?(application.status)
+      # Allow recording a fee payment from any active status so an admin can
+      # lock in a plan for a family who paid directly, without being forced
+      # through the meet-and-greet flow first. Declined and enrolled
+      # applications are terminal.
+      if %w[declined enrolled].include?(application.status)
         render json: { error: 'Cannot process fee payment from current status' }, status: :unprocessable_entity
         return
       end

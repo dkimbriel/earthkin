@@ -15,6 +15,15 @@ class Parent < ApplicationRecord
   def create_user_account!(password = nil)
     return user if user.present?
 
+    # A User may already exist for this email (e.g. a returning family or a
+    # prior application). Link it rather than trying to create a duplicate,
+    # which Devise's email uniqueness validation would reject.
+    existing_user = User.find_by(email: email)
+    if existing_user
+      update!(user: existing_user)
+      return existing_user
+    end
+
     generated_password = password || SecureRandom.urlsafe_base64(12)
 
     new_user = User.create!(
