@@ -25,6 +25,20 @@ class AdminNotifier
       )
     end
 
+    # Fired the first time a parent signs in to the portal — a cue that the
+    # family is set up and their enrollment forms can be issued.
+    def family_first_login(user)
+      parent = user.parent
+      name = parent&.full_name.presence || user.email
+      application = parent&.family&.enrollment_applications&.order(created_at: :desc)&.first
+      notify(
+        event_type: 'family_first_login',
+        title: "Family logged in — #{name}",
+        body: "#{name} signed in to the portal for the first time. Issue their enrollment forms when you're ready.",
+        enrollment_application: application
+      )
+    end
+
     def form_signed(signature)
       application = signature.enrollment_application
       notify(

@@ -1016,22 +1016,6 @@ export default function EnrollmentApplicationDetailPage() {
                         application={application}
                         onSendEmail={handleSendEmail}
                     />
-                    {composeDraft && (
-                        <ComposeEmailDialog
-                            open
-                            onClose={() => setComposeDraft(null)}
-                            initial={composeDraft}
-                            showPickers={false}
-                            onSaved={() => {
-                                setEmailNotification("Draft saved — it's under Emails > Drafts");
-                                loadApplication();
-                            }}
-                            onSent={() => {
-                                setEmailNotification("Email sent to parent");
-                                loadApplication();
-                            }}
-                        />
-                    )}
                 </TabPanel>
 
                 {/* Tab: Payment Plan */}
@@ -1713,6 +1697,26 @@ export default function EnrollmentApplicationDetailPage() {
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* Compose dialog for resends/manual emails. Kept at the top level
+                (not inside a tab panel) so it opens no matter which tab the
+                action button was clicked from. */}
+            {composeDraft && (
+                <ComposeEmailDialog
+                    open
+                    onClose={() => setComposeDraft(null)}
+                    initial={composeDraft}
+                    showPickers={false}
+                    onSaved={() => {
+                        setEmailNotification("Draft saved — it's under Emails > Drafts");
+                        loadApplication();
+                    }}
+                    onSent={() => {
+                        setEmailNotification("Email sent to parent");
+                        loadApplication();
+                    }}
+                />
+            )}
 
             {/* Email Notification Toast */}
             <Snackbar

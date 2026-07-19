@@ -43,4 +43,36 @@ RSpec.describe 'Sessions', type: :request do
 
     expect(response).to have_http_status(:unauthorized)
   end
+
+  describe 'first sign-in tracking' do
+    let!(:parent_user) { create(:user, :parent, email: 'parent@example.com') }
+
+    it "stamps first_signed_in_at and notifies admins on a parent's first login" do
+      expect {
+        sign_in_with(parent_user)
+      }.to change(Notification, :count).by(1)
+
+      expect(parent_user.reload.first_signed_in_at).to be_present
+      expect(Notification.last.event_type).to eq('family_first_login')
+    end
+
+    it 'does not re-notify on subsequent logins' do
+      sign_in_with(parent_user)
+      first_stamp = parent_user.reload.first_signed_in_at
+
+      expect {
+        sign_in_with(parent_user)
+      }.not_to change(Notification, :count)
+
+      expect(parent_user.reload.first_signed_in_at).to eq(first_stamp)
+    end
+
+    it 'stamps first sign-in for staff but does not create a family notification' do
+      expect {
+        sign_in_with(first_user) # admin
+      }.not_to change(Notification, :count)
+
+      expect(first_user.reload.first_signed_in_at).to be_present
+    end
+  end
 end

@@ -2,7 +2,7 @@ class Notification < ApplicationRecord
   belongs_to :enrollment_application, optional: true
   has_many :notification_reads, dependent: :delete_all
 
-  EVENT_TYPES = %w[meeting_scheduled payment_plan_selected form_signed].freeze
+  EVENT_TYPES = %w[meeting_scheduled payment_plan_selected form_signed family_first_login].freeze
 
   validates :event_type, inclusion: { in: EVENT_TYPES }
   validates :title, presence: true
