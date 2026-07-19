@@ -28,6 +28,40 @@ RSpec.describe 'Enrollment form signatures', type: :request do
       }.not_to change(EnrollmentFormSignature, :count)
     end
 
+    it "emails the family their forms are ready, sourced from the child's enrollment" do
+      program = create(:program)
+      create(:program_enrollment, child: child, program: program)
+      sign_in admin
+
+      expect {
+        post '/api/enrollment_form_signatures', params: { child_id: child.id }
+      }.to change { Email.where(email_type: 'enrollment_forms_notice').count }.by(1)
+
+      email = Email.where(email_type: 'enrollment_forms_notice').last
+      expect(email.recipient).to eq(parent.email)
+      expect(email.status).to eq('sent')
+    end
+
+    it 'still issues forms but sends no email when the child has no enrollment' do
+      sign_in admin
+
+      expect {
+        post '/api/enrollment_form_signatures', params: { child_id: child.id }
+      }.not_to change { Email.where(email_type: 'enrollment_forms_notice').count }
+
+      expect(child.enrollment_form_signatures.count).to eq(4)
+    end
+
+    it 'does not re-email when forms were already issued' do
+      create(:program_enrollment, child: child, program: create(:program))
+      sign_in admin
+      post '/api/enrollment_form_signatures', params: { child_id: child.id }
+
+      expect {
+        post '/api/enrollment_form_signatures', params: { child_id: child.id }
+      }.not_to change { Email.where(email_type: 'enrollment_forms_notice').count }
+    end
+
     it 'issues forms automatically when enrollment forms are sent' do
       program = create(:program)
       application = create(:enrollment_application, program: program, status: 'fee_paid', child: child, family: family)

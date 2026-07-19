@@ -1,0 +1,21 @@
+<h2>Enrollment Forms</h2>
+
+<p>Hi <%= @parent.first_name %>,</p>
+
+<p><%= @child.first_name %>'s enrollment forms for <%= @program.name %> are ready to sign.</p>
+
+<p>Please log in to your parent portal to review and sign the following forms:</p>
+
+<ul>
+  <li><strong>Family Agreement &amp; Waiver</strong> - Our policies and liability waiver</li>
+  <li><strong>Parent/Guardian Contact Form</strong> - Emergency contacts and pickup authorization</li>
+  <li><strong>Medication Administration Form</strong> - If your child requires any medication</li>
+  <li><strong>Health &amp; Medical Care Form</strong> - Medical history and care preferences</li>
+</ul>
+
+<p><%= link_to 'Sign in to your parent portal', root_url %> to complete them.</p>
+
+<p>If you have any questions, just reply to this email.</p>
+
+<p>Warmly,<br>
+The Nature Preschool Team</p>
