@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Chip, Typography, Tooltip } from "@mui/material";
+import { Box, Chip, Typography, Tooltip, Alert, Snackbar } from "@mui/material";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
@@ -109,6 +109,7 @@ export default function ProgramsPage() {
 	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
+	const [deleteError, setDeleteError] = useState(null);
 
 	const loadPrograms = async () => {
 		setLoading(true);
@@ -130,10 +131,14 @@ export default function ProgramsPage() {
 	};
 
 	const handleDelete = async () => {
-		if (deleteTarget) {
+		if (!deleteTarget) return;
+		try {
 			await programsApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
 			loadPrograms();
+		} catch (err) {
+			setDeleteTarget(null);
+			setDeleteError(err.message);
 		}
 	};
 
@@ -160,8 +165,18 @@ export default function ProgramsPage() {
 				onClose={() => setDeleteTarget(null)}
 				onConfirm={handleDelete}
 				title="Delete Program"
-				message={`Are you sure you want to delete "${deleteTarget?.name}"? This will also delete all classes and enrollments.`}
+				message={`Delete "${deleteTarget?.name}"? Its classes and enrollments are removed too, but you can restore it from Recently Deleted. Programs with active enrollments can't be deleted.`}
 			/>
+			<Snackbar
+				open={!!deleteError}
+				autoHideDuration={8000}
+				onClose={() => setDeleteError(null)}
+				anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+			>
+				<Alert severity="warning" onClose={() => setDeleteError(null)} sx={{ width: "100%" }}>
+					{deleteError}
+				</Alert>
+			</Snackbar>
 		</Box>
 	);
 }

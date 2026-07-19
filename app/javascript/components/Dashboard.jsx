@@ -33,6 +33,7 @@ import FolderSharedIcon from "@mui/icons-material/FolderShared";
 import EmailIcon from "@mui/icons-material/Email";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
 import { useAuth } from "../contexts/AuthContext";
 import { notificationsApi } from "../utils/api";
 
@@ -61,6 +62,7 @@ import EmailsPage from "./pages/EmailsPage";
 import EmailTemplateEditPage from "./pages/EmailTemplateEditPage";
 import FormTemplateEditPage from "./pages/FormTemplateEditPage";
 import NotificationsPage from "./pages/NotificationsPage";
+import RecentlyDeletedPage from "./pages/RecentlyDeletedPage";
 import ParentCalendarPage from "./pages/ParentCalendarPage";
 import ParentPaymentsPage from "./pages/ParentPaymentsPage";
 import ParentFormsPage from "./pages/ParentFormsPage";
@@ -88,6 +90,7 @@ const notificationsNavItem = { path: "/notifications", label: "Notifications", i
 const adminNavItems = [
     { path: "/emails", label: "Emails", icon: <EmailIcon /> },
     { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
+    { path: "/recently-deleted", label: "Recently Deleted", icon: <RestoreFromTrashIcon /> },
 ];
 
 // Super-admin-only pages.
@@ -406,6 +409,9 @@ export default function Dashboard() {
                         )}
                         {user?.role === "admin" && (
                             <Route path="/notifications" element={<NotificationsPage />} />
+                        )}
+                        {user?.role === "admin" && (
+                            <Route path="/recently-deleted" element={<RecentlyDeletedPage />} />
                         )}
                         {user?.role === "admin" && (
                             <Route path="/emails/templates/new" element={<EmailTemplateEditPage />} />

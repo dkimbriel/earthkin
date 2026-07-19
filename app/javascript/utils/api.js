@@ -56,8 +56,11 @@ async function request(url, options = {}) {
 	}
 
 	if (!response.ok) {
-		const error = await response.json().catch(() => ({}));
-		throw new Error(error.errors?.join(", ") || error.error || "Request failed");
+		const body = await response.json().catch(() => ({}));
+		const error = new Error(body.errors?.join(", ") || body.error || "Request failed");
+		error.status = response.status;
+		error.body = body;
+		throw error;
 	}
 
 	return response.status === 204 ? null : response.json();
@@ -82,9 +85,15 @@ export const parentsApi = {
 	list: () => api.get("/api/parents"),
 	invite: (id) => api.post(`/api/parents/${id}/invite`),
 	get: (id) => api.get(`/api/parents/${id}`),
-	create: (data) => api.post("/api/parents", { parent: data }),
+	create: (data, { force = false } = {}) =>
+		api.post("/api/parents", { parent: data, force }),
 	update: (id, data) => api.patch(`/api/parents/${id}`, { parent: data }),
 	delete: (id) => api.delete(`/api/parents/${id}`),
+};
+
+export const deletedRecordsApi = {
+	list: () => api.get("/api/admin/deleted_records"),
+	restore: (type, id) => api.post("/api/admin/deleted_records/restore", { type, id }),
 };
 
 export const childrenApi = {

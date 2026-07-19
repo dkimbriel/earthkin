@@ -1,4 +1,6 @@
 class EmailTemplate < ApplicationRecord
+  include SoftDeletable
+
   # Workflow emails that can be edited, with the placeholders each supports.
   KNOWN_KEYS = {
     'enrollment_invite' => %w[parent_name program_name program_dates class_days time_range tuition enrollment_fee enrollment_link],
@@ -234,11 +236,15 @@ class EmailTemplate < ApplicationRecord
   }.freeze
 
   validates :name, :subject, :body, presence: true
-  validates :key, uniqueness: true, inclusion: { in: KNOWN_KEYS.keys }, allow_nil: true
+  validates :key, uniqueness: { conditions: -> { where(deleted_at: nil) } }, inclusion: { in: KNOWN_KEYS.keys }, allow_nil: true
   validate :tokens_must_be_valid
 
   def self.for(key)
     find_by(key: key)
+  end
+
+  def deleted_label
+    name
   end
 
   # Idempotently create the editable template for every workflow email so

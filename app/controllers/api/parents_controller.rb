@@ -14,6 +14,24 @@ module Api
 		end
 
 		def create
+			# If a deleted parent (or their portal user) has this email, offer to
+			# restore it instead of silently creating a duplicate. `force: true`
+			# skips the check and creates a fresh record.
+			unless ActiveModel::Type::Boolean.new.cast(params[:force])
+				existing = deleted_match_for(params.dig(:parent, :email))
+				if existing
+					return render json: {
+						error: "A deleted record for #{existing.deleted_label} exists.",
+						restorable: {
+							type: existing.class.name,
+							id: existing.id,
+							label: existing.deleted_label,
+							deleted_at: existing.deleted_at
+						}
+					}, status: :conflict
+				end
+			end
+
 			parent = Parent.create!(parent_params)
 			render json: parent.as_json(include: :family), status: :created
 		end
@@ -26,7 +44,7 @@ module Api
 
 		def destroy
 			parent = Parent.find(params[:id])
-			parent.destroy!
+			parent.soft_delete!
 			head :no_content
 		end
 
@@ -52,6 +70,20 @@ module Api
 		end
 
 		private
+
+		# A soft-deleted record matching this email signals a previously-deleted
+		# family. Return the best thing to restore: the whole original family if it
+		# was deleted too, otherwise the matched parent/user itself.
+		def deleted_match_for(email)
+			return nil if email.blank?
+
+			match = Parent.only_deleted.find_by(email: email) || User.only_deleted.find_by(email: email)
+			return nil if match.nil?
+
+			family_id = match.is_a?(Parent) ? match.family_id : Parent.with_deleted.find_by(user_id: match.id)&.family_id
+			family = family_id && Family.only_deleted.find_by(id: family_id)
+			family || match
+		end
 
 		def parent_params
 			params.require(:parent).permit(:family_id, :first_name, :last_name, :email, :phone)

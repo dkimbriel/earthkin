@@ -10,6 +10,7 @@ import {
 	Dialog,
 	DialogTitle,
 	DialogContent,
+	DialogContentText,
 	DialogActions,
 	Table,
 	TableHead,
@@ -22,7 +23,7 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
-import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignaturesApi } from "../../utils/api";
+import { familiesApi, parentsApi, childrenApi, programEnrollmentsApi, formSignaturesApi, deletedRecordsApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import FormDocument, { hasFormFields } from "../shared/FormDocument";
 import EarthkinLoader from "../shared/EarthkinLoader";
@@ -126,6 +127,7 @@ export default function FamilyDetailPage() {
 	const [auditTarget, setAuditTarget] = useState(null);
 	const [invitingId, setInvitingId] = useState(null);
 	const [inviteNotice, setInviteNotice] = useState(null);
+	const [reconcile, setReconcile] = useState(null);
 
 	const loadSignatures = async () => {
 		try {
@@ -194,7 +196,31 @@ export default function FamilyDetailPage() {
 	};
 
 	const handleCreateParent = async (formData) => {
-		await parentsApi.create({ ...formData, family_id: id });
+		try {
+			await parentsApi.create({ ...formData, family_id: id });
+			loadFamily();
+		} catch (err) {
+			// A deleted parent/family with this email exists — offer to restore
+			// the original instead of silently creating a duplicate.
+			if (err.status === 409 && err.body?.restorable) {
+				setReconcile({ restorable: err.body.restorable, formData });
+				return; // swallow so the form closes; the reconcile dialog takes over
+			}
+			throw err; // let the form show any other error
+		}
+	};
+
+	const handleRestoreMatch = async () => {
+		const { restorable } = reconcile;
+		setReconcile(null);
+		await deletedRecordsApi.restore(restorable.type, restorable.id);
+		loadFamily();
+	};
+
+	const handleCreateParentAnyway = async () => {
+		const { formData } = reconcile;
+		setReconcile(null);
+		await parentsApi.create({ ...formData, family_id: id }, { force: true });
 		loadFamily();
 	};
 
@@ -461,6 +487,27 @@ export default function FamilyDetailPage() {
 				title="Add Parent"
 				fields={parentFormFields}
 			/>
+
+			<Dialog open={!!reconcile} onClose={() => setReconcile(null)}>
+				<DialogTitle>This person was deleted before</DialogTitle>
+				<DialogContent>
+					<DialogContentText>
+						A deleted record for this email already exists
+						{reconcile?.restorable?.label ? ` — ${reconcile.restorable.label}` : ""}
+						{reconcile?.restorable?.deleted_at
+							? ` (deleted ${new Date(reconcile.restorable.deleted_at).toLocaleDateString()})`
+							: ""}
+						. Restore the original instead of creating a duplicate, or create a brand-new record.
+					</DialogContentText>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setReconcile(null)}>Cancel</Button>
+					<Button onClick={handleCreateParentAnyway}>Create new</Button>
+					<Button onClick={handleRestoreMatch} variant="contained">
+						Restore original
+					</Button>
+				</DialogActions>
+			</Dialog>
 
 			<FormDialog
 				open={showChildForm}

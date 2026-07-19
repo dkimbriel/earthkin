@@ -63,7 +63,7 @@ module Api
 		def destroy
 			return render json: { error: 'Only drafts can be deleted' }, status: :unprocessable_content unless @email.draft?
 
-			@email.destroy!
+			@email.soft_delete!
 			head :no_content
 		end
 

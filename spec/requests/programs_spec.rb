@@ -69,5 +69,31 @@ RSpec.describe 'Api::Programs', type: :request do
 
       expect(response).to have_http_status(:no_content)
     end
+
+    it 'is restorable (soft delete), not destroyed' do
+      delete "/api/programs/#{program.id}"
+      expect(Program.with_deleted.find(program.id)).to be_deleted
+    end
+
+    it 'refuses to delete a program that still has active enrollments' do
+      child = create(:child)
+      create(:program_enrollment, program: program, child: child, status: 'confirmed')
+
+      expect {
+        delete "/api/programs/#{program.id}"
+      }.not_to change(Program, :count)
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response.parsed_body['error']).to match(/active enrollment/)
+    end
+
+    it 'allows deleting a program whose only enrollments are cancelled' do
+      child = create(:child)
+      create(:program_enrollment, program: program, child: child, status: 'cancelled')
+
+      expect {
+        delete "/api/programs/#{program.id}"
+      }.to change(Program, :count).by(-1)
+    end
   end
 end

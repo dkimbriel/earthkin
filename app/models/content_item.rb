@@ -1,9 +1,13 @@
 class ContentItem < ApplicationRecord
+  include SoftDeletable
+
   VISIBILITIES = %w[all_staff specific_teachers].freeze
   CATEGORIES = %w[general manual curriculum form policy].freeze
 
   has_many :content_item_teachers, dependent: :destroy
   has_many :teachers, through: :content_item_teachers
+
+  cascades_soft_delete :content_item_teachers
 
   validates :title, presence: true
   validates :url, presence: true, format: { with: %r{\Ahttps?://\S+\z}, message: 'must be a full link (https://...)' }
@@ -36,5 +40,9 @@ class ContentItem < ApplicationRecord
       teacher_names: teachers.map(&:full_name),
       created_at: created_at
     }
+  end
+
+  def deleted_label
+    title
   end
 end

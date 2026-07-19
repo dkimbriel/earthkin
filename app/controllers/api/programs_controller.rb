@@ -107,7 +107,15 @@ module Api
 
 		def destroy
 			program = Program.find(params[:id])
-			program.destroy!
+
+			active_count = program.program_enrollments.active.count
+			if active_count.positive?
+				return render json: {
+					error: "Cannot delete a program with #{active_count} active enrollment(s). Cancel or move them first."
+				}, status: :unprocessable_entity
+			end
+
+			program.soft_delete!
 			head :no_content
 		end
 

@@ -29,7 +29,7 @@ module Api
 
     def destroy
       teacher = Teacher.find(params[:id])
-      teacher.destroy!
+      teacher.soft_delete!
       head :no_content
     end
 

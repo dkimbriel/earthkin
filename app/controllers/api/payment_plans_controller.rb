@@ -37,7 +37,7 @@ module Api
         return
       end
 
-      plan.destroy!
+      plan.soft_delete!
       head :no_content
     end
 
