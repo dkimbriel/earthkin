@@ -220,7 +220,9 @@ export const formTemplatesApi = {
 
 export const formSignaturesApi = {
 	listByFamily: (familyId) => api.get(`/api/enrollment_form_signatures?family_id=${familyId}`),
+	listByChild: (childId) => api.get(`/api/enrollment_form_signatures?child_id=${childId}`),
 	issueForChild: (childId) => api.post("/api/enrollment_form_signatures", { child_id: childId }),
+	pdfPath: (id) => `/api/enrollment_form_signatures/${id}/pdf`,
 };
 
 export const contentItemsApi = {
