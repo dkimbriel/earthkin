@@ -71,6 +71,18 @@ class EnrollmentEmailVars
       }
     end
 
+    # Same forms email, but sourced from a program enrollment + parent instead
+    # of an application (used for manually-added families that never went
+    # through the application queue).
+    def enrollment_forms_for_enrollment(enrollment, parent)
+      {
+        parent_name: parent.first_name,
+        child_name: enrollment.child.first_name,
+        program_name: enrollment.program.name,
+        login_url: portal_url
+      }
+    end
+
     def enrollment_confirmed(enrollment)
       program = enrollment.program
       {

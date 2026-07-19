@@ -97,6 +97,30 @@ class EnrollmentMailer < ApplicationMailer
     )
   end
 
+  # Enrollment Forms — enrollment-sourced variant.
+  # Sent when an admin issues forms directly from the family page for a
+  # manually-added family (which has a program enrollment but no application).
+  # Reuses the same 'enrollment_forms' template/wording, sourced from the
+  # enrollment and the family's parent.
+  def enrollment_forms_notice(program_enrollment_id)
+    @enrollment = ProgramEnrollment.includes(:program, :child, enrollment_payment_plan: :payment_plan).find(program_enrollment_id)
+    @program = @enrollment.program
+    @child = @enrollment.child
+    @payment_plan = @enrollment.enrollment_payment_plan&.payment_plan
+    @parent = @child.family.parents.find { |p| p.email.present? }
+    return if @parent.nil?
+
+    if (template = EmailTemplate.for('enrollment_forms'))
+      return templated_mail(template, to: @parent.email,
+                                      vars: EnrollmentEmailVars.enrollment_forms_for_enrollment(@enrollment, @parent))
+    end
+
+    mail(
+      to: @parent.email,
+      subject: "Action Required: Enrollment Forms for #{@program.name}"
+    )
+  end
+
   # Email 4: Enrollment Confirmed (Bonus)
   # Sent after enrollment is complete
   def enrollment_confirmed(program_enrollment_id)
