@@ -25,7 +25,7 @@ module Api
 
 		def destroy
 			family = Family.find(params[:id])
-			family.destroy!
+			family.soft_delete!
 			head :no_content
 		end
 

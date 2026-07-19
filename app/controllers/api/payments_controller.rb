@@ -20,7 +20,7 @@ module Api
 
 		def destroy
 			payment = Payment.find(params[:id])
-			payment.destroy!
+			payment.soft_delete!
 			head :no_content
 		end
 

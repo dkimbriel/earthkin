@@ -46,7 +46,7 @@ module Api
 
 		def destroy
 			enrollment = ProgramEnrollment.find(params[:id])
-			enrollment.destroy!
+			enrollment.soft_delete!
 			head :no_content
 		end
 

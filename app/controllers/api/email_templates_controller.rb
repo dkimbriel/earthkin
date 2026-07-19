@@ -27,7 +27,7 @@ module Api
 		end
 
 		def destroy
-			@template.destroy!
+			@template.soft_delete!
 			head :no_content
 		end
 

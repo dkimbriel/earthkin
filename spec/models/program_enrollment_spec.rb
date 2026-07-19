@@ -23,6 +23,45 @@ RSpec.describe ProgramEnrollment, type: :model do
     end
   end
 
+  describe 'keeping the application in sync when deactivated' do
+    let(:application) { create(:enrollment_application, :enrolled) }
+    let(:enrollment) do
+      create(:program_enrollment, status: 'confirmed',
+                                  enrollment_application: application,
+                                  child: application.child,
+                                  program: application.program)
+    end
+
+    context 'when the enrollment is cancelled' do
+      it 'walks the enrolled application back to signing_docs' do
+        enrollment.update!(status: 'cancelled', cancelled_at: Time.current)
+        expect(application.reload.status).to eq('signing_docs')
+      end
+    end
+
+    context 'when the enrollment is soft-deleted' do
+      it 'walks the enrolled application back to signing_docs' do
+        enrollment.soft_delete!
+        expect(application.reload.status).to eq('signing_docs')
+      end
+
+      it 'removes the enrollment from enrolled_count' do
+        enrollment # ensure it exists before measuring the count
+        expect { enrollment.soft_delete! }
+          .to change { application.program.reload.enrolled_count }.by(-1)
+      end
+    end
+
+    context 'when the application is not enrolled' do
+      let(:application) { create(:enrollment_application, :fee_paid) }
+
+      it 'leaves the application status untouched' do
+        enrollment.update!(status: 'cancelled', cancelled_at: Time.current)
+        expect(application.reload.status).to eq('fee_paid')
+      end
+    end
+  end
+
   describe 'factory' do
     it 'has a valid factory' do
       expect(build(:program_enrollment)).to be_valid

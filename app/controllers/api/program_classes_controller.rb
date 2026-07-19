@@ -53,7 +53,7 @@ module Api
 
 		def destroy
 			program_class = ProgramClass.find(params[:id])
-			program_class.destroy!
+			program_class.soft_delete!
 			head :no_content
 		end
 

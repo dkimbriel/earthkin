@@ -39,6 +39,19 @@ class AdminNotifier
       )
     end
 
+    # Fired when an enrollment matches a previously-deleted family and we
+    # restore + reuse it rather than creating a duplicate — a heads-up to review.
+    def family_restored_from_deletion(parent)
+      family = parent.family
+      application = family&.enrollment_applications&.order(created_at: :desc)&.first
+      notify(
+        event_type: 'family_restored_from_deletion',
+        title: "Deleted family re-activated — #{parent.full_name}",
+        body: "#{parent.full_name} (#{parent.email}) matched a previously-deleted account, so it was restored and linked instead of duplicated. Review the family to make sure everything looks right.",
+        enrollment_application: application
+      )
+    end
+
     def form_signed(signature)
       application = signature.enrollment_application
       notify(

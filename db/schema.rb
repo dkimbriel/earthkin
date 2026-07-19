@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
+ActiveRecord::Schema[7.2].define(version: 2026_07_19_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -49,6 +49,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.uuid "family_id", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_children_on_deleted_at"
     t.index ["family_id"], name: "index_children_on_family_id"
   end
 
@@ -57,8 +59,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.uuid "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["content_item_id", "teacher_id"], name: "index_content_item_teachers_on_content_item_id_and_teacher_id", unique: true
+    t.datetime "deleted_at"
+    t.index ["content_item_id", "teacher_id"], name: "index_content_item_teachers_on_content_item_id_and_teacher_id", unique: true, where: "(deleted_at IS NULL)"
     t.index ["content_item_id"], name: "index_content_item_teachers_on_content_item_id"
+    t.index ["deleted_at"], name: "index_content_item_teachers_on_deleted_at"
     t.index ["teacher_id"], name: "index_content_item_teachers_on_teacher_id"
   end
 
@@ -71,6 +75,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "visible_to_families", default: false, null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_content_items_on_deleted_at"
   end
 
   create_table "email_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -80,7 +86,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["key"], name: "index_email_templates_on_key", unique: true, where: "(key IS NOT NULL)"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_email_templates_on_deleted_at"
+    t.index ["key"], name: "index_email_templates_on_key", unique: true, where: "((key IS NOT NULL) AND (deleted_at IS NULL))"
   end
 
   create_table "emails", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -98,7 +106,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "html_body"
+    t.datetime "deleted_at"
     t.index ["created_at"], name: "index_emails_on_created_at"
+    t.index ["deleted_at"], name: "index_emails_on_deleted_at"
     t.index ["email_type"], name: "index_emails_on_email_type"
     t.index ["emailable_type", "emailable_id"], name: "index_emails_on_emailable_type_and_emailable_id"
     t.index ["mailer_class"], name: "index_emails_on_mailer_class"
@@ -144,10 +154,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.string "parent2_phone"
     t.decimal "custom_enrollment_fee", precision: 8, scale: 2
     t.decimal "custom_tuition_amount", precision: 8, scale: 2
+    t.datetime "deleted_at"
     t.index ["child_id"], name: "index_enrollment_applications_on_child_id"
+    t.index ["deleted_at"], name: "index_enrollment_applications_on_deleted_at"
     t.index ["family_id"], name: "index_enrollment_applications_on_family_id"
     t.index ["parent_email"], name: "index_enrollment_applications_on_parent_email"
-    t.index ["payment_selection_token"], name: "index_enrollment_applications_on_payment_selection_token", unique: true
+    t.index ["payment_selection_token"], name: "index_enrollment_applications_on_payment_selection_token", unique: true, where: "(deleted_at IS NULL)"
     t.index ["program_enrollment_id"], name: "index_enrollment_applications_on_program_enrollment_id"
     t.index ["program_id"], name: "index_enrollment_applications_on_program_id"
     t.index ["selected_payment_plan_id"], name: "index_enrollment_applications_on_selected_payment_plan_id"
@@ -169,8 +181,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.text "response_text"
     t.jsonb "audit_log", default: [], null: false
     t.jsonb "form_fields", default: {}, null: false
-    t.index ["child_id", "form_template_id", "enrollment_application_id"], name: "index_form_signatures_uniqueness", unique: true
+    t.datetime "deleted_at"
+    t.index ["child_id", "form_template_id", "enrollment_application_id"], name: "index_form_signatures_uniqueness", unique: true, where: "(deleted_at IS NULL)"
     t.index ["child_id"], name: "index_enrollment_form_signatures_on_child_id"
+    t.index ["deleted_at"], name: "index_enrollment_form_signatures_on_deleted_at"
     t.index ["enrollment_application_id"], name: "index_enrollment_form_signatures_on_enrollment_application_id"
     t.index ["form_template_id"], name: "index_enrollment_form_signatures_on_form_template_id"
   end
@@ -185,8 +199,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.jsonb "installments", default: []
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_enrollment_payment_plans_on_deleted_at"
     t.index ["payment_plan_id"], name: "index_enrollment_payment_plans_on_payment_plan_id"
-    t.index ["program_enrollment_id"], name: "index_enrollment_payment_plans_on_program_enrollment_id", unique: true
+    t.index ["program_enrollment_id"], name: "index_enrollment_payment_plans_on_program_enrollment_id", unique: true, where: "(deleted_at IS NULL)"
   end
 
   create_table "events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -219,6 +235,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_families_on_deleted_at"
   end
 
   create_table "form_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -249,6 +267,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.text "notes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_locations_on_deleted_at"
   end
 
   create_table "notification_reads", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -282,6 +302,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.datetime "updated_at", null: false
     t.uuid "family_id", null: false
     t.uuid "user_id"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_parents_on_deleted_at"
     t.index ["family_id"], name: "index_parents_on_family_id"
     t.index ["user_id"], name: "index_parents_on_user_id"
   end
@@ -298,6 +320,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.jsonb "installment_schedule", default: []
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_payment_plans_on_deleted_at"
     t.index ["display_order"], name: "index_payment_plans_on_display_order"
     t.index ["program_id", "active"], name: "index_payment_plans_on_program_id_and_active"
     t.index ["program_id"], name: "index_payment_plans_on_program_id"
@@ -315,6 +339,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.string "payment_type", default: "tuition"
     t.uuid "enrollment_payment_plan_id"
     t.integer "installment_number"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_payments_on_deleted_at"
     t.index ["enrollment_payment_plan_id"], name: "index_payments_on_enrollment_payment_plan_id"
     t.index ["payment_type"], name: "index_payments_on_payment_type"
     t.index ["program_enrollment_id"], name: "index_payments_on_program_enrollment_id"
@@ -325,6 +351,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.uuid "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_program_class_teachers_on_deleted_at"
     t.index ["program_class_id"], name: "index_program_class_teachers_on_program_class_id"
     t.index ["teacher_id"], name: "index_program_class_teachers_on_teacher_id"
   end
@@ -339,6 +367,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.datetime "updated_at", null: false
     t.uuid "program_id", null: false
     t.uuid "location_id"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_program_classes_on_deleted_at"
     t.index ["location_id"], name: "index_program_classes_on_location_id"
     t.index ["program_id"], name: "index_program_classes_on_program_id"
   end
@@ -354,7 +384,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.date "cancelled_at"
     t.uuid "enrollment_application_id"
     t.string "workflow_status", default: "application_submitted"
+    t.datetime "deleted_at"
     t.index ["child_id"], name: "index_program_enrollments_on_child_id"
+    t.index ["deleted_at"], name: "index_program_enrollments_on_deleted_at"
     t.index ["enrollment_application_id"], name: "index_program_enrollments_on_enrollment_application_id"
     t.index ["program_id"], name: "index_program_enrollments_on_program_id"
     t.index ["workflow_status"], name: "index_program_enrollments_on_workflow_status"
@@ -365,6 +397,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.uuid "teacher_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_program_teachers_on_deleted_at"
     t.index ["program_id"], name: "index_program_teachers_on_program_id"
     t.index ["teacher_id"], name: "index_program_teachers_on_teacher_id"
   end
@@ -381,6 +415,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.string "class_days"
     t.time "start_time"
     t.time "end_time"
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_programs_on_deleted_at"
   end
 
   create_table "teachers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -392,6 +428,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.uuid "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_teachers_on_deleted_at"
     t.index ["user_id"], name: "index_teachers_on_user_id"
   end
 
@@ -406,7 +444,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_18_000005) do
     t.boolean "super_admin", default: false, null: false
     t.string "role", default: "parent", null: false
     t.datetime "first_signed_in_at"
-    t.index ["email"], name: "index_users_on_email", unique: true
+    t.datetime "deleted_at"
+    t.index ["deleted_at"], name: "index_users_on_deleted_at"
+    t.index ["email"], name: "index_users_on_email", unique: true, where: "(deleted_at IS NULL)"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
 

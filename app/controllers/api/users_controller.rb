@@ -45,7 +45,7 @@ module Api
 				return render json: { error: 'You cannot delete your own account' }, status: :unprocessable_content
 			end
 
-			@user.destroy!
+			@user.soft_delete!
 			head :no_content
 		end
 

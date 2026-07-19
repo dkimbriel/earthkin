@@ -1,4 +1,6 @@
 class EnrollmentPaymentPlan < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :program_enrollment
   belongs_to :payment_plan
   has_many :payments, dependent: :destroy

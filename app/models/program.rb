@@ -1,4 +1,6 @@
 class Program < ApplicationRecord
+  include SoftDeletable
+
   has_many :program_classes, -> { order(:date, :start_time) }, dependent: :destroy
   has_many :locations, -> { distinct }, through: :program_classes
   has_many :program_enrollments, dependent: :destroy
@@ -7,6 +9,9 @@ class Program < ApplicationRecord
   has_many :teachers, through: :program_teachers
   has_many :payment_plans, dependent: :destroy
   has_many :enrollment_applications, dependent: :destroy
+
+  cascades_soft_delete :program_classes, :program_enrollments, :payment_plans,
+                       :program_teachers, :enrollment_applications
 
   validates :name, presence: true
   validates :start_date, presence: true
@@ -45,6 +50,10 @@ class Program < ApplicationRecord
 
   def tuition_amount
     payment_plans.active.first&.total_amount
+  end
+
+  def deleted_label
+    name
   end
 
   private

@@ -1,4 +1,6 @@
 class EnrollmentApplication < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :family, optional: true
   belongs_to :program
   belongs_to :child, optional: true

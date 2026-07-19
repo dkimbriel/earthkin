@@ -53,6 +53,33 @@ RSpec.describe 'Api::Parents', type: :request do
 
       expect(response).to have_http_status(:created)
     end
+
+    context 'when a deleted record with the same email exists' do
+      let!(:old_family) { create(:family) }
+      let!(:deleted_parent) { create(:parent, family: old_family, email: 'gone@example.com') }
+      before { old_family.soft_delete! }
+
+      let(:params) do
+        { parent: { family_id: family.id, first_name: 'New', last_name: 'Person', email: 'gone@example.com' } }
+      end
+
+      it 'returns 409 pointing at the deleted family to restore instead of duplicating' do
+        expect {
+          post '/api/parents', params: params
+        }.not_to change(Parent, :count)
+
+        expect(response).to have_http_status(:conflict)
+        expect(response.parsed_body['restorable']).to include('type' => 'Family', 'id' => old_family.id)
+      end
+
+      it 'creates a fresh record when force is set' do
+        expect {
+          post '/api/parents', params: params.merge(force: true)
+        }.to change(Parent, :count).by(1)
+
+        expect(response).to have_http_status(:created)
+      end
+    end
   end
 
   describe 'PATCH /api/parents/:id' do

@@ -1,4 +1,6 @@
 class Email < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :emailable, polymorphic: true, optional: true
 
   STATUSES = %w[draft queued sent failed bounced].freeze
@@ -30,6 +32,10 @@ class Email < ApplicationRecord
 
   def type_label
     email_type.titleize
+  end
+
+  def deleted_label
+    "#{type_label} to #{recipient}"
   end
 
   def status_color

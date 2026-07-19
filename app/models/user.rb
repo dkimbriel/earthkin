@@ -1,4 +1,6 @@
 class User < ApplicationRecord
+	include SoftDeletable
+
 	# Include default devise modules. Others available are:
 	# :confirmable, :lockable, :timeoutable, :trackable and :omniauthable
 	devise :database_authenticatable, :registerable,
@@ -31,5 +33,9 @@ class User < ApplicationRecord
 
 	def display_name
 		teacher&.full_name || parent&.full_name || email
+	end
+
+	def deleted_label
+		"#{display_name} (#{role})"
 	end
 end

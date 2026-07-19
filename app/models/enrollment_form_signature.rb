@@ -1,4 +1,6 @@
 class EnrollmentFormSignature < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :child
   belongs_to :form_template
   belongs_to :enrollment_application, optional: true

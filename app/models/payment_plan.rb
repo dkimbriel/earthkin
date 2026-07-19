@@ -1,4 +1,6 @@
 class PaymentPlan < ApplicationRecord
+  include SoftDeletable
+
   belongs_to :program
   has_many :enrollment_payment_plans, dependent: :restrict_with_error
 
@@ -7,6 +9,10 @@ class PaymentPlan < ApplicationRecord
   validates :installment_count, presence: true, numericality: { greater_than: 0 }
 
   scope :active, -> { where(active: true).order(:display_order) }
+
+  def deleted_label
+    "#{name} — #{program&.name}"
+  end
 
   before_save :calculate_installment_amount
   before_create :assign_display_order

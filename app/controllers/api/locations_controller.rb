@@ -25,7 +25,7 @@ module Api
 
 		def destroy
 			location = Location.find(params[:id])
-			location.destroy!
+			location.soft_delete!
 			head :no_content
 		end
 

@@ -26,7 +26,7 @@ module Api
 
 		def destroy
 			child = Child.find(params[:id])
-			child.destroy!
+			child.soft_delete!
 			head :no_content
 		end
 

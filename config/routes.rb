@@ -125,6 +125,10 @@ Rails.application.routes.draw do
 		namespace :admin do
 			get 'integrations/gmail', to: 'integrations#gmail'
 			delete 'integrations/gmail', to: 'integrations#disconnect_gmail'
+
+			# Recently deleted (soft delete) restore surface.
+			get 'deleted_records', to: 'deleted_records#index'
+			post 'deleted_records/restore', to: 'deleted_records#restore'
 		end
 	end
 
