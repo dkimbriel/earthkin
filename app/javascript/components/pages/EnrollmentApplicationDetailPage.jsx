@@ -38,10 +38,13 @@ import {
     locationsApi,
 } from "../../utils/api";
 import PaymentPlanSelector from "../enrollment/PaymentPlanSelector";
+import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
 import EmailTimeline from "../enrollment/EmailTimeline";
 import ComposeEmailDialog from "../shared/ComposeEmailDialog";
 import ActionButtonWithEmail from "../enrollment/ActionButtonWithEmail";
+import ApplicationFormsTab from "../enrollment/ApplicationFormsTab";
 import EarthkinLoader from "../shared/EarthkinLoader";
+import { useAuth } from "../../contexts/AuthContext";
 
 const formatStatusLabel = (status) => {
     return status
@@ -65,11 +68,13 @@ function TabPanel({ children, value, index, ...other }) {
     );
 }
 
-const TAB_NAMES = ["overview", "application", "communications", "payment-plan"];
+const TAB_NAMES = ["overview", "application", "communications", "payment-plan", "enrollment-forms"];
 
 export default function EnrollmentApplicationDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const isAdmin = user?.role === "admin";
     const [searchParams, setSearchParams] = useSearchParams();
     const [application, setApplication] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -621,6 +626,12 @@ export default function EnrollmentApplicationDetailPage() {
                         icon={<PaymentIcon />}
                         iconPosition="start"
                         label="Payment Plan"
+                        sx={{ textTransform: "none" }}
+                    />
+                    <Tab
+                        icon={<HistoryEduIcon />}
+                        iconPosition="start"
+                        label="Enrollment Forms"
                         sx={{ textTransform: "none" }}
                     />
                 </Tabs>
@@ -1246,6 +1257,15 @@ export default function EnrollmentApplicationDetailPage() {
                             )}
                         </Box>
                     </Box>
+                </TabPanel>
+
+                {/* Tab: Enrollment Forms */}
+                <TabPanel value={activeTab} index={4}>
+                    <ApplicationFormsTab
+                        application={application}
+                        isAdmin={isAdmin}
+                        onChanged={loadApplication}
+                    />
                 </TabPanel>
             </Paper>
 
