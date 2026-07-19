@@ -24,6 +24,25 @@ RSpec.describe AdminNotifier do
     end
   end
 
+  describe '.family_first_login' do
+    it "creates a notification linked to the family's latest application" do
+      family = create(:family)
+      parent = create(:parent, family: family, first_name: 'Dana', last_name: 'Rivera')
+      user = create(:user, :parent, email: parent.email)
+      parent.update!(user: user)
+      app = create(:enrollment_application, program: program, family: family)
+
+      expect {
+        described_class.family_first_login(user.reload)
+      }.to change(Notification, :count).by(1)
+
+      notification = Notification.last
+      expect(notification.event_type).to eq('family_first_login')
+      expect(notification.title).to include('Dana Rivera')
+      expect(notification.enrollment_application).to eq(app)
+    end
+  end
+
   describe '.alert_address' do
     it 'plus-aliases the connected mailbox' do
       allow(GmailIntegration).to receive(:current).and_return(double(email: 'school@gmail.com'))

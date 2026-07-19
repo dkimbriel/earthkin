@@ -46,7 +46,7 @@ const SECTIONS = [
 	]),
 
 	S("notifications", "Notifications", ["admin"], [
-		p("The Notifications item in the left menu is your inbox for the moments a family acts on their own. You get an alert whenever a family schedules a meet & greet, selects a payment plan, or signs an enrollment form — the three steps that happen outside the portal and are easy to miss otherwise. A badge on the menu item shows how many are unread."),
+		p("The Notifications item in the left menu is your inbox for the moments a family acts on their own. You get an alert whenever a family schedules a meet & greet, selects a payment plan, signs an enrollment form, or logs into the portal for the first time — the steps that happen outside the portal and are easy to miss otherwise. The first-login alert is your cue that a family you added is in and ready for you to issue their enrollment forms. A badge on the menu item shows how many are unread."),
 		p("Click a notification to jump straight to that family's application; opening it marks it read, and Mark all read clears the badge. Each alert is also emailed to the school's connected Gmail (to a “+alerts” sub-address so it lands cleanly in your inbox and can be filtered), so you're covered whether you're in the portal or your email."),
 		note("Notifications are for admins only — teachers and parents never see them. Email alerts require Gmail to be connected under Integrations; if it isn't, the in-app inbox still fills up normally."),
 	]),

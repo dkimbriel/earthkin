@@ -43,7 +43,11 @@ module Api
       # Sort emails chronologically (newest first) by sent_at or created_at
       sorted_emails = application.emails.sort_by { |e| e.sent_at || e.created_at }.reverse
 
-      # Get active payment plans for the program
+      # Get active payment plans for the program. Compute each plan's due-date
+      # schedule fresh from the program's start date (so it anchors to the real
+      # start day, e.g. the 24th) rather than serving the plan's stored
+      # installment_schedule column, which can be stale from an earlier start date.
+      schedule_anchor = application.program.start_date || Date.current
       active_payment_plans = application.program.payment_plans.active
 
       render json: application.as_json(
@@ -67,7 +71,9 @@ module Api
           only: [:id, :mailer_class, :email_type, :recipient, :subject, :status, :sent_at, :failed_at, :created_at, :html_body],
           methods: [:type_label, :status_color]
         ),
-        payment_plans: active_payment_plans.as_json
+        payment_plans: active_payment_plans.map { |plan|
+          plan.as_json.merge('installment_schedule' => plan.preview_schedule(schedule_anchor))
+        }
       )
     end
 

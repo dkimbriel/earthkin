@@ -14,8 +14,21 @@ class Users::SessionsController < Devise::SessionsController
 
 	private
 
+	# On a parent's very first successful sign-in, stamp the time and alert
+	# admins so they know the family is in and forms can be issued. Best-effort:
+	# never let a hiccup here block the login.
+	def record_first_sign_in(user)
+		return if user.first_signed_in_at.present?
+
+		user.update_column(:first_signed_in_at, Time.current)
+		AdminNotifier.family_first_login(user) if user.parent_role?
+	rescue StandardError => e
+		Rails.logger.error("record_first_sign_in failed: #{e.class} #{e.message}")
+	end
+
 	def respond_with(resource, _opts = {})
 	if resource.persisted?
+		record_first_sign_in(resource)
 		render json: {
 			status: { code: 200, message: 'Logged in successfully.' },
 		data: UserSerializer.new(resource).as_json
