@@ -6,7 +6,20 @@ class EmailTrackingService
   # Creates a tracked Email record and delivers it immediately, in-process.
   # Delivery failures are recorded on the Email record (status "failed")
   # rather than raised, so a mail outage never aborts the calling workflow.
-  def send_email(mailer_class, email_type, mailer_args = [], metadata = {})
+  #
+  # Automated (workflow-triggered) emails are suppressed when the enrollment
+  # application has muted automated comms — e.g. a returning family who has
+  # already met and paid. Manual admin sends pass automated: false so they
+  # always go through, letting staff customize communications by hand.
+  def send_email(mailer_class, email_type, mailer_args = [], metadata = {}, automated: true)
+    if automated && automated_emails_muted?
+      Rails.logger.info(
+        "Skipping automated email (#{mailer_class}##{email_type}) — " \
+        "automated comms muted for #{@emailable.class} #{@emailable.id}"
+      )
+      return nil
+    end
+
     recipient = determine_recipient
     subject = generate_subject(mailer_class, email_type)
 
@@ -26,6 +39,10 @@ class EmailTrackingService
   end
 
   private
+
+  def automated_emails_muted?
+    @emailable.is_a?(EnrollmentApplication) && @emailable.mute_automated_emails?
+  end
 
   def deliver(email, mailer_class, email_type, mailer_args)
     message = mailer_class.constantize.public_send(email_type, *mailer_args)

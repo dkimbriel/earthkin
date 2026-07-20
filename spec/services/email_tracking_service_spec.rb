@@ -51,6 +51,30 @@ RSpec.describe EmailTrackingService do
       end
     end
 
+    context 'when automated comms are muted on the application' do
+      let(:program) { create(:program, name: 'Forest Explorers') }
+      let(:application) do
+        create(:enrollment_application, program: program, parent_email: 'parent@example.com', mute_automated_emails: true)
+      end
+      let(:service) { EmailTrackingService.new(application) }
+
+      it 'skips automated emails without creating a record or delivering' do
+        expect {
+          result = service.send_email('EnrollmentMailer', 'enrollment_fee_request', [application.id])
+          expect(result).to be_nil
+        }.to change(Email, :count).by(0)
+          .and change { ActionMailer::Base.deliveries.count }.by(0)
+      end
+
+      it 'still delivers a manual send (automated: false)' do
+        expect {
+          email = service.send_email('EnrollmentMailer', 'enrollment_fee_request', [application.id], {}, automated: false)
+          expect(email.status).to eq('sent')
+        }.to change(Email, :count).by(1)
+          .and change { ActionMailer::Base.deliveries.count }.by(1)
+      end
+    end
+
     context 'with payment' do
       let(:family) { create(:family) }
       let(:parent) { create(:parent, family: family, email: 'parent@example.com') }

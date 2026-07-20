@@ -72,6 +72,7 @@ Rails.application.routes.draw do
 				post :confirm_enrollment
 				patch :update_parent_email
 				patch :update_custom_fees
+				patch :update_notification_settings
 				post :send_email
 				get :email_draft
 				post :send_meeting_invite
