@@ -244,6 +244,22 @@ module Api
       end
     end
 
+    # Toggle whether workflow-triggered emails are sent for this application.
+    # Used for returning families who've already met/paid and shouldn't get
+    # the standard automated comms; staff can still send emails manually.
+    def update_notification_settings
+      application = EnrollmentApplication.find(params[:id])
+
+      if application.update(mute_automated_emails: ActiveModel::Type::Boolean.new.cast(params[:mute_automated_emails]))
+        render json: {
+          application: application,
+          message: application.mute_automated_emails? ? 'Automated emails muted' : 'Automated emails resumed'
+        }
+      else
+        render json: { errors: application.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     def send_email
       application = EnrollmentApplication.find(params[:id])
       email_type = params[:email_type]
@@ -272,9 +288,9 @@ module Api
         []
       end
 
-      # Send the email
+      # Manual admin send: always delivers, even when automated comms are muted.
       email_service = EmailTrackingService.new(application)
-      email_service.send_email('EnrollmentMailer', email_type, mailer_args)
+      email_service.send_email('EnrollmentMailer', email_type, mailer_args, {}, automated: false)
 
       render json: { message: "#{email_type.titleize} email sent successfully" }
     end

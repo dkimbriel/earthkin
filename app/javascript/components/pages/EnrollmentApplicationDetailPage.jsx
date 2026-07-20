@@ -19,6 +19,8 @@ import {
     Tooltip,
     Tabs,
     Tab,
+    Switch,
+    FormControlLabel,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -29,6 +31,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonIcon from "@mui/icons-material/Person";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EmailIcon from "@mui/icons-material/Email";
+import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import IconButton from "@mui/material/IconButton";
@@ -68,7 +71,13 @@ function TabPanel({ children, value, index, ...other }) {
     );
 }
 
-const TAB_NAMES = ["overview", "application", "communications", "payment-plan", "enrollment-forms"];
+const TAB_NAMES = [
+    "overview",
+    "application",
+    "communications",
+    "payment-plan",
+    "enrollment-forms",
+];
 
 export default function EnrollmentApplicationDetailPage() {
     const { id } = useParams();
@@ -84,7 +93,8 @@ export default function EnrollmentApplicationDetailPage() {
     const [showDob, setShowDob] = useState(false);
 
     const tabParam = searchParams.get("tab");
-    const activeTab = TAB_NAMES.indexOf(tabParam) !== -1 ? TAB_NAMES.indexOf(tabParam) : 0;
+    const activeTab =
+        TAB_NAMES.indexOf(tabParam) !== -1 ? TAB_NAMES.indexOf(tabParam) : 0;
 
     // Dialog states
     const [showMeetingDialog, setShowMeetingDialog] = useState(false);
@@ -160,7 +170,9 @@ export default function EnrollmentApplicationDetailPage() {
     // Open meeting dialog, prepopulating if there's an existing pending event
     const openMeetingDialog = () => {
         const pendingEvent = application?.events?.find(
-            (e) => e.event_type === "meet_and_greet" && e.status === "pending_selection"
+            (e) =>
+                e.event_type === "meet_and_greet" &&
+                e.status === "pending_selection",
         );
 
         if (pendingEvent) {
@@ -186,7 +198,9 @@ export default function EnrollmentApplicationDetailPage() {
 
     // Check if there's already a pending meeting invite
     const hasPendingMeetingInvite = application?.events?.some(
-        (e) => e.event_type === "meet_and_greet" && e.status === "pending_selection"
+        (e) =>
+            e.event_type === "meet_and_greet" &&
+            e.status === "pending_selection",
     );
 
     const loadLocations = async () => {
@@ -234,7 +248,9 @@ export default function EnrollmentApplicationDetailPage() {
                 proposed_date_3: "",
                 notes: "",
             });
-            setEmailNotification("Meeting invite email sent to parent with date options");
+            setEmailNotification(
+                "Meeting invite email sent to parent with date options",
+            );
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -249,7 +265,9 @@ export default function EnrollmentApplicationDetailPage() {
             );
             setShowCompleteMeetingDialog(false);
             setCompleteMeetingNotes("");
-            setEmailNotification("Meeting completed. Enrollment fee request email sent to parent.");
+            setEmailNotification(
+                "Meeting completed. Enrollment fee request email sent to parent.",
+            );
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -303,7 +321,9 @@ export default function EnrollmentApplicationDetailPage() {
     const handleConfirmEnrollment = async () => {
         try {
             await enrollmentApplicationsApi.confirmEnrollment(id);
-            setEmailNotification("Enrollment confirmed! Welcome email sent to family.");
+            setEmailNotification(
+                "Enrollment confirmed! Welcome email sent to family.",
+            );
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -341,7 +361,10 @@ export default function EnrollmentApplicationDetailPage() {
     // already resolved for this family) so it can be edited before sending.
     const handleSendEmail = async (emailType) => {
         try {
-            const draft = await enrollmentApplicationsApi.emailDraft(id, emailType);
+            const draft = await enrollmentApplicationsApi.emailDraft(
+                id,
+                emailType,
+            );
             setComposeDraft(draft);
         } catch (err) {
             setError(err.message);
@@ -366,6 +389,26 @@ export default function EnrollmentApplicationDetailPage() {
             setShowCustomFeesDialog(false);
             loadApplication();
         } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleToggleMuteEmails = async (event) => {
+        const muted = event.target.checked;
+        // Optimistically reflect the toggle so it feels instant.
+        setApplication((prev) => ({ ...prev, mute_automated_emails: muted }));
+        try {
+            const res =
+                await enrollmentApplicationsApi.updateNotificationSettings(
+                    id,
+                    muted,
+                );
+            setEmailNotification(res.message);
+        } catch (err) {
+            setApplication((prev) => ({
+                ...prev,
+                mute_automated_emails: !muted,
+            }));
             setError(err.message);
         }
     };
@@ -442,18 +485,26 @@ export default function EnrollmentApplicationDetailPage() {
                             // Pull the full plan (with installment details) from the
                             // program's plans; selectedPlan itself may be a lighter object.
                             const fullPlan =
-                                application.payment_plans?.find((p) => p.id === selectedPlan.id) ||
-                                selectedPlan;
+                                application.payment_plans?.find(
+                                    (p) => p.id === selectedPlan.id,
+                                ) || selectedPlan;
                             const total = application.custom_tuition_amount
                                 ? parseFloat(application.custom_tuition_amount)
                                 : parseFloat(fullPlan.total_amount);
                             const count = fullPlan.installment_count;
                             const perPayment =
-                                count && !Number.isNaN(total) ? (total / count).toFixed(2) : null;
-                            const detail = count && perPayment ? ` · ${count} × $${perPayment}` : "";
+                                count && !Number.isNaN(total)
+                                    ? (total / count).toFixed(2)
+                                    : null;
+                            const detail =
+                                count && perPayment
+                                    ? ` · ${count} × $${perPayment}`
+                                    : "";
                             const locked = Boolean(lockedPlan);
                             return (
-                                <Tooltip title={`${locked ? "Enrolled on" : "Parent selected"} this plan — view details`}>
+                                <Tooltip
+                                    title={`${locked ? "Enrolled on" : "Parent selected"} this plan — view details`}
+                                >
                                     <Chip
                                         icon={<PaymentIcon />}
                                         label={`${fullPlan.name}${detail}`}
@@ -481,6 +532,60 @@ export default function EnrollmentApplicationDetailPage() {
                     </Box>
                 </Box>
 
+                {/* Mute automated comms — for returning families who have
+                    already met/paid and only need payment plan + forms steps.
+                    Staff can still send emails manually while muted. */}
+                {!["enrolled", "declined"].includes(application.status) && (
+                    <Box sx={{ mb: 2 }}>
+                        <Tooltip title="Suppress the standard workflow emails (meeting invite, fee request, enrollment forms, confirmation) for this family. You can still send emails manually from the Communications tab.">
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={Boolean(
+                                            application.mute_automated_emails,
+                                        )}
+                                        onChange={handleToggleMuteEmails}
+                                        color="warning"
+                                    />
+                                }
+                                label={
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
+                                        }}
+                                    >
+                                        <NotificationsOffIcon
+                                            fontSize="small"
+                                            color={
+                                                application.mute_automated_emails
+                                                    ? "warning"
+                                                    : "disabled"
+                                            }
+                                        />
+                                        <Typography variant="body2">
+                                            Mute automated emails
+                                        </Typography>
+                                    </Box>
+                                }
+                            />
+                        </Tooltip>
+                    </Box>
+                )}
+
+                {application.mute_automated_emails && (
+                    <Alert
+                        severity="warning"
+                        icon={<NotificationsOffIcon />}
+                        sx={{ mb: 2 }}
+                    >
+                        Automated emails are muted for this family. Workflow
+                        steps will advance without notifying the parent — send
+                        any emails manually from the Communications tab.
+                    </Alert>
+                )}
+
                 {/* Action Buttons - Always visible */}
                 <Box sx={{ mb: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
                     {application.status === "submitted" && (
@@ -501,7 +606,9 @@ export default function EnrollmentApplicationDetailPage() {
                             onClick={openMeetingDialog}
                             emailDescription="Parent will receive an email with date options to choose from"
                         >
-                            {hasPendingMeetingInvite ? "Resend Meeting Invite" : "Send Meeting Invite"}
+                            {hasPendingMeetingInvite
+                                ? "Resend Meeting Invite"
+                                : "Send Meeting Invite"}
                         </ActionButtonWithEmail>
                     )}
 
@@ -520,16 +627,22 @@ export default function EnrollmentApplicationDetailPage() {
                         <ActionButtonWithEmail
                             variant="outlined"
                             startIcon={<EmailIcon />}
-                            onClick={() => handleSendEmail("enrollment_fee_request")}
+                            onClick={() =>
+                                handleSendEmail("enrollment_fee_request")
+                            }
                             emailDescription="Resend fee request email with payment instructions"
                         >
                             Resend Fee Request Email
                         </ActionButtonWithEmail>
                     )}
 
-                    {["submitted", "reviewed", "meeting_scheduled", "meeting_completed", "fee_requested"].includes(
-                        application.status,
-                    ) && (
+                    {[
+                        "submitted",
+                        "reviewed",
+                        "meeting_scheduled",
+                        "meeting_completed",
+                        "fee_requested",
+                    ].includes(application.status) && (
                         <Button
                             variant="contained"
                             startIcon={<PaymentIcon />}
@@ -565,7 +678,9 @@ export default function EnrollmentApplicationDetailPage() {
 
                 {/* Parent's payment plan selection - visible regardless of tab */}
                 {application.selected_payment_plan &&
-                    !["fee_paid", "signing_docs", "enrolled"].includes(application.status) && (
+                    !["fee_paid", "signing_docs", "enrolled"].includes(
+                        application.status,
+                    ) && (
                         <Alert
                             severity="success"
                             icon={<CheckCircleIcon />}
@@ -582,10 +697,12 @@ export default function EnrollmentApplicationDetailPage() {
                             }
                         >
                             <Typography variant="body2" fontWeight="medium">
-                                Parent selected the {application.selected_payment_plan.name} plan
+                                Parent selected the{" "}
+                                {application.selected_payment_plan.name} plan
                             </Typography>
                             <Typography variant="body2">
-                                Record their enrollment fee payment to lock in this plan and create the enrollment.
+                                Record their enrollment fee payment to lock in
+                                this plan and create the enrollment.
                             </Typography>
                         </Alert>
                     )}
@@ -638,7 +755,13 @@ export default function EnrollmentApplicationDetailPage() {
 
                 {/* Tab: Overview */}
                 <TabPanel value={activeTab} index={0}>
-                    <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 6 }}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: { xs: "column", md: "row" },
+                            gap: 6,
+                        }}
+                    >
                         {/* Left Column - Parent Info */}
                         <Box sx={{ flex: 1 }}>
                             <Typography variant="h6" gutterBottom>
@@ -647,33 +770,73 @@ export default function EnrollmentApplicationDetailPage() {
 
                             {/* Parent 1 */}
                             <Box sx={{ mb: 3 }}>
-                                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                <Typography
+                                    variant="subtitle2"
+                                    color="text.secondary"
+                                    gutterBottom
+                                >
                                     Parent/Guardian 1
                                 </Typography>
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                    <Typography>{application.full_parent_name}</Typography>
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                                        <Typography>{application.parent_email}</Typography>
-                                        <IconButton size="small" onClick={handleEditEmail}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 0.5,
+                                    }}
+                                >
+                                    <Typography>
+                                        {application.full_parent_name}
+                                    </Typography>
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
+                                        }}
+                                    >
+                                        <Typography>
+                                            {application.parent_email}
+                                        </Typography>
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleEditEmail}
+                                        >
                                             <EditIcon fontSize="small" />
                                         </IconButton>
                                     </Box>
-                                    <Typography>{application.parent_phone || "—"}</Typography>
+                                    <Typography>
+                                        {application.parent_phone || "—"}
+                                    </Typography>
                                 </Box>
                             </Box>
 
                             {/* Parent 2 */}
                             {application.parent2_first_name && (
                                 <Box>
-                                    <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                                    <Typography
+                                        variant="subtitle2"
+                                        color="text.secondary"
+                                        gutterBottom
+                                    >
                                         Parent/Guardian 2
                                     </Typography>
-                                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            gap: 0.5,
+                                        }}
+                                    >
                                         <Typography>
-                                            {application.parent2_first_name} {application.parent2_last_name}
+                                            {application.parent2_first_name}{" "}
+                                            {application.parent2_last_name}
                                         </Typography>
-                                        <Typography>{application.parent2_email || "—"}</Typography>
-                                        <Typography>{application.parent2_phone || "—"}</Typography>
+                                        <Typography>
+                                            {application.parent2_email || "—"}
+                                        </Typography>
+                                        <Typography>
+                                            {application.parent2_phone || "—"}
+                                        </Typography>
                                     </Box>
                                 </Box>
                             )}
@@ -684,13 +847,30 @@ export default function EnrollmentApplicationDetailPage() {
                             <Typography variant="h6" gutterBottom>
                                 Child Information
                             </Typography>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                <Typography>{application.full_child_name}</Typography>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: 0.5,
+                                }}
+                            >
+                                <Typography>
+                                    {application.full_child_name}
+                                </Typography>
                                 {application.child_date_of_birth && (
-                                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 0.5,
+                                        }}
+                                    >
                                         <Typography>
-                                            Born {showDob
-                                                ? new Date(application.child_date_of_birth).toLocaleDateString()
+                                            Born{" "}
+                                            {showDob
+                                                ? new Date(
+                                                      application.child_date_of_birth,
+                                                  ).toLocaleDateString()
                                                 : "**/**/****"}
                                         </Typography>
                                         <IconButton
@@ -698,7 +878,11 @@ export default function EnrollmentApplicationDetailPage() {
                                             onClick={() => setShowDob(!showDob)}
                                             sx={{ ml: 0.5 }}
                                         >
-                                            {showDob ? <VisibilityOffIcon fontSize="small" /> : <VisibilityIcon fontSize="small" />}
+                                            {showDob ? (
+                                                <VisibilityOffIcon fontSize="small" />
+                                            ) : (
+                                                <VisibilityIcon fontSize="small" />
+                                            )}
                                         </IconButton>
                                     </Box>
                                 )}
@@ -810,12 +994,20 @@ export default function EnrollmentApplicationDetailPage() {
                                                 size="small"
                                             />
                                         </Typography>
-                                        {application.status === "meeting_scheduled" && (
+                                        {application.status ===
+                                            "meeting_scheduled" && (
                                             <Button
                                                 variant="contained"
                                                 startIcon={<CheckCircleIcon />}
-                                                onClick={() => setShowCompleteMeetingDialog(true)}
-                                                sx={{ mt: 2, alignSelf: "flex-start" }}
+                                                onClick={() =>
+                                                    setShowCompleteMeetingDialog(
+                                                        true,
+                                                    )
+                                                }
+                                                sx={{
+                                                    mt: 2,
+                                                    alignSelf: "flex-start",
+                                                }}
                                             >
                                                 Meet & Greet Complete
                                             </Button>
@@ -856,13 +1048,17 @@ export default function EnrollmentApplicationDetailPage() {
                                     variant="subtitle2"
                                     color="text.secondary"
                                 >
-                                    Local to Swansboro neighborhood or southside Richmond?
+                                    Local to Swansboro neighborhood or southside
+                                    Richmond?
                                 </Typography>
                                 <Typography>
-                                    {application.is_local === 'yes' ? 'Yes' :
-                                     application.is_local === 'no' ? 'No' :
-                                     "Not sure"}
-                                    {application.local_area && ` (${application.local_area})`}
+                                    {application.is_local === "yes"
+                                        ? "Yes"
+                                        : application.is_local === "no"
+                                          ? "No"
+                                          : "Not sure"}
+                                    {application.local_area &&
+                                        ` (${application.local_area})`}
                                 </Typography>
                             </Box>
                         )}
@@ -873,7 +1069,8 @@ export default function EnrollmentApplicationDetailPage() {
                                     variant="subtitle2"
                                     color="text.secondary"
                                 >
-                                    What draws you to a nature-based preschool program?
+                                    What draws you to a nature-based preschool
+                                    program?
                                 </Typography>
                                 <Typography sx={{ whiteSpace: "pre-wrap" }}>
                                     {application.why_interested}
@@ -887,7 +1084,8 @@ export default function EnrollmentApplicationDetailPage() {
                                     variant="subtitle2"
                                     color="text.secondary"
                                 >
-                                    About the child (temperament, interests, outdoor activity level, special needs)
+                                    About the child (temperament, interests,
+                                    outdoor activity level, special needs)
                                 </Typography>
                                 <Typography sx={{ whiteSpace: "pre-wrap" }}>
                                     {application.child_description}
@@ -934,71 +1132,118 @@ export default function EnrollmentApplicationDetailPage() {
                     </Box>
 
                     {/* Agreements Section */}
-                    {application.agreements && Object.keys(application.agreements).length > 0 && (
-                        <>
-                            <Divider sx={{ my: 3 }} />
-                            <Typography variant="h6" gutterBottom>
-                                Agreements Acknowledged
-                            </Typography>
-                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-                                {application.agreements.program_details && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Program details (schedule, location, tuition)
-                                    </Typography>
-                                )}
-                                {application.agreements.enrollment_fee && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Enrollment fee structure
-                                    </Typography>
-                                )}
-                                {application.agreements.sibling_discount && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Sibling discount policy
-                                    </Typography>
-                                )}
-                                {application.agreements.payment_terms && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Payment terms
-                                    </Typography>
-                                )}
-                                {application.agreements.outdoor_programming && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Outdoor programming acknowledgment
-                                    </Typography>
-                                )}
-                                {application.agreements.weather_policy && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Weather/safety cancellation policy
-                                    </Typography>
-                                )}
-                                {application.agreements.emergent_curriculum && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Emergent curriculum approach
-                                    </Typography>
-                                )}
-                                {application.agreements.follow_instructions && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Follow instructions requirement
-                                    </Typography>
-                                )}
-                                {application.agreements.toilet_proficiency && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Toilet proficiency requirement
-                                    </Typography>
-                                )}
-                                {application.agreements.meet_and_greet && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Meet-and-greet attendance
-                                    </Typography>
-                                )}
-                                {application.agreements.application_status && (
-                                    <Typography variant="body2" color="success.main">
-                                        ✓ Application status understanding
-                                    </Typography>
-                                )}
-                            </Box>
-                        </>
-                    )}
+                    {application.agreements &&
+                        Object.keys(application.agreements).length > 0 && (
+                            <>
+                                <Divider sx={{ my: 3 }} />
+                                <Typography variant="h6" gutterBottom>
+                                    Agreements Acknowledged
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 0.5,
+                                    }}
+                                >
+                                    {application.agreements.program_details && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Program details (schedule,
+                                            location, tuition)
+                                        </Typography>
+                                    )}
+                                    {application.agreements.enrollment_fee && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Enrollment fee structure
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .sibling_discount && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Sibling discount policy
+                                        </Typography>
+                                    )}
+                                    {application.agreements.payment_terms && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Payment terms
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .outdoor_programming && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Outdoor programming acknowledgment
+                                        </Typography>
+                                    )}
+                                    {application.agreements.weather_policy && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Weather/safety cancellation policy
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .emergent_curriculum && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Emergent curriculum approach
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .follow_instructions && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Follow instructions requirement
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .toilet_proficiency && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Toilet proficiency requirement
+                                        </Typography>
+                                    )}
+                                    {application.agreements.meet_and_greet && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Meet-and-greet attendance
+                                        </Typography>
+                                    )}
+                                    {application.agreements
+                                        .application_status && (
+                                        <Typography
+                                            variant="body2"
+                                            color="success.main"
+                                        >
+                                            ✓ Application status understanding
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </>
+                        )}
 
                     {application.admin_notes && (
                         <>
@@ -1031,10 +1276,23 @@ export default function EnrollmentApplicationDetailPage() {
 
                 {/* Tab: Payment Plan */}
                 <TabPanel value={activeTab} index={3}>
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 3,
+                        }}
+                    >
                         {/* Tuition Summary */}
                         <Box>
-                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mb: 1,
+                                }}
+                            >
                                 <Typography variant="h6">
                                     Tuition Summary
                                 </Typography>
@@ -1049,32 +1307,77 @@ export default function EnrollmentApplicationDetailPage() {
                             <Grid container spacing={3}>
                                 <Grid item xs={12} sm={6}>
                                     <Paper variant="outlined" sx={{ p: 2 }}>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, mb: 0.5 }}>
-                                            <Typography variant="subtitle2" color="text.secondary">
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                gap: 1,
+                                                mb: 0.5,
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="subtitle2"
+                                                color="text.secondary"
+                                            >
                                                 Enrollment Fee
                                             </Typography>
                                             {application.custom_enrollment_fee && (
-                                                <Chip label="Custom" size="small" color="warning" sx={{ flexShrink: 0 }} />
+                                                <Chip
+                                                    label="Custom"
+                                                    size="small"
+                                                    color="warning"
+                                                    sx={{ flexShrink: 0 }}
+                                                />
                                             )}
                                         </Box>
                                         <Typography variant="h5">
-                                            ${parseFloat(application.effective_enrollment_fee || application.program?.enrollment_fee || 150).toFixed(2)}
+                                            $
+                                            {parseFloat(
+                                                application.effective_enrollment_fee ||
+                                                    application.program
+                                                        ?.enrollment_fee ||
+                                                    150,
+                                            ).toFixed(2)}
                                         </Typography>
                                         {application.custom_enrollment_fee && (
-                                            <Typography variant="caption" color="text.secondary">
-                                                Program default: ${parseFloat(application.program?.enrollment_fee || 150).toFixed(2)}
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                            >
+                                                Program default: $
+                                                {parseFloat(
+                                                    application.program
+                                                        ?.enrollment_fee || 150,
+                                                ).toFixed(2)}
                                             </Typography>
                                         )}
                                     </Paper>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <Paper variant="outlined" sx={{ p: 2 }}>
-                                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, mb: 0.5 }}>
-                                            <Typography variant="subtitle2" color="text.secondary">
+                                        <Box
+                                            sx={{
+                                                display: "flex",
+                                                justifyContent: "space-between",
+                                                alignItems: "flex-start",
+                                                gap: 1,
+                                                mb: 0.5,
+                                            }}
+                                        >
+                                            <Typography
+                                                variant="subtitle2"
+                                                color="text.secondary"
+                                            >
                                                 Annual Tuition
                                             </Typography>
                                             {application.custom_tuition_amount && (
-                                                <Chip label="Custom" size="small" color="warning" sx={{ flexShrink: 0 }} />
+                                                <Chip
+                                                    label="Custom"
+                                                    size="small"
+                                                    color="warning"
+                                                    sx={{ flexShrink: 0 }}
+                                                />
                                             )}
                                         </Box>
                                         <Typography variant="h5">
@@ -1082,11 +1385,21 @@ export default function EnrollmentApplicationDetailPage() {
                                                 ? `$${parseFloat(application.effective_tuition_amount).toFixed(2)}`
                                                 : "—"}
                                         </Typography>
-                                        {application.custom_tuition_amount && application.payment_plans?.[0]?.total_amount && (
-                                            <Typography variant="caption" color="text.secondary">
-                                                Plan default: ${parseFloat(application.payment_plans[0].total_amount).toFixed(2)}
-                                            </Typography>
-                                        )}
+                                        {application.custom_tuition_amount &&
+                                            application.payment_plans?.[0]
+                                                ?.total_amount && (
+                                                <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                >
+                                                    Plan default: $
+                                                    {parseFloat(
+                                                        application
+                                                            .payment_plans[0]
+                                                            .total_amount,
+                                                    ).toFixed(2)}
+                                                </Typography>
+                                            )}
                                     </Paper>
                                 </Grid>
                             </Grid>
@@ -1104,25 +1417,48 @@ export default function EnrollmentApplicationDetailPage() {
                             {(() => {
                                 if (selectedPlan) {
                                     return null; // Selected plan will be highlighted below
-                                } else if (application.status === "fee_requested") {
+                                } else if (
+                                    application.status === "fee_requested"
+                                ) {
                                     return (
-                                        <Alert severity="warning" sx={{ mb: 2 }}>
-                                            <Typography variant="body2" fontWeight="medium">
+                                        <Alert
+                                            severity="warning"
+                                            sx={{ mb: 2 }}
+                                        >
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight="medium"
+                                            >
                                                 Awaiting Parent Selection
                                             </Typography>
                                             <Typography variant="body2">
-                                                The parent has been sent a link to select their preferred payment plan.
+                                                The parent has been sent a link
+                                                to select their preferred
+                                                payment plan.
                                             </Typography>
                                         </Alert>
                                     );
-                                } else if (["submitted", "reviewed", "meeting_scheduled", "meeting_completed"].includes(application.status)) {
+                                } else if (
+                                    [
+                                        "submitted",
+                                        "reviewed",
+                                        "meeting_scheduled",
+                                        "meeting_completed",
+                                    ].includes(application.status)
+                                ) {
                                     return (
                                         <Alert severity="info" sx={{ mb: 2 }}>
-                                            <Typography variant="body2" fontWeight="medium">
+                                            <Typography
+                                                variant="body2"
+                                                fontWeight="medium"
+                                            >
                                                 No Payment Plan Selected Yet
                                             </Typography>
                                             <Typography variant="body2">
-                                                The parent will select a payment plan after the meet & greet, when the enrollment fee is requested.
+                                                The parent will select a payment
+                                                plan after the meet & greet,
+                                                when the enrollment fee is
+                                                requested.
                                             </Typography>
                                         </Alert>
                                     );
@@ -1130,17 +1466,31 @@ export default function EnrollmentApplicationDetailPage() {
                                 return null;
                             })()}
 
-                            {application.payment_plans && application.payment_plans.length > 0 ? (
-                                <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                            {application.payment_plans &&
+                            application.payment_plans.length > 0 ? (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 2,
+                                    }}
+                                >
                                     {application.payment_plans.map((plan) => {
-                                        const isSelected = selectedPlan?.id === plan.id;
+                                        const isSelected =
+                                            selectedPlan?.id === plan.id;
 
                                         // Calculate effective amounts based on custom tuition
-                                        const hasCustomTuition = !!application.custom_tuition_amount;
-                                        const effectiveTotalAmount = hasCustomTuition
-                                            ? parseFloat(application.custom_tuition_amount)
-                                            : parseFloat(plan.total_amount);
-                                        const effectiveInstallmentAmount = effectiveTotalAmount / plan.installment_count;
+                                        const hasCustomTuition =
+                                            !!application.custom_tuition_amount;
+                                        const effectiveTotalAmount =
+                                            hasCustomTuition
+                                                ? parseFloat(
+                                                      application.custom_tuition_amount,
+                                                  )
+                                                : parseFloat(plan.total_amount);
+                                        const effectiveInstallmentAmount =
+                                            effectiveTotalAmount /
+                                            plan.installment_count;
 
                                         return (
                                             <Paper
@@ -1148,15 +1498,40 @@ export default function EnrollmentApplicationDetailPage() {
                                                 variant="outlined"
                                                 sx={{
                                                     p: 2,
-                                                    border: isSelected ? "2px solid" : "1px solid",
-                                                    borderColor: isSelected ? "success.main" : "divider",
-                                                    bgcolor: isSelected ? "success.lighter" : "background.paper",
+                                                    border: isSelected
+                                                        ? "2px solid"
+                                                        : "1px solid",
+                                                    borderColor: isSelected
+                                                        ? "success.main"
+                                                        : "divider",
+                                                    bgcolor: isSelected
+                                                        ? "success.lighter"
+                                                        : "background.paper",
                                                 }}
                                             >
-                                                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        justifyContent:
+                                                            "space-between",
+                                                        alignItems:
+                                                            "flex-start",
+                                                    }}
+                                                >
                                                     <Box>
-                                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                                                            <Typography variant="subtitle1" fontWeight="medium">
+                                                        <Box
+                                                            sx={{
+                                                                display: "flex",
+                                                                alignItems:
+                                                                    "center",
+                                                                gap: 1,
+                                                                mb: 0.5,
+                                                            }}
+                                                        >
+                                                            <Typography
+                                                                variant="subtitle1"
+                                                                fontWeight="medium"
+                                                            >
                                                                 {plan.name}
                                                             </Typography>
                                                             {isSelected && (
@@ -1164,42 +1539,97 @@ export default function EnrollmentApplicationDetailPage() {
                                                                     label="Selected"
                                                                     color="success"
                                                                     size="small"
-                                                                    icon={<CheckCircleIcon />}
+                                                                    icon={
+                                                                        <CheckCircleIcon />
+                                                                    }
                                                                 />
                                                             )}
                                                         </Box>
                                                         {plan.description && (
-                                                            <Typography variant="body2" color="text.secondary" gutterBottom>
-                                                                {plan.description}
+                                                            <Typography
+                                                                variant="body2"
+                                                                color="text.secondary"
+                                                                gutterBottom
+                                                            >
+                                                                {
+                                                                    plan.description
+                                                                }
                                                             </Typography>
                                                         )}
                                                         <Typography variant="body2">
-                                                            {plan.installment_count} payment{plan.installment_count > 1 ? "s" : ""} of $
-                                                            {effectiveInstallmentAmount.toFixed(2)}
+                                                            {
+                                                                plan.installment_count
+                                                            }{" "}
+                                                            payment
+                                                            {plan.installment_count >
+                                                            1
+                                                                ? "s"
+                                                                : ""}{" "}
+                                                            of $
+                                                            {effectiveInstallmentAmount.toFixed(
+                                                                2,
+                                                            )}
                                                             {hasCustomTuition && (
-                                                                <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                                                                    (was ${parseFloat(plan.installment_amount).toFixed(2)})
+                                                                <Typography
+                                                                    component="span"
+                                                                    variant="body2"
+                                                                    color="text.secondary"
+                                                                    sx={{
+                                                                        ml: 1,
+                                                                    }}
+                                                                >
+                                                                    (was $
+                                                                    {parseFloat(
+                                                                        plan.installment_amount,
+                                                                    ).toFixed(
+                                                                        2,
+                                                                    )}
+                                                                    )
                                                                 </Typography>
                                                             )}
                                                         </Typography>
-                                                        {plan.installment_schedule && plan.installment_schedule.length > 0 && (
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                Due dates:{" "}
-                                                                {plan.installment_schedule
-                                                                    .map((s) => {
-                                                                        const month = new Date(2026, s.month - 1, 1).toLocaleDateString(
-                                                                            "en-US",
-                                                                            { month: "short" }
-                                                                        );
-                                                                        return `${month} ${s.day}`;
-                                                                    })
-                                                                    .join(", ")}
-                                                            </Typography>
-                                                        )}
+                                                        {plan.installment_schedule &&
+                                                            plan
+                                                                .installment_schedule
+                                                                .length > 0 && (
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    color="text.secondary"
+                                                                >
+                                                                    Due dates:{" "}
+                                                                    {plan.installment_schedule
+                                                                        .map(
+                                                                            (
+                                                                                s,
+                                                                            ) => {
+                                                                                const month =
+                                                                                    new Date(
+                                                                                        2026,
+                                                                                        s.month -
+                                                                                            1,
+                                                                                        1,
+                                                                                    ).toLocaleDateString(
+                                                                                        "en-US",
+                                                                                        {
+                                                                                            month: "short",
+                                                                                        },
+                                                                                    );
+                                                                                return `${month} ${s.day}`;
+                                                                            },
+                                                                        )
+                                                                        .join(
+                                                                            ", ",
+                                                                        )}
+                                                                </Typography>
+                                                            )}
                                                     </Box>
                                                     <Chip
                                                         label={`$${effectiveTotalAmount.toFixed(2)}`}
-                                                        color={hasCustomTuition ? "warning" : "primary"}
+                                                        color={
+                                                            hasCustomTuition
+                                                                ? "warning"
+                                                                : "primary"
+                                                        }
                                                         size="small"
                                                     />
                                                 </Box>
@@ -1221,15 +1651,25 @@ export default function EnrollmentApplicationDetailPage() {
                             <Typography variant="h6" gutterBottom>
                                 Enrollment Fee Status
                             </Typography>
-                            {application.program_enrollment?.enrollment_payment_plan?.enrollment_fee_paid ? (
-                                <Alert severity="success" icon={<CheckCircleIcon />}>
-                                    <Typography variant="body1" fontWeight="medium">
+                            {application.program_enrollment
+                                ?.enrollment_payment_plan
+                                ?.enrollment_fee_paid ? (
+                                <Alert
+                                    severity="success"
+                                    icon={<CheckCircleIcon />}
+                                >
+                                    <Typography
+                                        variant="body1"
+                                        fontWeight="medium"
+                                    >
                                         Enrollment Fee Paid
                                     </Typography>
                                     <Typography variant="body2">
                                         Paid on{" "}
                                         {new Date(
-                                            application.program_enrollment.enrollment_payment_plan.enrollment_fee_paid_at
+                                            application.program_enrollment
+                                                .enrollment_payment_plan
+                                                .enrollment_fee_paid_at,
                                         ).toLocaleDateString("en-US", {
                                             month: "long",
                                             day: "numeric",
@@ -1237,20 +1677,34 @@ export default function EnrollmentApplicationDetailPage() {
                                         })}
                                     </Typography>
                                 </Alert>
-                            ) : ["fee_paid", "signing_docs", "enrolled"].includes(application.status) ? (
-                                <Alert severity="success" icon={<CheckCircleIcon />}>
-                                    <Typography variant="body1" fontWeight="medium">
+                            ) : [
+                                  "fee_paid",
+                                  "signing_docs",
+                                  "enrolled",
+                              ].includes(application.status) ? (
+                                <Alert
+                                    severity="success"
+                                    icon={<CheckCircleIcon />}
+                                >
+                                    <Typography
+                                        variant="body1"
+                                        fontWeight="medium"
+                                    >
                                         Enrollment Fee Paid
                                     </Typography>
                                 </Alert>
                             ) : (
                                 <Alert severity="info">
-                                    <Typography variant="body1" fontWeight="medium">
+                                    <Typography
+                                        variant="body1"
+                                        fontWeight="medium"
+                                    >
                                         Enrollment Fee Not Yet Paid
                                     </Typography>
                                     {application.status === "fee_requested" && (
                                         <Typography variant="body2">
-                                            Fee request has been sent to the parent.
+                                            Fee request has been sent to the
+                                            parent.
                                         </Typography>
                                     )}
                                 </Alert>
@@ -1326,7 +1780,11 @@ export default function EnrollmentApplicationDetailPage() {
                 maxWidth="sm"
                 fullWidth
             >
-                <DialogTitle>{hasPendingMeetingInvite ? "Resend Meeting Invite" : "Send Meeting Invite"}</DialogTitle>
+                <DialogTitle>
+                    {hasPendingMeetingInvite
+                        ? "Resend Meeting Invite"
+                        : "Send Meeting Invite"}
+                </DialogTitle>
                 <DialogContent>
                     <Box
                         sx={{
@@ -1337,7 +1795,8 @@ export default function EnrollmentApplicationDetailPage() {
                         }}
                     >
                         <Alert severity="info" sx={{ mb: 1 }}>
-                            Propose up to 3 date/time options. The parent will receive an email to select their preferred time.
+                            Propose up to 3 date/time options. The parent will
+                            receive an email to select their preferred time.
                         </Alert>
                         <TextField
                             select
@@ -1449,7 +1908,11 @@ export default function EnrollmentApplicationDetailPage() {
                     <Button
                         variant="contained"
                         onClick={handleSendMeetingInvite}
-                        disabled={!meetingForm.location_id || !meetingForm.proposed_date_1 || !meetingForm.proposed_date_2}
+                        disabled={
+                            !meetingForm.location_id ||
+                            !meetingForm.proposed_date_1 ||
+                            !meetingForm.proposed_date_2
+                        }
                     >
                         Send Invite
                     </Button>
@@ -1463,7 +1926,9 @@ export default function EnrollmentApplicationDetailPage() {
                 maxWidth="md"
                 fullWidth
             >
-                <DialogTitle>Select Payment Plan & Record Enrollment Fee</DialogTitle>
+                <DialogTitle>
+                    Select Payment Plan & Record Enrollment Fee
+                </DialogTitle>
                 <DialogContent>
                     <Box
                         sx={{
@@ -1489,9 +1954,20 @@ export default function EnrollmentApplicationDetailPage() {
 
                         <Divider />
 
-                        <Typography variant="h6">2. Enrollment Fee Payment Details</Typography>
+                        <Typography variant="h6">
+                            2. Enrollment Fee Payment Details
+                        </Typography>
                         <Alert severity="info" sx={{ mb: 1 }}>
-                            Record the <strong>${parseFloat(application.effective_enrollment_fee || application.program?.enrollment_fee || 150).toFixed(2)}</strong> non-refundable enrollment fee payment.
+                            Record the{" "}
+                            <strong>
+                                $
+                                {parseFloat(
+                                    application.effective_enrollment_fee ||
+                                        application.program?.enrollment_fee ||
+                                        150,
+                                ).toFixed(2)}
+                            </strong>{" "}
+                            non-refundable enrollment fee payment.
                         </Alert>
                         <TextField
                             select
@@ -1644,7 +2120,8 @@ export default function EnrollmentApplicationDetailPage() {
                         }}
                     >
                         <Alert severity="info">
-                            Set custom fees for this family. Leave blank to use program defaults.
+                            Set custom fees for this family. Leave blank to use
+                            program defaults.
                         </Alert>
 
                         <Box>
@@ -1662,14 +2139,23 @@ export default function EnrollmentApplicationDetailPage() {
                                 placeholder={`Program default: $${parseFloat(application?.program?.enrollment_fee || 150).toFixed(2)}`}
                                 slotProps={{
                                     input: {
-                                        startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
+                                        startAdornment: (
+                                            <Typography sx={{ mr: 0.5 }}>
+                                                $
+                                            </Typography>
+                                        ),
                                     },
                                 }}
                             />
                             {customFeesForm.customEnrollmentFee && (
                                 <Button
                                     size="small"
-                                    onClick={() => setCustomFeesForm({ ...customFeesForm, customEnrollmentFee: "" })}
+                                    onClick={() =>
+                                        setCustomFeesForm({
+                                            ...customFeesForm,
+                                            customEnrollmentFee: "",
+                                        })
+                                    }
                                     sx={{ mt: 0.5 }}
                                 >
                                     Reset to Default
@@ -1692,14 +2178,23 @@ export default function EnrollmentApplicationDetailPage() {
                                 placeholder={`Plan default: $${parseFloat(application?.payment_plans?.[0]?.total_amount || 0).toFixed(2)}`}
                                 slotProps={{
                                     input: {
-                                        startAdornment: <Typography sx={{ mr: 0.5 }}>$</Typography>,
+                                        startAdornment: (
+                                            <Typography sx={{ mr: 0.5 }}>
+                                                $
+                                            </Typography>
+                                        ),
                                     },
                                 }}
                             />
                             {customFeesForm.customTuitionAmount && (
                                 <Button
                                     size="small"
-                                    onClick={() => setCustomFeesForm({ ...customFeesForm, customTuitionAmount: "" })}
+                                    onClick={() =>
+                                        setCustomFeesForm({
+                                            ...customFeesForm,
+                                            customTuitionAmount: "",
+                                        })
+                                    }
                                     sx={{ mt: 0.5 }}
                                 >
                                     Reset to Default
@@ -1728,7 +2223,9 @@ export default function EnrollmentApplicationDetailPage() {
                     initial={composeDraft}
                     showPickers={false}
                     onSaved={() => {
-                        setEmailNotification("Draft saved — it's under Emails > Drafts");
+                        setEmailNotification(
+                            "Draft saved — it's under Emails > Drafts",
+                        );
                         loadApplication();
                     }}
                     onSent={() => {

@@ -265,6 +265,10 @@ export const enrollmentApplicationsApi = {
 			custom_enrollment_fee: customEnrollmentFee,
 			custom_tuition_amount: customTuitionAmount,
 		}),
+	updateNotificationSettings: (id, muteAutomatedEmails) =>
+		api.patch(`/api/enrollment_applications/${id}/update_notification_settings`, {
+			mute_automated_emails: muteAutomatedEmails,
+		}),
 	sendEmail: (id, emailType) => api.post(`/api/enrollment_applications/${id}/send_email`, { email_type: emailType }),
 	emailDraft: (id, emailType) => api.get(`/api/enrollment_applications/${id}/email_draft?email_type=${emailType}`),
 	sendMeetingInvite: (id, { locationId, proposedDates, notes }) =>
