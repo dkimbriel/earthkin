@@ -134,15 +134,16 @@ module Api
     def complete_meeting
       application = EnrollmentApplication.find(params[:id])
 
-      # Find the scheduled/confirmed meet_and_greet event (not pending_selection)
-      event = application.events.find_by(event_type: 'meet_and_greet', status: %w[scheduled confirmed])
-      unless event
-        render json: { error: 'No scheduled meeting found for this application' }, status: :unprocessable_entity
-        return
-      end
+      # Complete the latest active meet_and_greet if one exists. Admins can also
+      # mark the meeting complete before any invite/scheduling email has gone
+      # out (skipping the meet-and-greet) — in that case there's no event to
+      # complete and we just advance the application.
+      event = application.events
+                         .where(event_type: 'meet_and_greet', status: %w[scheduled confirmed pending_selection])
+                         .order(:created_at).last
 
       service = EnrollmentWorkflowService.new(application)
-      service.complete_meeting(event.id, outcome_notes: params[:outcome_notes])
+      service.complete_meeting(event&.id, outcome_notes: params[:outcome_notes])
 
       render json: application.reload
     end
@@ -305,28 +306,20 @@ module Api
       template = EmailTemplate.for(email_type)
       return render json: { error: 'No template for this email type' }, status: :unprocessable_entity unless template
 
-      vars = case email_type
-      when 'enrollment_invite'
-        enrollment_url = "#{request.base_url}/enroll?program_id=#{application.program_id}&application_id=#{application.id}"
-        EnrollmentEmailVars.enrollment_invite(application, enrollment_url)
-      when 'meeting_invite'
-        event = application.events.where(event_type: 'meet_and_greet').order(:created_at).last
-        return render json: { error: 'No meeting invite has been created yet' }, status: :unprocessable_entity unless event&.proposed_dates.present?
-        EnrollmentEmailVars.meeting_invite(event, request.base_url)
-      when 'meeting_scheduled'
-        event = application.events.where(event_type: 'meet_and_greet').where.not(scheduled_at: nil).order(:created_at).last
-        return render json: { error: 'No meeting scheduled yet' }, status: :unprocessable_entity unless event
-        EnrollmentEmailVars.meeting_scheduled(event)
-      when 'enrollment_fee_request'
-        EnrollmentEmailVars.enrollment_fee_request(application)
-      when 'enrollment_forms'
-        EnrollmentEmailVars.enrollment_forms(application)
-      when 'enrollment_confirmed'
-        return render json: { error: 'No enrollment yet' }, status: :unprocessable_entity unless application.program_enrollment
-        EnrollmentEmailVars.enrollment_confirmed(application.program_enrollment)
-      else
-        return render json: { error: 'Unsupported email type' }, status: :unprocessable_entity
-      end
+      # Resolve whatever tokens we can for the current stage. Emails can be
+      # sent manually at any point, so this never blocks: if a stage's data
+      # isn't in place yet, draft_vars_with_placeholders fills the gaps with
+      # visible [placeholders] for staff to complete before sending.
+      enrollment_url = "#{request.base_url}/enroll?program_id=#{application.program_id}&application_id=#{application.id}"
+      resolved =
+        if email_type == 'enrollment_forms'
+          EnrollmentEmailVars.enrollment_forms(application)
+        else
+          EnrollmentEmailVars.draft(application, email_type, enrollment_url: enrollment_url, base_url: request.base_url)
+        end
+      return render json: { error: 'Unsupported email type' }, status: :unprocessable_entity if resolved.nil?
+
+      vars = template.draft_vars_with_placeholders(resolved)
 
       render json: {
         recipient: application.parent_email,

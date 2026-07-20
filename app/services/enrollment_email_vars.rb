@@ -3,6 +3,29 @@
 # the manual composer.
 class EnrollmentEmailVars
   class << self
+    # Best-effort vars for the manual email composer. Unlike the per-type
+    # methods below (used by the mailers, which only fire once their data
+    # exists), this never raises: when a stage's data isn't in place yet it
+    # falls back to the always-available application tokens, and the draft
+    # endpoint leaves a [placeholder] for whatever's still missing. Returns
+    # nil for an unknown email type.
+    def draft(application, email_type, enrollment_url: nil, base_url: nil)
+      case email_type
+      when 'enrollment_invite'
+        enrollment_invite(application, enrollment_url)
+      when 'enrollment_fee_request'
+        enrollment_fee_request(application)
+      when 'meeting_invite'
+        event = latest_meet_and_greet(application)
+        event&.proposed_dates.present? ? meeting_invite(event, base_url) : base_application_vars(application)
+      when 'meeting_scheduled'
+        event = application.events.where(event_type: 'meet_and_greet').where.not(scheduled_at: nil).order(:created_at).last
+        event ? meeting_scheduled(event) : base_application_vars(application)
+      when 'enrollment_confirmed'
+        application.program_enrollment ? enrollment_confirmed(application.program_enrollment) : base_application_vars(application)
+      end
+    end
+
     def enrollment_invite(application, enrollment_url)
       program = application.program
       tuition = application.effective_tuition_amount || program.tuition_amount
@@ -95,6 +118,30 @@ class EnrollmentEmailVars
     end
 
     private
+
+    # Application-level tokens that are always resolvable regardless of stage.
+    # Used as the draft fallback when a stage's own data (a scheduled meeting,
+    # an enrollment, etc.) doesn't exist yet.
+    def base_application_vars(application)
+      program = application.program
+      tuition = application.effective_tuition_amount || program.tuition_amount
+      {
+        parent_name: application.parent_first_name,
+        child_name: application.child_first_name,
+        program_name: program.name,
+        program_dates: format_date_range(program),
+        class_days: program.class_days.presence || 'select days',
+        time_range: program.formatted_time_range.presence || 'times TBD',
+        tuition: delimited(tuition.to_i),
+        enrollment_fee: delimited(application.effective_enrollment_fee.to_i),
+        payment_link: application.payment_selection_url,
+        handbook_url: ENV['FAMILY_HANDBOOK_URL']
+      }
+    end
+
+    def latest_meet_and_greet(application)
+      application.events.where(event_type: 'meet_and_greet').order(:created_at).last
+    end
 
     def date_options(event, base_url)
       event.proposed_dates_as_times.map do |time|

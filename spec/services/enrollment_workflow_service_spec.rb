@@ -60,6 +60,11 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
       service.complete_meeting(event.id)
       expect(application.reload.status).to eq('meeting_completed')
     end
+
+    it 'advances the application when no event is given (skipping the meet-and-greet)' do
+      service.complete_meeting(nil)
+      expect(application.reload.status).to eq('meeting_completed')
+    end
   end
 
   describe '#request_enrollment_fee' do

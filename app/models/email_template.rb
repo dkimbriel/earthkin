@@ -270,6 +270,22 @@ class EmailTemplate < ApplicationRecord
     interpolate(body, vars)
   end
 
+  # The {{tokens}} actually referenced by this template's subject and body.
+  def token_names
+    "#{subject}\n#{body}".scan(/{{\s*(\w+)\s*}}/).flatten.uniq
+  end
+
+  # For the manual composer: return a vars hash covering every token in the
+  # template. Resolved values win; anything missing or blank becomes a visible
+  # [placeholder] (e.g. "[meeting datetime]") for staff to fill in by hand.
+  def draft_vars_with_placeholders(resolved = {})
+    resolved = resolved.symbolize_keys
+    token_names.index_with do |token|
+      value = resolved[token.to_sym]
+      value.present? ? value : "[#{token.tr('_', ' ')}]"
+    end.symbolize_keys
+  end
+
   # Plain text body -> simple HTML: {{placeholders}} substituted (URLs become
   # links), blank lines split paragraphs.
   def rendered_html(vars = {})
