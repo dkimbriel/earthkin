@@ -213,13 +213,20 @@ RSpec.describe 'Api::Emails and Api::EmailTemplates', type: :request do
       expect(json['body']).not_to include('{{')
     end
 
-    it 'errors helpfully when prerequisites are missing' do
-      application = create(:enrollment_application)
+    it 'still drafts, leaving [placeholders] for tokens whose data is missing' do
+      program = create(:program, name: 'Forest Explorers')
+      application = create(:enrollment_application, program: program, parent_first_name: 'Dana')
 
+      # No meeting has been scheduled, so meeting-specific tokens can't resolve.
       get "/api/enrollment_applications/#{application.id}/email_draft", params: { email_type: 'meeting_scheduled' }
 
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.body).to include('No meeting scheduled yet')
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      # Always-available tokens are resolved...
+      expect(json['body']).to include('Hi Dana')
+      # ...and the missing meeting time is left as a fill-in placeholder.
+      expect(json['body']).to include('[meeting datetime]')
+      expect(json['body']).not_to include('{{')
     end
   end
 end

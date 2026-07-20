@@ -612,6 +612,17 @@ export default function EnrollmentApplicationDetailPage() {
                         </ActionButtonWithEmail>
                     )}
 
+                    {application.status === "reviewed" && (
+                        <ActionButtonWithEmail
+                            variant="outlined"
+                            startIcon={<CheckCircleIcon />}
+                            onClick={() => setShowCompleteMeetingDialog(true)}
+                            emailDescription="Skip the meet-and-greet and mark it complete. No scheduling email is sent; the application advances to the fee-request step."
+                        >
+                            Mark Meet &amp; Greet Complete
+                        </ActionButtonWithEmail>
+                    )}
+
                     {application.status === "meeting_completed" && (
                         <ActionButtonWithEmail
                             variant="contained"

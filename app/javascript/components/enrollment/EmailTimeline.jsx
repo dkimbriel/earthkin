@@ -51,38 +51,36 @@ export default function EmailTimeline({ emails, application, onSendEmail, onRefr
     }
   };
 
+  // Every email type is always available to send manually. When the workflow
+  // data for a stage isn't in place yet (no meeting scheduled, no enrollment,
+  // etc.), the draft still opens with a visible [placeholder] wherever a token
+  // couldn't be filled in, and staff complete it by hand before sending.
   const emailTypes = application ? [
     {
       type: 'enrollment_invite',
       label: 'Enrollment Invite',
-      description: 'Invitation to apply for the program',
-      enabled: application.status === 'invited'
+      description: 'Invitation to apply for the program'
     },
     {
       type: 'meeting_invite',
       label: 'Meeting Invite',
       description: 'Send date options for meet-n-greet',
-      enabled: ['submitted', 'reviewed'].includes(application.status),
       isModal: true
     },
     {
       type: 'meeting_scheduled',
       label: 'Meeting Scheduled',
-      description: 'Meet-n-greet confirmation',
-      enabled: ['reviewed', 'meeting_scheduled', 'meeting_completed', 'fee_requested', 'fee_paid', 'enrolled'].includes(application.status) &&
-               application.events?.some(e => e.event_type === 'meet_and_greet' && e.status === 'scheduled')
+      description: 'Meet-n-greet confirmation'
     },
     {
       type: 'enrollment_fee_request',
       label: 'Fee Request',
-      description: 'Enrollment fee payment instructions',
-      enabled: ['meeting_completed', 'fee_requested', 'fee_paid', 'enrolled'].includes(application.status)
+      description: 'Enrollment fee payment instructions'
     },
     {
       type: 'enrollment_confirmed',
       label: 'Enrollment Confirmed',
-      description: 'Final enrollment confirmation',
-      enabled: application.status === 'enrolled'
+      description: 'Final enrollment confirmation'
     }
   ] : [];
 
@@ -173,21 +171,18 @@ export default function EmailTimeline({ emails, application, onSendEmail, onRefr
             Manual Email Actions
           </Typography>
           <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-            Resend or manually trigger emails to the parent
+            Resend or manually trigger emails to the parent. Anything we can't fill
+            in yet is left as a [placeholder] for you to complete before sending.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             {emailTypes.map(email => (
-              <Tooltip
-                key={email.type}
-                title={email.enabled ? email.description : 'Not available for current status'}
-              >
+              <Tooltip key={email.type} title={email.description}>
                 <span>
                   <Button
                     size="small"
                     variant="outlined"
                     startIcon={<EmailIcon />}
                     onClick={() => handleEmailAction(email)}
-                    disabled={!email.enabled}
                   >
                     {email.label}
                   </Button>
