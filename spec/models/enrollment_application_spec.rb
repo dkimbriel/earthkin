@@ -81,4 +81,34 @@ RSpec.describe EnrollmentApplication, type: :model do
       expect(application.child).to be_present
     end
   end
+
+  describe '#payment_plan_options' do
+    # Regression: a program can hold plans with different totals (e.g. a
+    # $1,400 fall-semester plan alongside the $2,800 full-year plan). Each
+    # plan must display its OWN price. Previously every plan was priced at the
+    # program's standard first-plan rate, so fall-semester families saw $2,800.
+    it 'prices each plan from its own total, not the standard rate' do
+      program = create(:program)
+      create(:payment_plan, program: program, name: 'Full Payment',
+                            total_amount: 2800, installment_count: 1, display_order: 1)
+      create(:payment_plan, program: program, name: 'Fall Semester – monthly payments',
+                            total_amount: 1400, installment_count: 5, display_order: 2)
+      application = create(:enrollment_application, program: program, custom_tuition_amount: nil)
+
+      options = application.payment_plan_options.index_by { |o| o[:name] }
+
+      expect(options['Full Payment'][:total_amount]).to eq(2800)
+      expect(options['Fall Semester – monthly payments'][:total_amount]).to eq(1400)
+      expect(options['Fall Semester – monthly payments'][:installment_amount]).to eq(280)
+    end
+
+    it 'lets a custom tuition override the total for the application' do
+      program = create(:program)
+      create(:payment_plan, program: program, name: 'Full Payment',
+                            total_amount: 2800, installment_count: 1, display_order: 1)
+      application = create(:enrollment_application, program: program, custom_tuition_amount: 2520)
+
+      expect(application.payment_plan_options.first[:total_amount]).to eq(2520)
+    end
+  end
 end
