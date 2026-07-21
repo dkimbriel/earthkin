@@ -116,9 +116,14 @@ class EnrollmentApplication < ApplicationRecord
     custom_tuition_amount || selected_payment_plan&.total_amount || program&.payment_plans&.active&.first&.total_amount
   end
 
-  # Calculate effective installment amount for a given payment plan
+  # Calculate effective installment amount for a given payment plan.
+  # Each plan carries its own total (fall semester, full-year, sibling rate all
+  # differ), so bill from the plan's own amount unless this application has an
+  # explicit custom tuition override. (Do NOT fall back to effective_tuition_amount,
+  # which resolves to the program's standard first-plan rate and would price every
+  # plan the same.)
   def effective_installment_amount(payment_plan)
-    tuition = effective_tuition_amount || payment_plan.total_amount
+    tuition = custom_tuition_amount || payment_plan.total_amount
     tuition / payment_plan.installment_count
   end
 
@@ -126,7 +131,7 @@ class EnrollmentApplication < ApplicationRecord
   # Useful for views that need to display payment plans with custom pricing
   def payment_plan_options
     program.payment_plans.active.map do |plan|
-      tuition = effective_tuition_amount || plan.total_amount
+      tuition = custom_tuition_amount || plan.total_amount
       {
         id: plan.id,
         name: plan.name,

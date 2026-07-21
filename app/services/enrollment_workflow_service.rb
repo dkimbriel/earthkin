@@ -217,7 +217,7 @@ class EnrollmentWorkflowService
     # Use application's effective amounts (custom overrides or defaults)
     enrollment.create_enrollment_payment_plan!(
       payment_plan: payment_plan,
-      total_amount: @application.effective_tuition_amount || payment_plan.total_amount,
+      total_amount: @application.custom_tuition_amount || payment_plan.total_amount,
       enrollment_fee: @application.effective_enrollment_fee,
       installments: build_installment_snapshot(payment_plan, start_date)
     )
