@@ -291,8 +291,14 @@ class EmailTemplate < ApplicationRecord
   def rendered_html(vars = {})
     escaped = ERB::Util.html_escape(body)
     substituted = escaped.gsub(/{{\s*(\w+)\s*}}/) do
-      value = (vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]).to_s
-      linkify(ERB::Util.html_escape(value))
+      value = vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]
+      # Trusted, system-generated markup (e.g. meeting date buttons) is inserted
+      # as-is; everything else is escaped and has bare URLs turned into links.
+      if value.is_a?(ActiveSupport::SafeBuffer)
+        value.to_s
+      else
+        linkify(ERB::Util.html_escape(value.to_s))
+      end
     end
     substituted.split(/\r?\n\r?\n+/).map { |para| "<p>#{para.gsub(/\r?\n/, '<br>')}</p>" }.join("\n")
   end
@@ -325,7 +331,18 @@ class EmailTemplate < ApplicationRecord
 
   def interpolate(text, vars)
     text.gsub(/{{\s*(\w+)\s*}}/) do
-      (vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]).to_s
+      value = vars[Regexp.last_match(1).to_sym] || vars[Regexp.last_match(1)]
+      # For the plain-text composer, flatten any trusted HTML (date buttons)
+      # back to readable "label — url" lines rather than leaking raw tags.
+      value.is_a?(ActiveSupport::SafeBuffer) ? html_to_plain(value) : value.to_s
     end
+  end
+
+  def html_to_plain(html)
+    html.to_s
+        .gsub(%r{<a[^>]*href="([^"]*)"[^>]*>(.*?)</a>}m) { "#{Regexp.last_match(2)} — #{Regexp.last_match(1)}" }
+        .gsub(%r{<br\s*/?>}i, "\n")
+        .gsub(/<[^>]+>/, '')
+        .then { |text| CGI.unescapeHTML(text) }
   end
 end
