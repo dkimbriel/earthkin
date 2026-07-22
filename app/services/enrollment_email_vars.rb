@@ -143,10 +143,18 @@ class EnrollmentEmailVars
       application.events.where(event_type: 'meet_and_greet').order(:created_at).last
     end
 
+    # Trusted HTML: one styled "button" link per proposed meeting time. Marked
+    # html_safe so EmailTemplate#rendered_html emits real buttons in the sent
+    # email; the manual composer (rendered_text) turns these back into plain
+    # "date — url" lines. Both the label and href are escaped defensively.
     def date_options(event, base_url)
       event.proposed_dates_as_times.map do |time|
-        "#{time.strftime('%A, %B %-d at %I:%M %p')} — #{base_url}/meetings/#{event.confirmation_token}/confirm?date=#{time.to_i}"
-      end.join("\n")
+        label = time.strftime('%A, %B %-d at %I:%M %p')
+        href = "#{base_url}/meetings/#{event.confirmation_token}/confirm?date=#{time.to_i}"
+        %(<a href="#{ERB::Util.html_escape(href)}" style="display:inline-block;padding:12px 24px;margin:4px 0;) +
+          %(background-color:#4a7c59;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">) +
+          %(#{ERB::Util.html_escape(label)}</a>)
+      end.join('<br>').html_safe
     end
 
     def format_date_range(program)
