@@ -65,6 +65,7 @@ Rails.application.routes.draw do
 			member do
 				post :mark_reviewed
 				post :decline
+				post :reopen
 				post :complete_meeting
 				post :request_fee
 				post :process_fee_payment

@@ -76,7 +76,19 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
       expect(response).to have_http_status(:created)
     end
 
-    it 'does not send automatic email on submission' do
+    it 'records an admin notification on submission' do
+      sign_out user
+
+      expect {
+        post '/api/enrollment_applications', params: valid_params
+      }.to change(Notification, :count).by(1)
+
+      expect(Notification.last.event_type).to eq('application_submitted')
+    end
+
+    it 'does not email the applicant on submission' do
+      # The submission alert goes to the school's own connected mailbox, not to
+      # the family. With no mailbox connected in the test env, nothing delivers.
       expect {
         post '/api/enrollment_applications', params: valid_params
       }.not_to change { ActionMailer::Base.deliveries.count }
@@ -109,6 +121,27 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
       expect(response).to have_http_status(:ok)
       expect(application.reload.status).to eq('declined')
       expect(application.declined_at).to be_present
+    end
+  end
+
+  describe 'POST /api/enrollment_applications/:id/reopen' do
+    it 'reopens a declined application back to submitted' do
+      application = create(:enrollment_application, :declined)
+
+      post "/api/enrollment_applications/#{application.id}/reopen"
+
+      expect(response).to have_http_status(:ok)
+      expect(application.reload.status).to eq('submitted')
+      expect(application.declined_at).to be_nil
+    end
+
+    it 'rejects reopening an application that is not declined' do
+      application = create(:enrollment_application, :reviewed)
+
+      post "/api/enrollment_applications/#{application.id}/reopen"
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(application.reload.status).to eq('reviewed')
     end
   end
 

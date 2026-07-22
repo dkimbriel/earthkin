@@ -254,6 +254,7 @@ export const enrollmentApplicationsApi = {
 	update: (id, data) => api.patch(`/api/enrollment_applications/${id}`, { enrollment_application: data }),
 	markReviewed: (id) => api.post(`/api/enrollment_applications/${id}/mark_reviewed`),
 	decline: (id, notes) => api.post(`/api/enrollment_applications/${id}/decline`, { notes }),
+	reopen: (id) => api.post(`/api/enrollment_applications/${id}/reopen`),
 	completeMeeting: (id, outcomeNotes) => api.post(`/api/enrollment_applications/${id}/complete_meeting`, { outcome_notes: outcomeNotes }),
 	requestFee: (id) => api.post(`/api/enrollment_applications/${id}/request_fee`),
 	processFeePayment: (id, data) => api.post(`/api/enrollment_applications/${id}/process_fee_payment`, data),

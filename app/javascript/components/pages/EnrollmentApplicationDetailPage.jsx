@@ -25,6 +25,7 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
+import ReplayIcon from "@mui/icons-material/Replay";
 import EventIcon from "@mui/icons-material/Event";
 import PaymentIcon from "@mui/icons-material/Payment";
 import EditIcon from "@mui/icons-material/Edit";
@@ -341,6 +342,15 @@ export default function EnrollmentApplicationDetailPage() {
         }
     };
 
+    const handleReopen = async () => {
+        try {
+            await enrollmentApplicationsApi.reopen(id);
+            loadApplication();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
     const handleEditEmail = () => {
         setEditedEmail(application.parent_email);
         setShowEmailEditDialog(true);
@@ -527,6 +537,17 @@ export default function EnrollmentApplicationDetailPage() {
                                 onClick={() => setShowDeclineDialog(true)}
                             >
                                 Decline Application
+                            </Button>
+                        )}
+                        {application.status === "declined" && (
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                size="small"
+                                startIcon={<ReplayIcon />}
+                                onClick={handleReopen}
+                            >
+                                Re-Open Application
                             </Button>
                         )}
                     </Box>
