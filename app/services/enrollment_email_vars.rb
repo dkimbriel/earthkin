@@ -2,6 +2,12 @@
 # mailers when rendering and by the email-draft endpoint when prefilling
 # the manual composer.
 class EnrollmentEmailVars
+  # Inline styles for call-to-action buttons in workflow emails. Email clients
+  # don't reliably support <style> blocks, so button styling must be inline.
+  BUTTON_STYLE = 'display:inline-block;padding:12px 24px;margin:4px 0;' \
+    'background-color:#4a7c59;color:#ffffff;text-decoration:none;' \
+    'border-radius:6px;font-weight:bold;'
+
   class << self
     # Best-effort vars for the manual email composer. Unlike the per-type
     # methods below (used by the mailers, which only fire once their data
@@ -79,9 +85,9 @@ class EnrollmentEmailVars
         parent_name: application.parent_first_name,
         child_name: application.child_first_name,
         enrollment_fee: delimited(application.effective_enrollment_fee.to_i),
-        payment_link: application.payment_selection_url,
+        payment_link: button_link(application.payment_selection_url, 'Reserve Your Spot'),
         location_name: location&.name || 'Forest Hill Park',
-        handbook_url: ENV['FAMILY_HANDBOOK_URL']
+        handbook_url: button_link(ENV['FAMILY_HANDBOOK_URL'], 'Review the Family Handbook')
       }
     end
 
@@ -146,15 +152,22 @@ class EnrollmentEmailVars
     # Trusted HTML: one styled "button" link per proposed meeting time. Marked
     # html_safe so EmailTemplate#rendered_html emits real buttons in the sent
     # email; the manual composer (rendered_text) turns these back into plain
-    # "date — url" lines. Both the label and href are escaped defensively.
+    # "date — url" lines.
     def date_options(event, base_url)
       event.proposed_dates_as_times.map do |time|
         label = time.strftime('%A, %B %-d at %I:%M %p')
         href = "#{base_url}/meetings/#{event.confirmation_token}/confirm?date=#{time.to_i}"
-        %(<a href="#{ERB::Util.html_escape(href)}" style="display:inline-block;padding:12px 24px;margin:4px 0;) +
-          %(background-color:#4a7c59;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:bold;">) +
-          %(#{ERB::Util.html_escape(label)}</a>)
+        button_link(href, label)
       end.join('<br>').html_safe
+    end
+
+    # A single styled, html_safe call-to-action button. rendered_html inserts it
+    # verbatim; the plain-text composer flattens it back to "label — url". A
+    # blank url renders nothing. Label and href are escaped defensively.
+    def button_link(url, label)
+      return ''.html_safe if url.blank?
+
+      %(<a href="#{ERB::Util.html_escape(url)}" style="#{BUTTON_STYLE}">#{ERB::Util.html_escape(label)}</a>).html_safe
     end
 
     def format_date_range(program)
