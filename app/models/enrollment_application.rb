@@ -78,6 +78,13 @@ class EnrollmentApplication < ApplicationRecord
     )
   end
 
+  # Undo a decline: put the application back at the start of the review queue.
+  # We don't track the pre-decline status, so 'submitted' is the safe re-entry
+  # point (it shows up under "Submitted"/pending review again).
+  def reopen!
+    update!(status: 'submitted', declined_at: nil)
+  end
+
   def full_child_name
     "#{child_first_name} #{child_last_name}"
   end

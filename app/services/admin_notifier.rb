@@ -4,6 +4,17 @@
 # scheduling a meeting, selecting a plan, or signing a form.
 class AdminNotifier
   class << self
+    # Fired when a prospective family submits an enrollment application — the
+    # first heads-up to staff that there's a new lead to review.
+    def application_submitted(application)
+      notify(
+        event_type: 'application_submitted',
+        title: "New application — #{application.full_child_name}",
+        body: "#{application.full_parent_name} submitted an enrollment application for #{application.full_child_name}. Review it when you're ready.",
+        enrollment_application: application
+      )
+    end
+
     def meeting_scheduled(application, event)
       when_time = event.scheduled_at&.strftime('%A, %B %-d at %-I:%M %p')
       location = event.location&.name

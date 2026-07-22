@@ -142,6 +142,7 @@ export default function EnrollmentApplicationsPage() {
         <Tab label={getTabLabel("Fee Requested", "fee_requested")} value="fee_requested" sx={{ textTransform: 'none' }} />
         <Tab label={getTabLabel("Signing Docs", "signing_docs")} value="signing_docs" sx={{ textTransform: 'none' }} />
         <Tab label={getTabLabel("Enrolled", "enrolled")} value="enrolled" sx={{ textTransform: 'none' }} />
+        <Tab label={getTabLabel("Declined", "declined")} value="declined" sx={{ textTransform: 'none' }} />
       </Tabs>
 
       <DataTable

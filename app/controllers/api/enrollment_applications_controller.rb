@@ -90,6 +90,7 @@ module Api
           existing.submitted_at = Time.current
 
           if existing.save
+            AdminNotifier.application_submitted(existing)
             return render json: existing, status: :ok
           else
             return render json: { errors: existing.errors.full_messages },
@@ -104,6 +105,7 @@ module Api
       application.submitted_at = Time.current
 
       if application.save
+        AdminNotifier.application_submitted(application)
         render json: application, status: :created
       else
         render json: { errors: application.errors.full_messages },
@@ -128,6 +130,16 @@ module Api
     def decline
       application = EnrollmentApplication.find(params[:id])
       application.decline!(params[:notes])
+      render json: application
+    end
+
+    def reopen
+      application = EnrollmentApplication.find(params[:id])
+      unless application.status == 'declined'
+        render json: { error: 'Only declined applications can be reopened' }, status: :unprocessable_entity
+        return
+      end
+      application.reopen!
       render json: application
     end
 

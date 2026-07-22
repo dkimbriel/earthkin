@@ -5,7 +5,7 @@ import {
     Navigate,
     useNavigate,
 } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Avatar,
     Box,
@@ -106,22 +106,24 @@ export default function Dashboard() {
 
     const isAdmin = user?.role === "admin";
 
-    // Keep the sidebar's unread badge roughly current for admins.
+    // Refresh the sidebar's unread badge. Exposed to the notifications page so
+    // it can update the count the moment an admin reads something, rather than
+    // waiting for the next poll below.
+    const refreshUnreadCount = useCallback(() => {
+        if (!isAdmin) return;
+        notificationsApi
+            .list()
+            .then((data) => setUnreadNotifications(data.unread_count || 0))
+            .catch(() => {});
+    }, [isAdmin]);
+
+    // Keep the badge roughly current for admins even without local activity.
     useEffect(() => {
         if (!isAdmin) return undefined;
-        let active = true;
-        const refresh = () =>
-            notificationsApi
-                .list()
-                .then((data) => active && setUnreadNotifications(data.unread_count || 0))
-                .catch(() => {});
-        refresh();
-        const interval = setInterval(refresh, 60000);
-        return () => {
-            active = false;
-            clearInterval(interval);
-        };
-    }, [isAdmin]);
+        refreshUnreadCount();
+        const interval = setInterval(refreshUnreadCount, 60000);
+        return () => clearInterval(interval);
+    }, [isAdmin, refreshUnreadCount]);
 
     // Single source of truth for the nav bar height, shared by the fixed header
     // and the two layout spacers below it so they always line up.
@@ -408,7 +410,7 @@ export default function Dashboard() {
                             <Route path="/emails" element={<EmailsPage />} />
                         )}
                         {user?.role === "admin" && (
-                            <Route path="/notifications" element={<NotificationsPage />} />
+                            <Route path="/notifications" element={<NotificationsPage onReadChange={refreshUnreadCount} />} />
                         )}
                         {user?.role === "admin" && (
                             <Route path="/recently-deleted" element={<RecentlyDeletedPage />} />

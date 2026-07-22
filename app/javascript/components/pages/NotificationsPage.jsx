@@ -15,18 +15,20 @@ import {
 import EventIcon from "@mui/icons-material/Event";
 import PaymentIcon from "@mui/icons-material/Payment";
 import DescriptionIcon from "@mui/icons-material/Description";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import { notificationsApi } from "../../utils/api";
 import EarthkinLoader from "../shared/EarthkinLoader";
 
 const EVENT_ICON = {
+	application_submitted: <PersonAddIcon />,
 	meeting_scheduled: <EventIcon />,
 	payment_plan_selected: <PaymentIcon />,
 	form_signed: <DescriptionIcon />,
 };
 
-export default function NotificationsPage() {
+export default function NotificationsPage({ onReadChange }) {
 	const navigate = useNavigate();
 	const [notifications, setNotifications] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -50,6 +52,7 @@ export default function NotificationsPage() {
 			try {
 				await notificationsApi.markRead(n.id);
 				setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
+				onReadChange?.();
 			} catch {
 				/* non-blocking */
 			}
@@ -62,6 +65,7 @@ export default function NotificationsPage() {
 	const handleMarkAllRead = async () => {
 		await notificationsApi.markAllRead();
 		setNotifications((prev) => prev.map((x) => ({ ...x, read: true })));
+		onReadChange?.();
 	};
 
 	const unreadCount = notifications.filter((n) => !n.read).length;

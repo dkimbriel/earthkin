@@ -8,6 +8,20 @@ RSpec.describe AdminNotifier do
                                     child_first_name: 'Sam', child_last_name: 'Rivera')
   end
 
+  describe '.application_submitted' do
+    it 'creates an in-app notification tied to the application' do
+      expect {
+        described_class.application_submitted(application)
+      }.to change(Notification, :count).by(1)
+
+      notification = Notification.last
+      expect(notification.event_type).to eq('application_submitted')
+      expect(notification.title).to include('Sam Rivera')
+      expect(notification.body).to include('Dana Rivera')
+      expect(notification.enrollment_application).to eq(application)
+    end
+  end
+
   describe '.payment_plan_selected' do
     it 'creates an in-app notification tied to the application' do
       plan = create(:payment_plan, program: program, name: 'Monthly')
