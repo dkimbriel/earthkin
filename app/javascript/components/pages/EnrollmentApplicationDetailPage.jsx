@@ -105,6 +105,8 @@ export default function EnrollmentApplicationDetailPage() {
     const [showEmailEditDialog, setShowEmailEditDialog] = useState(false);
     const [showDeclineDialog, setShowDeclineDialog] = useState(false);
     const [showCustomFeesDialog, setShowCustomFeesDialog] = useState(false);
+    const [showChangePlanDialog, setShowChangePlanDialog] = useState(false);
+    const [changePlanId, setChangePlanId] = useState("");
     const [locations, setLocations] = useState([]);
     const [editedEmail, setEditedEmail] = useState("");
     const [declineNotes, setDeclineNotes] = useState("");
@@ -397,6 +399,22 @@ export default function EnrollmentApplicationDetailPage() {
             });
             setEmailNotification("Custom fees updated successfully");
             setShowCustomFeesDialog(false);
+            loadApplication();
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const handleOpenChangePlan = () => {
+        setChangePlanId(selectedPlan?.id || "");
+        setShowChangePlanDialog(true);
+    };
+
+    const handleSaveChangePlan = async () => {
+        try {
+            await enrollmentApplicationsApi.updatePaymentPlan(id, changePlanId);
+            setEmailNotification("Payment plan updated");
+            setShowChangePlanDialog(false);
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -1441,9 +1459,28 @@ export default function EnrollmentApplicationDetailPage() {
 
                         {/* Payment Plan Options */}
                         <Box>
-                            <Typography variant="h6" gutterBottom>
-                                Payment Plan Options
-                            </Typography>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    mb: 1,
+                                }}
+                            >
+                                <Typography variant="h6">
+                                    Payment Plan Options
+                                </Typography>
+                                {application.payment_plans?.length > 0 &&
+                                    application.status !== "declined" && (
+                                        <Button
+                                            size="small"
+                                            startIcon={<EditIcon />}
+                                            onClick={handleOpenChangePlan}
+                                        >
+                                            Change Plan
+                                        </Button>
+                                    )}
+                            </Box>
 
                             {/* Selection Status Message */}
                             {(() => {
@@ -2240,6 +2277,49 @@ export default function EnrollmentApplicationDetailPage() {
                         Cancel
                     </Button>
                     <Button variant="contained" onClick={handleSaveCustomFees}>
+                        Save
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Change Payment Plan Dialog */}
+            <Dialog
+                open={showChangePlanDialog}
+                onClose={() => setShowChangePlanDialog(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Change Payment Plan</DialogTitle>
+                <DialogContent>
+                    <Box
+                        sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 2,
+                            pt: 1,
+                        }}
+                    >
+                        <Alert severity="info">
+                            {lockedPlan
+                                ? "The enrollment fee is already recorded, so the payment schedule will be rebuilt from the new plan (keeping the original first-payment date)."
+                                : "Select the correct plan for this family."}
+                        </Alert>
+                        <PaymentPlanSelector
+                            programId={application.program_id}
+                            value={changePlanId}
+                            onChange={(planId) => setChangePlanId(planId)}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setShowChangePlanDialog(false)}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSaveChangePlan}
+                        disabled={!changePlanId || changePlanId === selectedPlan?.id}
+                    >
                         Save
                     </Button>
                 </DialogActions>
