@@ -266,6 +266,10 @@ export const enrollmentApplicationsApi = {
 			custom_enrollment_fee: customEnrollmentFee,
 			custom_tuition_amount: customTuitionAmount,
 		}),
+	updatePaymentPlan: (id, paymentPlanId) =>
+		api.patch(`/api/enrollment_applications/${id}/update_payment_plan`, {
+			payment_plan_id: paymentPlanId,
+		}),
 	updateNotificationSettings: (id, muteAutomatedEmails) =>
 		api.patch(`/api/enrollment_applications/${id}/update_notification_settings`, {
 			mute_automated_emails: muteAutomatedEmails,

@@ -124,6 +124,50 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
     end
   end
 
+  describe 'PATCH /api/enrollment_applications/:id/update_payment_plan' do
+    let(:program) { create(:program) }
+    let!(:plan_a) { create(:payment_plan, program: program, name: 'Full Payment', total_amount: 2800, installment_count: 1) }
+    let!(:plan_b) { create(:payment_plan, :monthly, program: program) }
+
+    it 'changes the selected plan before the fee is recorded' do
+      application = create(:enrollment_application, program: program, selected_payment_plan: plan_a)
+
+      patch "/api/enrollment_applications/#{application.id}/update_payment_plan",
+        params: { payment_plan_id: plan_b.id }
+
+      expect(response).to have_http_status(:ok)
+      expect(application.reload.selected_payment_plan).to eq(plan_b)
+    end
+
+    it 'rebuilds the locked-in schedule when the fee is already recorded' do
+      application = create(:enrollment_application, program: program, selected_payment_plan: plan_a)
+      enrollment = create(:program_enrollment, program: program, enrollment_application: application)
+      epp = create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: plan_a, total_amount: 2800,
+                                             installments: [{ 'due_date' => '2026-08-01', 'amount' => 2800, 'status' => 'pending', 'paid_at' => nil }])
+
+      patch "/api/enrollment_applications/#{application.id}/update_payment_plan",
+        params: { payment_plan_id: plan_b.id }
+
+      expect(response).to have_http_status(:ok)
+      epp.reload
+      expect(epp.payment_plan).to eq(plan_b)
+      expect(epp.installments.size).to eq(10)
+      expect(epp.installments.first['amount']).to eq(280.0)
+    end
+
+    it 'refuses to change the plan once a tuition installment has been paid' do
+      application = create(:enrollment_application, program: program, selected_payment_plan: plan_a)
+      enrollment = create(:program_enrollment, program: program, enrollment_application: application)
+      create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: plan_a, total_amount: 2800,
+                                       installments: [{ 'due_date' => '2026-08-01', 'amount' => 2800, 'status' => 'completed', 'paid_at' => '2026-08-02' }])
+
+      patch "/api/enrollment_applications/#{application.id}/update_payment_plan",
+        params: { payment_plan_id: plan_b.id }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+    end
+  end
+
   describe 'POST /api/enrollment_applications/:id/reopen' do
     it 'reopens a declined application back to submitted' do
       application = create(:enrollment_application, :declined)

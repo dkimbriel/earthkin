@@ -235,6 +235,28 @@ module Api
       end
     end
 
+    # Change the payment plan chosen for a family — for correcting a mistaken
+    # selection. Updates the application's selected plan and, if the fee has
+    # already been recorded (the plan is locked into the enrollment), rebuilds
+    # that enrollment's schedule from the new plan.
+    def update_payment_plan
+      application = EnrollmentApplication.find(params[:id])
+      plan = PaymentPlan.find_by(id: params[:payment_plan_id], active: true)
+      return render json: { error: 'Payment plan not found' }, status: :unprocessable_entity unless plan
+
+      application.update!(selected_payment_plan: plan)
+
+      locked_plan = application.program_enrollment&.enrollment_payment_plan
+      locked_plan&.change_plan!(plan, tuition_override: application.custom_tuition_amount)
+
+      render json: {
+        application: application.reload.as_json(methods: [:effective_tuition_amount]),
+        message: 'Payment plan updated'
+      }
+    rescue EnrollmentPaymentPlan::PlanChangeError => e
+      render json: { error: e.message }, status: :unprocessable_entity
+    end
+
     def update_custom_fees
       application = EnrollmentApplication.find(params[:id])
 

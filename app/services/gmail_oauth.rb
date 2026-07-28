@@ -18,6 +18,7 @@ module GmailOauth
 	AUTH_URI = 'https://accounts.google.com/o/oauth2/auth'
 	TOKEN_URI = 'https://oauth2.googleapis.com/token'
 	USERINFO_URI = 'https://www.googleapis.com/oauth2/v3/userinfo'
+	TOKENINFO_URI = 'https://oauth2.googleapis.com/tokeninfo'
 
 	module_function
 
@@ -69,14 +70,25 @@ module GmailOauth
 		client
 	end
 
-	# Google's consent screen lets the user uncheck individual permissions, so
-	# a successful token exchange doesn't guarantee we can actually send mail.
-	def send_scope_granted?(client)
-		granted_scopes(client).include?('gmail.send')
+	# Google's consent screen lets the user uncheck individual permissions, and
+	# the token exchange echoes the *requested* scope rather than what was
+	# actually granted — so a partial grant (e.g. sign-in but not "send email")
+	# would otherwise look complete. Ask Google's tokeninfo endpoint what the
+	# access token can really do. Returns a space-joined scope string ('' on error).
+	def verify_granted_scopes(access_token)
+		uri = URI("#{TOKENINFO_URI}?access_token=#{access_token}")
+		response = Net::HTTP.get_response(uri)
+		return '' unless response.is_a?(Net::HTTPSuccess)
+
+		JSON.parse(response.body)['scope'].to_s
+	rescue StandardError => e
+		Rails.logger.warn("GmailOauth#verify_granted_scopes failed: #{e.message}")
+		''
 	end
 
-	def granted_scopes(client)
-		Array(client.scope).join(' ')
+	# Whether the (Google-verified) granted scopes let us send mail.
+	def send_scope_granted?(scopes)
+		scopes.to_s.include?('gmail.send')
 	end
 
 	# Look up the email address of the account that just authorized.
