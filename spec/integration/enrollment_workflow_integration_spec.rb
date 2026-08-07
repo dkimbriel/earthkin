@@ -72,9 +72,9 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
       # Step 5: Process enrollment fee payment
       fee_payment_params = {
         payment_plan_id: payment_plans.first.id,
-        payment_method: 'venmo',
+        payment_method: 'check',
         payment_date: Date.today.to_s,
-        notes: 'Venmo payment received'
+        notes: 'Check payment received'
       }
 
       post "/api/enrollment_applications/#{application_id}/process_fee_payment",
@@ -111,7 +111,7 @@ RSpec.describe 'Enrollment Workflow Integration', type: :request do
           program_enrollment_id: enrollment_id,
           amount: 280.00,
           payment_date: Date.today.to_s,
-          payment_method: 'venmo',
+          payment_method: 'check',
           status: 'completed',
           notes: 'First tuition payment'
         }

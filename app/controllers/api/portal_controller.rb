@@ -62,6 +62,7 @@ module Api
 					total_paid: e.total_paid,
 					balance_due: e.balance_due,
 					plan: plan && {
+						id: plan.id,
 						name: e.payment_plan&.name,
 						enrollment_fee: plan.enrollment_fee,
 						enrollment_fee_paid: plan.enrollment_fee_paid,
@@ -74,11 +75,35 @@ module Api
 							payment_date: p.payment_date,
 							status: p.status,
 							payment_type: p.payment_type,
-							payment_method: p.payment_method
+							payment_method: p.payment_method,
+							receipt_url: p.stripe_receipt_url
 						}
 					end
 				}
 			}
+		end
+
+		# Starts a Stripe Checkout for a single tuition installment and returns the
+		# hosted URL for the browser to redirect to. Scoped to this family: the
+		# plan must belong to one of the family's enrollments, and the installment
+		# must still be pending.
+		def create_payment_checkout
+			plan = EnrollmentPaymentPlan
+				.where(program_enrollment_id: family_enrollments.select(:id))
+				.find_by(id: params[:enrollment_payment_plan_id])
+			return render json: { error: 'Payment plan not found' }, status: :not_found if plan.nil?
+
+			index = params[:installment_index].to_i
+			installment = plan.installments[index]
+			if installment.nil? || installment['status'] == 'completed'
+				return render json: { error: 'That installment is not payable' }, status: :unprocessable_entity
+			end
+
+			session = StripeCheckout.installment_session(plan, index)
+			render json: { url: session.url }
+		rescue Stripe::StripeError => e
+			Rails.logger.error("[stripe checkout] #{e.class}: #{e.message}")
+			render json: { error: 'Could not start the payment. Please try again.' }, status: :bad_gateway
 		end
 
 		def content

@@ -77,22 +77,15 @@ module Api
 
     def record_installment_payment
       plan = EnrollmentPaymentPlan.find(params[:id])
-      installment_index = params[:installment_index].to_i
 
-      # Create payment record
-      payment = plan.payments.create!(
-        program_enrollment_id: plan.program_enrollment_id,
-        payment_type: 'tuition',
+      PaymentRecorder.record_installment(
+        plan,
+        installment_index: params[:installment_index].to_i,
         amount: params[:amount],
         payment_method: params[:payment_method],
-        payment_date: params[:payment_date] || Date.current,
-        status: 'completed',
-        installment_number: installment_index + 1,
+        payment_date: params[:payment_date],
         notes: params[:notes]
       )
-
-      # Update installment status
-      plan.mark_installment_paid!(installment_index, payment)
 
       render json: plan.reload.as_json(include: :payments)
     end

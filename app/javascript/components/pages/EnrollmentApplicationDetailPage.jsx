@@ -128,7 +128,7 @@ export default function EnrollmentApplicationDetailPage() {
     // Fee payment form
     const [feeForm, setFeeForm] = useState({
         payment_plan_id: "",
-        payment_method: "venmo",
+        payment_method: "check",
         payment_date: new Date().toISOString().split("T")[0],
         notes: "",
     });
@@ -301,7 +301,7 @@ export default function EnrollmentApplicationDetailPage() {
             setShowFeeDialog(false);
             setFeeForm({
                 payment_plan_id: "",
-                payment_method: "venmo",
+                payment_method: "check",
                 payment_date: new Date().toISOString().split("T")[0],
                 notes: "",
             });
@@ -2051,10 +2051,8 @@ export default function EnrollmentApplicationDetailPage() {
                             required
                             fullWidth
                         >
-                            <MenuItem value="venmo">Venmo</MenuItem>
                             <MenuItem value="cash">Cash</MenuItem>
                             <MenuItem value="check">Check</MenuItem>
-                            <MenuItem value="card">Card</MenuItem>
                             <MenuItem value="other">Other</MenuItem>
                         </TextField>
                         <TextField

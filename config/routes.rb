@@ -118,6 +118,7 @@ Rails.application.routes.draw do
 		get 'portal/overview', to: 'portal#overview'
 		get 'portal/events', to: 'portal#events'
 		get 'portal/payments', to: 'portal#payments'
+		post 'portal/payments/checkout', to: 'portal#create_payment_checkout'
 		get 'portal/content', to: 'portal#content'
 		get 'portal/forms', to: 'portal#forms'
 		post 'portal/forms/:id/sign', to: 'portal#sign_form'
@@ -147,7 +148,10 @@ Rails.application.routes.draw do
 
 	# Public payment selection (no auth required)
 	get '/payment/:token', to: 'payment_selections#show', as: :payment_selection
-	post '/payment/:token', to: 'payment_selections#confirm', as: :payment_selection_confirm
+	post '/payment/:token/checkout', to: 'payment_selections#checkout', as: :payment_selection_checkout
+
+	# Stripe webhook (no auth; verified by signature)
+	post '/webhooks/stripe', to: 'webhooks/stripe#create'
 
 	root "application#show"
 

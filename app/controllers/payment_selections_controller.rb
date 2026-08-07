@@ -1,49 +1,19 @@
 class PaymentSelectionsController < ApplicationController
   layout 'public'
 
-  # The Venmo handle families send the enrollment fee to. Set VENMO_HANDLE in
-  # the environment; falls back to the school's current handle.
-  helper_method :venmo_handle
-  def venmo_handle
-    ENV.fetch('VENMO_HANDLE', '@earthkin')
-  end
-
   def show
-    @application = EnrollmentApplication.includes(:program).find_by!(payment_selection_token: params[:token])
-    @payment_plans = PaymentPlan.where(active: true).order(:display_order)
-    @program = @application.program
-
-    # Check if already paid
-    if @application.status == 'fee_paid' || @application.status == 'enrolled'
-      render :already_paid
-      return
-    end
-
-    # Check if in correct status for payment
-    unless @application.status == 'fee_requested'
-      render :invalid_status
-      return
-    end
+    load_application
+    return if rendered_terminal_state?
   end
 
-  def confirm
-    @application = EnrollmentApplication.find_by!(payment_selection_token: params[:token])
-    @payment_plans = PaymentPlan.where(active: true).order(:display_order)
-    @program = @application.program
+  # Parent picked a plan and clicked "Pay enrollment fee". We record the chosen
+  # plan (so it's known even if they abandon checkout), notify the office, then
+  # send them to Stripe's hosted Checkout. The fee only counts as paid once
+  # Stripe calls the webhook back — that's what provisions the enrollment.
+  def checkout
+    load_application
+    return if rendered_terminal_state?
 
-    # Check if already paid
-    if @application.status == 'fee_paid' || @application.status == 'enrolled'
-      render :already_paid
-      return
-    end
-
-    # Check if in correct status
-    unless @application.status == 'fee_requested'
-      render :invalid_status
-      return
-    end
-
-    # Validate payment plan selection
     payment_plan = PaymentPlan.find_by(id: params[:payment_plan_id], active: true)
     unless payment_plan
       flash[:error] = 'Please select a payment plan to continue'
@@ -51,12 +21,36 @@ class PaymentSelectionsController < ApplicationController
       return
     end
 
-    # Record the family's chosen plan. Payment is made out-of-band (Venmo),
-    # so we do NOT mark the fee paid or provision the enrollment here — the
-    # school confirms receipt and records the fee (via Record Fee Payment),
-    # which locks in the plan and creates the enrollment, schedule, and login.
     @application.update!(selected_payment_plan: payment_plan)
     AdminNotifier.payment_plan_selected(@application, payment_plan)
-    render :confirmed
+
+    session = StripeCheckout.enrollment_fee_session(@application, payment_plan)
+    redirect_to session.url, status: :see_other, allow_other_host: true
+  rescue Stripe::StripeError => e
+    Rails.logger.error("[stripe checkout] #{e.class}: #{e.message}")
+    flash[:error] = 'We could not start the payment. Please try again or contact the school.'
+    render :show
+  end
+
+  private
+
+  def load_application
+    @application = EnrollmentApplication.includes(:program).find_by!(payment_selection_token: params[:token])
+    @payment_plans = PaymentPlan.where(active: true).order(:display_order)
+    @program = @application.program
+  end
+
+  # Renders the appropriate terminal view and returns true when the application
+  # isn't awaiting a fee payment, so callers can bail early.
+  def rendered_terminal_state?
+    if %w[fee_paid enrolled].include?(@application.status)
+      render :already_paid
+      true
+    elsif @application.status != 'fee_requested'
+      render :invalid_status
+      true
+    else
+      false
+    end
   end
 end

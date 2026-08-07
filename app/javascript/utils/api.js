@@ -203,6 +203,11 @@ export const portalApi = {
 	content: () => api.get("/api/portal/content"),
 	events: () => api.get("/api/portal/events"),
 	payments: () => api.get("/api/portal/payments"),
+	createPaymentCheckout: (enrollmentPaymentPlanId, installmentIndex) =>
+		api.post("/api/portal/payments/checkout", {
+			enrollment_payment_plan_id: enrollmentPaymentPlanId,
+			installment_index: installmentIndex,
+		}),
 	forms: () => api.get("/api/portal/forms"),
 	signForm: (id, signedByName, responseText, formFields) =>
 		api.post(`/api/portal/forms/${id}/sign`, {

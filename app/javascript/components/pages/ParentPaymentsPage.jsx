@@ -12,6 +12,8 @@ import {
     TableBody,
     TableRow,
     TableCell,
+    Button,
+    Link,
 } from "@mui/material";
 import { portalApi } from "../../utils/api";
 import EarthkinLoader from "../shared/EarthkinLoader";
@@ -36,6 +38,8 @@ export default function ParentPaymentsPage() {
     const [rows, setRows] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [payError, setPayError] = useState(null);
+    const [paying, setPaying] = useState(false);
 
     useEffect(() => {
         portalApi
@@ -44,6 +48,21 @@ export default function ParentPaymentsPage() {
             .catch((err) => setError(err.message))
             .finally(() => setLoading(false));
     }, []);
+
+    // Kick off a Stripe Checkout for one installment, then hand off to Stripe's
+    // hosted page. On success/cancel Stripe returns the parent to this page.
+    const payInstallment = async (planId, installmentIndex) => {
+        if (!planId) return;
+        setPayError(null);
+        setPaying(true);
+        try {
+            const { url } = await portalApi.createPaymentCheckout(planId, installmentIndex);
+            window.location.assign(url);
+        } catch (err) {
+            setPayError(err.message);
+            setPaying(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -65,6 +84,12 @@ export default function ParentPaymentsPage() {
 
             {rows.length === 0 && <Alert severity="info">No enrollments with payments yet.</Alert>}
 
+            {payError && (
+                <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPayError(null)}>
+                    {payError}
+                </Alert>
+            )}
+
             <Stack spacing={3}>
                 {rows.map((row) => (
                     <Card key={row.enrollment_id}>
@@ -76,6 +101,7 @@ export default function ParentPaymentsPage() {
                             {(() => {
                                 const next = nextPendingInstallment(row);
                                 if (next) {
+                                    const nextIdx = row.plan.installments.findIndex((inst) => inst.status !== "completed");
                                     const overdue = parseDateOnly(next.due_date) < new Date();
                                     return (
                                         <Box
@@ -95,6 +121,17 @@ export default function ParentPaymentsPage() {
                                                 {money(next.amount)}
                                             </Typography>
                                             <Typography variant="h6">{formatDue(next.due_date)}</Typography>
+                                            {row.plan?.id && (
+                                                <Button
+                                                    variant="contained"
+                                                    color="inherit"
+                                                    sx={{ mt: 1.5, color: "text.primary", backgroundColor: "background.paper" }}
+                                                    disabled={paying}
+                                                    onClick={() => payInstallment(row.plan.id, nextIdx)}
+                                                >
+                                                    {paying ? "Starting…" : "Pay Now"}
+                                                </Button>
+                                            )}
                                         </Box>
                                     );
                                 }
@@ -175,6 +212,7 @@ export default function ParentPaymentsPage() {
                                                 <TableCell>Type</TableCell>
                                                 <TableCell>Method</TableCell>
                                                 <TableCell>Status</TableCell>
+                                                <TableCell>Receipt</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -190,6 +228,15 @@ export default function ParentPaymentsPage() {
                                                             label={p.status}
                                                             color={p.status === "completed" ? "success" : "default"}
                                                         />
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {p.receipt_url ? (
+                                                            <Link href={p.receipt_url} target="_blank" rel="noopener">
+                                                                View
+                                                            </Link>
+                                                        ) : (
+                                                            "—"
+                                                        )}
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
