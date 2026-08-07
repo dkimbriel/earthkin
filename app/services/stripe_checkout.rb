@@ -53,6 +53,27 @@ module StripeCheckout
 		)
 	end
 
+	# An emailed invoice for an existing pending Payment. On success the webhook
+	# marks that same payment completed (kind: 'invoice', payment_id).
+	def invoice_session(payment)
+		enrollment = payment.program_enrollment
+		child = enrollment&.child
+		label = case payment.payment_type
+		        when 'enrollment_fee' then 'Enrollment Fee'
+		        when 'tuition' then "Tuition Payment#{payment.installment_number ? " — Installment ##{payment.installment_number}" : ''}"
+		        else 'Payment'
+		        end
+
+		create_session(
+			amount_cents: (payment.amount.to_d * 100).to_i,
+			product_name: [label, child&.first_name].compact.join(' — '),
+			customer_email: child&.family&.parents&.filter_map(&:email)&.first,
+			success_url: "#{payment_link_url(payment)}?paid=1",
+			cancel_url: payment_link_url(payment),
+			metadata: { kind: 'invoice', payment_id: payment.id }
+		)
+	end
+
 	# --- helpers ---
 
 	def create_session(amount_cents:, product_name:, customer_email:, success_url:, cancel_url:, metadata:)
@@ -81,6 +102,10 @@ module StripeCheckout
 
 	def payment_page_url(token)
 		Rails.application.routes.url_helpers.payment_selection_url(token, **url_options)
+	end
+
+	def payment_link_url(payment)
+		Rails.application.routes.url_helpers.invoice_payment_url(payment.pay_token!, **url_options)
 	end
 
 	def portal_payments_url

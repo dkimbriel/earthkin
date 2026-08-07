@@ -12,11 +12,8 @@ class PaymentMailer < ApplicationMailer
     @family = @child.family
     @program = @payment.program_enrollment.program
 
-    # Generate PDF
-    pdf = InvoicePdfGenerator.new(@payment).generate
-
-    # Attach PDF
-    attachments["Invoice_#{@payment.id.split('-').first.upcase}.pdf"] = pdf
+    # Durable "Pay now" link (Stripe Checkout) instead of a static PDF invoice.
+    @pay_url = @payment.pay_url
 
     # Send to all parents in the family
     parent_emails = @family.parents.pluck(:email).compact

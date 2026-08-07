@@ -7,12 +7,8 @@ RSpec.describe PaymentMailer, type: :mailer do
     let(:child) { create(:child, family: family) }
     let(:program) { create(:program) }
     let(:enrollment) { create(:program_enrollment, child: child, program: program) }
-    let(:payment) { create(:payment, program_enrollment: enrollment, amount: 150.00) }
+    let(:payment) { create(:payment, :pending, program_enrollment: enrollment, amount: 150.00) }
     let(:mail) { PaymentMailer.invoice(payment.id) }
-
-    before do
-      allow_any_instance_of(InvoicePdfGenerator).to receive(:generate).and_return('PDF_CONTENT')
-    end
 
     it 'renders the headers' do
       expect(mail.subject).to include('Payment Invoice')
@@ -21,16 +17,15 @@ RSpec.describe PaymentMailer, type: :mailer do
     end
 
     it 'renders the body' do
-      expect(mail.body.encoded).to include('Please find attached the invoice')
       expect(mail.body.encoded).to include(child.first_name)
       expect(mail.body.encoded).to include(program.name)
       expect(mail.body.encoded).to include('$150.00')
     end
 
-    it 'attaches PDF invoice' do
-      pdf = mail.attachments.find { |a| a.filename =~ /Invoice_.*\.pdf/ }
-      expect(pdf).to be_present
-      expect(pdf.content_type).to include('application/pdf')
+    it 'includes a Stripe pay link instead of a PDF attachment' do
+      expect(mail.attachments.map(&:filename)).not_to include(a_string_matching(/\.pdf/i))
+      expect(mail.body.encoded).to include("/pay/#{payment.reload.payment_token}")
+      expect(mail.body.encoded).to match(/Pay .*Securely/)
     end
 
     context 'with payment plan' do

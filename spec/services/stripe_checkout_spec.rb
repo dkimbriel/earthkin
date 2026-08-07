@@ -39,4 +39,19 @@ RSpec.describe StripeCheckout do
       expect { described_class.installment_session(eplan, 99) }.to raise_error(ArgumentError)
     end
   end
+
+  describe '.invoice_session' do
+    let(:enrollment) { create(:program_enrollment) }
+    let(:payment) { create(:payment, :pending, program_enrollment: enrollment, amount: 320, payment_type: 'tuition') }
+
+    it 'creates a session for the payment amount with invoice metadata' do
+      expect(Stripe::Checkout::Session).to receive(:create) do |args|
+        expect(args[:line_items].first[:price_data][:unit_amount]).to eq(32_000) # $320
+        expect(args[:metadata]).to eq(kind: 'invoice', payment_id: payment.id)
+        double(url: 'https://checkout')
+      end
+
+      described_class.invoice_session(payment)
+    end
+  end
 end

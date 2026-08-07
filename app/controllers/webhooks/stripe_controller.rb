@@ -58,6 +58,8 @@ module Webhooks
 				record_enrollment_fee(metadata, stripe_ids)
 			when 'installment'
 				record_installment(metadata, stripe_ids)
+			when 'invoice'
+				record_invoice(metadata, stripe_ids)
 			else
 				Rails.logger.warn("[stripe webhook] unknown checkout kind: #{metadata['kind'].inspect}")
 			end
@@ -92,6 +94,30 @@ module Webhooks
 				payment_method: 'stripe',
 				stripe: stripe_ids
 			)
+		end
+
+		# An emailed invoice was paid: mark that existing pending Payment completed
+		# and, if it belongs to an installment schedule, flip the installment too.
+		def record_invoice(metadata, stripe_ids)
+			payment = Payment.find_by(id: metadata['payment_id'])
+			return if payment.nil? || payment.status == 'completed'
+
+			ActiveRecord::Base.transaction do
+				payment.update!(
+					status: 'completed',
+					payment_method: 'stripe',
+					payment_date: Date.current,
+					stripe_checkout_session_id: stripe_ids[:session_id],
+					stripe_payment_intent_id: stripe_ids[:payment_intent_id],
+					stripe_receipt_url: stripe_ids[:receipt_url]
+				)
+
+				plan = payment.enrollment_payment_plan
+				if plan && payment.installment_number
+					index = payment.installment_number - 1
+					plan.mark_installment_paid!(index, payment) if plan.installments[index]
+				end
+			end
 		end
 
 		# The hosted receipt lives on the charge behind the payment intent.
