@@ -2,13 +2,12 @@
 
 <p>Dear <%= @family.name %>,</p>
 
-<p>Please find attached the invoice for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.</p>
+<p>Here is your invoice for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.</p>
 
 <h3>Payment Details</h3>
 <ul>
   <li><strong>Amount:</strong> <%= number_to_currency(@payment.amount) %></li>
-  <li><strong>Payment Date:</strong> <%= @payment.payment_date.strftime('%B %d, %Y') %></li>
-  <li><strong>Payment Method:</strong> <%= @payment.payment_method.titleize %></li>
+  <li><strong>Invoice Date:</strong> <%= @payment.payment_date.strftime('%B %d, %Y') %></li>
   <% if @payment.payment_type == 'enrollment_fee' %>
   <li><strong>Type:</strong> Non-refundable Enrollment Fee</li>
   <% elsif @payment.payment_type == 'tuition' %>
@@ -20,7 +19,12 @@
 <p><strong>Notes:</strong> <%= @payment.notes %></p>
 <% end %>
 
-<p><strong>A detailed invoice is attached to this email as a PDF.</strong></p>
+<p style="margin: 24px 0;">
+  <a href="<%= @pay_url %>" style="background-color: #2e7d32; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; display: inline-block;">
+    Pay <%= number_to_currency(@payment.amount) %> Securely
+  </a>
+</p>
+<p style="font-size: 13px; color: #666;">Pay by card through our secure Stripe page — a receipt is emailed to you automatically. If the button doesn't work, paste this link into your browser:<br><%= @pay_url %></p>
 
 <% if @payment.program_enrollment.enrollment_payment_plan %>
   <% plan = @payment.program_enrollment.enrollment_payment_plan %>

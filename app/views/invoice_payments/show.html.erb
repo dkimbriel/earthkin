@@ -1,0 +1,61 @@
+<% content_for :title, "Pay Invoice - Earthkin Nature School" %>
+
+<% child = @payment.program_enrollment&.child %>
+<% program = @payment.program_enrollment&.program %>
+
+<% if flash[:error] %>
+  <div class="error-box"><%= flash[:error] %></div>
+<% end %>
+
+<% if @state == :paid %>
+  <div style="text-align: center;">
+    <div class="success-icon">&#9989;</div>
+    <h2>Payment Received</h2>
+    <div class="highlight">
+      <p style="margin: 0;">
+        This <%= number_to_currency(@payment.amount) %> payment has already been received. No further action is needed.
+      </p>
+    </div>
+    <p>A receipt was emailed to you by Stripe. Questions? Contact us at
+      <a href="mailto:earthkinnatureschool@gmail.com">earthkinnatureschool@gmail.com</a>.</p>
+  </div>
+
+<% elsif @state == :processing %>
+  <div style="text-align: center;">
+    <div class="success-icon">&#8987;</div>
+    <h2>Thank You — Confirming Your Payment</h2>
+    <p>
+      We've received your payment and are confirming it now. You'll get a receipt from Stripe by email shortly.
+      You can safely close this page.
+    </p>
+  </div>
+
+<% else %>
+  <h2>Pay Your Invoice</h2>
+
+  <p>Hi<%= " #{child.first_name}'s family" if child %>, here are the details for this payment<%= " for #{program.name}" if program %>:</p>
+
+  <div class="highlight">
+    <p style="font-size: 22px; font-weight: bold; margin: 0 0 8px 0;">
+      <%= number_to_currency(@payment.amount) %>
+    </p>
+    <p style="margin: 0; color: #555;">
+      <% if @payment.payment_type == 'enrollment_fee' %>
+        Non-refundable enrollment fee<%= " — #{child.first_name} #{child.last_name}" if child %>
+      <% elsif @payment.payment_type == 'tuition' %>
+        Tuition payment<%= " (installment ##{@payment.installment_number})" if @payment.installment_number %><%= " — #{child.first_name} #{child.last_name}" if child %>
+      <% else %>
+        <%= child ? "#{child.first_name} #{child.last_name}" : "Payment" %>
+      <% end %>
+    </p>
+    <% if @payment.notes.present? %>
+      <p style="margin: 8px 0 0 0; color: #555; font-size: 14px;"><%= @payment.notes %></p>
+    <% end %>
+  </div>
+
+  <p style="color: #555; font-size: 14px;">You'll be taken to our secure payment page (Stripe) to pay by card. A receipt is emailed automatically.</p>
+
+  <%= form_tag invoice_payment_checkout_path(@payment.payment_token), method: :post do %>
+    <%= submit_tag "Pay #{number_to_currency(@payment.amount)}", class: 'btn btn-large', style: 'width: 100%; margin-top: 10px;' %>
+  <% end %>
+<% end %>

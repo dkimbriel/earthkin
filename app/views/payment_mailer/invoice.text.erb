@@ -2,19 +2,19 @@ Payment Invoice
 
 Dear <%= @family.name %>,
 
-Please find attached the invoice for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.
+Here is your invoice for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %>.
 
 PAYMENT DETAILS
 Amount: $<%= sprintf('%.2f', @payment.amount) %>
-Payment Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
-Payment Method: <%= @payment.payment_method.titleize %>
+Invoice Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
 <% if @payment.payment_type == 'enrollment_fee' %>Type: Non-refundable Enrollment Fee<% elsif @payment.payment_type == 'tuition' %>Type: Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %><% end %>
 
 <% if @payment.notes.present? %>
 Notes: <%= @payment.notes %>
 <% end %>
 
-A detailed invoice is attached to this email as a PDF.
+Pay securely by card (a receipt is emailed automatically):
+<%= @pay_url %>
 
 <% if @payment.program_enrollment.enrollment_payment_plan %>
 <% plan = @payment.program_enrollment.enrollment_payment_plan %>

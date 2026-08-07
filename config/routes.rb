@@ -150,6 +150,10 @@ Rails.application.routes.draw do
 	get '/payment/:token', to: 'payment_selections#show', as: :payment_selection
 	post '/payment/:token/checkout', to: 'payment_selections#checkout', as: :payment_selection_checkout
 
+	# Public "pay this invoice" link emailed to families (no auth required)
+	get '/pay/:token', to: 'invoice_payments#show', as: :invoice_payment
+	post '/pay/:token', to: 'invoice_payments#checkout', as: :invoice_payment_checkout
+
 	# Stripe webhook (no auth; verified by signature)
 	post '/webhooks/stripe', to: 'webhooks/stripe#create'
 
