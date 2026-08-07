@@ -15,6 +15,8 @@ import {
     MenuItem,
     FormControlLabel,
     Switch,
+    Checkbox,
+    Divider,
     Alert,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,13 +35,36 @@ const EVENT_TYPE_OPTIONS = [
     { value: "other", label: "Other" },
 ];
 
+const RECURRENCE_OPTIONS = [
+    { value: "", label: "Does not repeat" },
+    { value: "daily", label: "Daily" },
+    { value: "weekly", label: "Weekly" },
+    { value: "monthly", label: "Monthly" },
+];
+
+// 0 = Sunday ... 6 = Saturday, matching Event#recurrence_days_of_week.
+const WEEKDAYS = [
+    { value: 0, label: "Sun" },
+    { value: 1, label: "Mon" },
+    { value: 2, label: "Tue" },
+    { value: 3, label: "Wed" },
+    { value: 4, label: "Thu" },
+    { value: 5, label: "Fri" },
+    { value: 6, label: "Sat" },
+];
+
 const EMPTY_EVENT = {
     title: "",
     event_type: "other",
     scheduled_at: "",
+    ends_at: "",
     location_id: "",
     description: "",
     published: false,
+    recurrence_frequency: "",
+    recurrence_interval: 1,
+    recurrence_days_of_week: [],
+    recurrence_until: "",
 };
 
 // datetime-local inputs want "YYYY-MM-DDTHH:MM" in local time.
@@ -50,16 +75,44 @@ const toLocalInput = (iso) => {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
+// date inputs want "YYYY-MM-DD" in local time.
+const toDateInput = (value) => {
+    if (!value) return "";
+    const d = new Date(value);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
 function EventDialog({ open, onClose, onSubmit, onCancelEvent, initial, locations, title }) {
     const [form, setForm] = useState(
         initial
-            ? { ...EMPTY_EVENT, ...initial, scheduled_at: toLocalInput(initial.scheduled_at), location_id: initial.location_id || "" }
+            ? {
+                  ...EMPTY_EVENT,
+                  ...initial,
+                  scheduled_at: toLocalInput(initial.scheduled_at),
+                  ends_at: toLocalInput(initial.ends_at),
+                  location_id: initial.location_id || "",
+                  recurrence_frequency: initial.recurrence_frequency || "",
+                  recurrence_interval: initial.recurrence_interval || 1,
+                  recurrence_days_of_week: initial.recurrence_days_of_week || [],
+                  recurrence_until: toDateInput(initial.recurrence_until),
+              }
             : EMPTY_EVENT
     );
     const [error, setError] = useState(null);
     const [submitting, setSubmitting] = useState(false);
 
     const set = (name, value) => setForm((prev) => ({ ...prev, [name]: value }));
+
+    const isRecurring = !!form.recurrence_frequency;
+
+    const toggleWeekday = (day) =>
+        setForm((prev) => {
+            const days = prev.recurrence_days_of_week.includes(day)
+                ? prev.recurrence_days_of_week.filter((d) => d !== day)
+                : [...prev.recurrence_days_of_week, day];
+            return { ...prev, recurrence_days_of_week: days.sort((a, b) => a - b) };
+        });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -70,9 +123,19 @@ function EventDialog({ open, onClose, onSubmit, onCancelEvent, initial, location
                 title: form.title,
                 event_type: form.event_type,
                 scheduled_at: form.scheduled_at,
+                ends_at: form.ends_at || null,
                 location_id: form.location_id || null,
                 description: form.description,
                 published: form.published,
+                // Always send recurrence fields so clearing "Repeat" removes an
+                // existing series on edit.
+                recurrence_frequency: form.recurrence_frequency || null,
+                recurrence_interval: isRecurring ? Number(form.recurrence_interval) || 1 : 1,
+                recurrence_until: isRecurring ? form.recurrence_until || null : null,
+                recurrence_days_of_week:
+                    isRecurring && form.recurrence_frequency === "weekly"
+                        ? form.recurrence_days_of_week
+                        : [],
             });
             onClose();
         } catch (err) {
@@ -108,7 +171,7 @@ function EventDialog({ open, onClose, onSubmit, onCancelEvent, initial, location
                             ))}
                         </TextField>
                         <TextField
-                            label="Date & Time"
+                            label="Start Date & Time"
                             type="datetime-local"
                             value={form.scheduled_at}
                             onChange={(e) => set("scheduled_at", e.target.value)}
@@ -116,6 +179,73 @@ function EventDialog({ open, onClose, onSubmit, onCancelEvent, initial, location
                             fullWidth
                             slotProps={{ inputLabel: { shrink: true } }}
                         />
+                        <TextField
+                            label="End Date & Time"
+                            type="datetime-local"
+                            value={form.ends_at}
+                            onChange={(e) => set("ends_at", e.target.value)}
+                            fullWidth
+                            slotProps={{ inputLabel: { shrink: true } }}
+                            helperText="Optional. For a multi-day event (e.g. a vacation), set the end to the last day. Leave blank for a single time."
+                        />
+                        <Divider textAlign="left" sx={{ typography: "body2", color: "text.secondary" }}>
+                            Repeat
+                        </Divider>
+                        <TextField
+                            select
+                            label="Repeats"
+                            value={form.recurrence_frequency}
+                            onChange={(e) => set("recurrence_frequency", e.target.value)}
+                            fullWidth
+                        >
+                            {RECURRENCE_OPTIONS.map((o) => (
+                                <MenuItem key={o.value || "none"} value={o.value}>{o.label}</MenuItem>
+                            ))}
+                        </TextField>
+                        {isRecurring && (
+                            <>
+                                <TextField
+                                    label={`Repeat every (${form.recurrence_frequency === "daily" ? "days" : form.recurrence_frequency === "weekly" ? "weeks" : "months"})`}
+                                    type="number"
+                                    value={form.recurrence_interval}
+                                    onChange={(e) => set("recurrence_interval", e.target.value)}
+                                    fullWidth
+                                    slotProps={{ htmlInput: { min: 1 } }}
+                                />
+                                {form.recurrence_frequency === "weekly" && (
+                                    <Box>
+                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                            On these days
+                                        </Typography>
+                                        <Box sx={{ display: "flex", flexWrap: "wrap" }}>
+                                            {WEEKDAYS.map((d) => (
+                                                <FormControlLabel
+                                                    key={d.value}
+                                                    control={
+                                                        <Checkbox
+                                                            size="small"
+                                                            checked={form.recurrence_days_of_week.includes(d.value)}
+                                                            onChange={() => toggleWeekday(d.value)}
+                                                        />
+                                                    }
+                                                    label={d.label}
+                                                    sx={{ mr: 1 }}
+                                                />
+                                            ))}
+                                        </Box>
+                                    </Box>
+                                )}
+                                <TextField
+                                    label="Repeat until"
+                                    type="date"
+                                    value={form.recurrence_until}
+                                    onChange={(e) => set("recurrence_until", e.target.value)}
+                                    required
+                                    fullWidth
+                                    slotProps={{ inputLabel: { shrink: true } }}
+                                />
+                            </>
+                        )}
                         <TextField
                             select
                             label="Location"
@@ -214,28 +344,15 @@ export default function CalendarPage() {
         };
     });
 
-    // Map meeting events to calendar events (only those with scheduled_at)
+    // Map meeting events to calendar events (only those with scheduled_at).
+    // A recurring or multi-day event expands into one FullCalendar entry per
+    // occurrence; every occurrence links back to the same parent event.
     const meetingCalendarEvents = meetingEvents
         .filter(evt => evt.scheduled_at) // Only show events that have a confirmed date
-        .map((evt) => {
-            const isPast = new Date(evt.scheduled_at) < new Date();
+        .flatMap((evt) => {
             const isCompleted = evt.status === 'completed';
             const isCancelled = evt.status === 'cancelled';
             const isManual = !evt.eventable_type;
-
-            let backgroundColor = isManual ? "#7b1fa2" : "#4a7c59"; // Purple school events, green meet & greets
-            let borderColor = isManual ? "#6a1b9a" : "#3d6a4a";
-
-            if (isCancelled) {
-                backgroundColor = "#d32f2f";
-                borderColor = "#b71c1c";
-            } else if (isCompleted) {
-                backgroundColor = "#388e3c";
-                borderColor = "#2e7d32";
-            } else if (isPast) {
-                backgroundColor = "#9e9e9e";
-                borderColor = "#757575";
-            }
 
             let displayTitle;
             if (isManual) {
@@ -246,19 +363,42 @@ export default function CalendarPage() {
                 displayTitle = `${eventTypeLabel}: ${childName}`;
             }
 
-            return {
-                id: `event-${evt.id}`,
-                title: displayTitle,
-                start: evt.scheduled_at,
-                backgroundColor,
-                borderColor,
-                extendedProps: {
-                    type: 'event',
-                    event: evt,
-                    isCompleted,
-                    isCancelled,
-                },
-            };
+            const occurrences = evt.occurrences_json?.length
+                ? evt.occurrences_json
+                : [{ start: evt.scheduled_at, end: evt.ends_at || null }];
+
+            return occurrences.map((occ, idx) => {
+                const isPast = new Date(occ.end || occ.start) < new Date();
+
+                let backgroundColor = isManual ? "#7b1fa2" : "#4a7c59"; // Purple school events, green meet & greets
+                let borderColor = isManual ? "#6a1b9a" : "#3d6a4a";
+
+                if (isCancelled) {
+                    backgroundColor = "#d32f2f";
+                    borderColor = "#b71c1c";
+                } else if (isCompleted) {
+                    backgroundColor = "#388e3c";
+                    borderColor = "#2e7d32";
+                } else if (isPast) {
+                    backgroundColor = "#9e9e9e";
+                    borderColor = "#757575";
+                }
+
+                return {
+                    id: `event-${evt.id}-${idx}`,
+                    title: displayTitle,
+                    start: occ.start,
+                    end: occ.end || undefined,
+                    backgroundColor,
+                    borderColor,
+                    extendedProps: {
+                        type: 'event',
+                        event: evt,
+                        isCompleted,
+                        isCancelled,
+                    },
+                };
+            });
         });
 
     const allCalendarEvents = [...classEvents, ...meetingCalendarEvents];

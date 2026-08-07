@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_07_20_022744) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_06_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -224,6 +224,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_07_20_022744) do
     t.jsonb "proposed_dates", default: []
     t.string "confirmation_token"
     t.boolean "published", default: false, null: false
+    t.datetime "ends_at"
+    t.string "recurrence_frequency"
+    t.integer "recurrence_interval", default: 1, null: false
+    t.jsonb "recurrence_days_of_week", default: [], null: false
+    t.date "recurrence_until"
     t.index ["confirmation_token"], name: "index_events_on_confirmation_token", unique: true
     t.index ["event_type"], name: "index_events_on_event_type"
     t.index ["eventable_type", "eventable_id"], name: "index_events_on_eventable"

@@ -13,6 +13,7 @@ module Api
       end
 
       render json: events.as_json(
+        methods: [:occurrences_json],
         include: {
           eventable: {
             only: [:id, :status],
@@ -26,6 +27,7 @@ module Api
     def show
       event = Event.includes(:eventable, :location).find(params[:id])
       render json: event.as_json(
+        methods: [:occurrences_json],
         include: {
           eventable: {},
           location: {}
@@ -99,7 +101,9 @@ module Api
       params.require(:event).permit(
         :eventable_type, :eventable_id, :location_id,
         :event_type, :title, :description,
-        :scheduled_at, :notes, :outcome_notes, :published
+        :scheduled_at, :ends_at, :notes, :outcome_notes, :published,
+        :recurrence_frequency, :recurrence_interval, :recurrence_until,
+        recurrence_days_of_week: []
       )
     end
   end

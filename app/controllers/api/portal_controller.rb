@@ -40,6 +40,8 @@ module Api
 						title: e.title,
 						event_type: e.event_type,
 						scheduled_at: e.scheduled_at,
+						ends_at: e.ends_at,
+						occurrences_json: e.occurrences_json,
 						description: e.description,
 						location: e.location&.name
 					}
