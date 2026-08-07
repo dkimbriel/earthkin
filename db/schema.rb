@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_08_06_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_08_06_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -346,10 +346,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_06_000001) do
     t.uuid "enrollment_payment_plan_id"
     t.integer "installment_number"
     t.datetime "deleted_at"
+    t.string "stripe_checkout_session_id"
+    t.string "stripe_payment_intent_id"
+    t.string "stripe_receipt_url"
     t.index ["deleted_at"], name: "index_payments_on_deleted_at"
     t.index ["enrollment_payment_plan_id"], name: "index_payments_on_enrollment_payment_plan_id"
     t.index ["payment_type"], name: "index_payments_on_payment_type"
     t.index ["program_enrollment_id"], name: "index_payments_on_program_enrollment_id"
+    t.index ["stripe_checkout_session_id"], name: "index_payments_on_stripe_checkout_session_id", unique: true, where: "(stripe_checkout_session_id IS NOT NULL)"
   end
 
   create_table "program_class_teachers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

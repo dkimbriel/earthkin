@@ -227,7 +227,6 @@ export default function EnrollmentDetailPage() {
             label: "Payment Method",
             type: "select",
             options: [
-                { value: "venmo", label: "Venmo" },
                 { value: "check", label: "Check" },
                 { value: "cash", label: "Cash" },
                 { value: "other", label: "Other" },

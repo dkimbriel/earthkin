@@ -29,6 +29,9 @@ gem 'prawn-table' # Table support for PDFs
 gem 'googleauth' # Signet OAuth2 client + token refresh
 gem 'google-apis-gmail_v1' # Gmail API client
 
+# Stripe: hosted Checkout for enrollment fees and tuition installments
+gem 'stripe'
+
 group :development, :test do
   # Call 'byebug' anywhere in the code to stop execution and get a debugger console
   gem 'byebug', platforms: %i[mri mingw x64_mingw]

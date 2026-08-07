@@ -10,7 +10,7 @@ TO RESERVE YOUR SPOT
 Please submit the non-refundable $<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee.
 
 PAYMENT OPTIONS:
-- Venmo: @earthkin
+- Pay securely by card: <%= @application.payment_selection_url %>
 - Check: Payable to "Earthkin"
 - Cash: Accepted in person
 

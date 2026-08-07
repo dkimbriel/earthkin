@@ -117,19 +117,13 @@
     font-size: 14px;
     color: #1565c0;
   }
-  .venmo-box {
+  .pay-info-box {
     background-color: #f1f8f4;
     border: 1px solid #2e7d32;
     border-radius: 8px;
     padding: 20px;
     margin: 20px 0;
     text-align: center;
-  }
-  .venmo-handle {
-    font-size: 26px;
-    font-weight: bold;
-    color: #2e7d32;
-    margin: 6px 0 14px 0;
   }
   .section-title {
     font-size: 18px;
@@ -151,7 +145,7 @@
   </div>
 <% end %>
 
-<%= form_tag payment_selection_confirm_path(params[:token]), method: :post, class: 'payment-form' do %>
+<%= form_tag payment_selection_checkout_path(params[:token]), method: :post, class: 'payment-form' do %>
 
   <h3 class="section-title">1. Select Your Payment Plan</h3>
 
@@ -187,25 +181,17 @@
     </p>
   </div>
 
-  <h3 class="section-title">2. Send Your Enrollment Fee via Venmo</h3>
+  <h3 class="section-title">2. Pay Your Enrollment Fee</h3>
 
-  <div class="venmo-box">
-    <p style="margin-top: 0;">Please send your <strong>$<%= number_with_precision(@application.effective_enrollment_fee, precision: 0) %> enrollment fee</strong> to:</p>
-    <p class="venmo-handle"><%= venmo_handle %></p>
-    <p style="font-size: 14px; color: #555;">
-      In the Venmo note, include <strong><%= @application.full_child_name %></strong>'s name so we can match your payment.
-    </p>
+  <div class="pay-info-box">
+    <p style="margin: 0 0 6px 0;">You'll be taken to our secure payment page (Stripe) to pay by card. Your child's spot is confirmed automatically as soon as your payment goes through.</p>
     <p style="font-size: 14px; color: #555; margin-bottom: 0;">
-      Prefer check or cash? Make checks payable to "Earthkin Nature School," or arrange cash in person — just let us know.
+      Prefer check or cash? Make checks payable to "Earthkin Nature School," or arrange cash in person — just reply to our email and we'll record it for you.
     </p>
-  </div>
-
-  <div class="demo-notice">
-    Once you've sent your payment, click below to let us know your plan choice. We'll confirm your child's spot as soon as we receive your enrollment fee.
   </div>
 
   <div style="margin-top: 30px;">
-    <%= submit_tag "I've Sent My Payment — Confirm My Plan", class: 'btn btn-large', style: 'width: 100%;' %>
+    <%= submit_tag "Pay $#{number_with_precision(@application.effective_enrollment_fee, precision: 0)} Enrollment Fee", class: 'btn btn-large', style: 'width: 100%;' %>
   </div>
 
 <% end %>

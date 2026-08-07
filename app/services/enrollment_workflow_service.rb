@@ -67,7 +67,7 @@ class EnrollmentWorkflowService
     @application
   end
 
-  def process_enrollment_fee_payment(payment_plan_id:, payment_method:, payment_date: nil, payment_start_date: nil, notes: nil)
+  def process_enrollment_fee_payment(payment_plan_id:, payment_method:, payment_date: nil, payment_start_date: nil, notes: nil, stripe: {})
     ActiveRecord::Base.transaction do
       # 1. Find or create family and child records
       family = find_or_create_family
@@ -88,15 +88,17 @@ class EnrollmentWorkflowService
       start_date = payment_start_date || @application.program.start_date || Date.current
       enrollment_payment_plan = create_enrollment_payment_plan(enrollment, payment_plan, start_date)
 
-      # 6. Record enrollment fee payment
+      # 6. Record enrollment fee payment (carrying any Stripe identifiers)
       payment = enrollment_payment_plan.payments.create!(
-        program_enrollment: enrollment,
-        payment_type: 'enrollment_fee',
-        amount: enrollment_payment_plan.enrollment_fee,
-        payment_method: payment_method,
-        payment_date: payment_date || Date.current,
-        status: 'completed',
-        notes: notes
+        {
+          program_enrollment: enrollment,
+          payment_type: 'enrollment_fee',
+          amount: enrollment_payment_plan.enrollment_fee,
+          payment_method: payment_method,
+          payment_date: payment_date || Date.current,
+          status: 'completed',
+          notes: notes
+        }.merge(PaymentRecorder.stripe_attrs(stripe))
       )
 
       # 7. Mark enrollment fee as paid

@@ -87,5 +87,50 @@ RSpec.describe 'Api::Portal', type: :request do
       expect(json.first['child_name']).to eq(child.full_name)
       expect(json.first['payments'].first['amount']).to eq('100.0')
     end
+
+    it 'exposes the stripe receipt url on completed payments' do
+      create(:payment, :stripe, program_enrollment: enrollment, amount: 100)
+
+      get '/api/portal/payments'
+
+      json = JSON.parse(response.body)
+      expect(json.first['payments'].first['receipt_url']).to eq('https://pay.stripe.com/receipts/test_123')
+    end
+  end
+
+  describe 'POST /api/portal/payments/checkout' do
+    let!(:plan) { create(:enrollment_payment_plan, :with_monthly_plan, program_enrollment: enrollment) }
+
+    before { sign_in parent_user }
+
+    it 'returns a Stripe Checkout url for a pending installment' do
+      expect(StripeCheckout).to receive(:installment_session)
+        .with(an_instance_of(EnrollmentPaymentPlan), 0)
+        .and_return(double(url: 'https://checkout.stripe.com/c/pay/cs_1'))
+
+      post '/api/portal/payments/checkout',
+           params: { enrollment_payment_plan_id: plan.id, installment_index: 0 }
+
+      expect(response).to have_http_status(:ok)
+      expect(JSON.parse(response.body)['url']).to eq('https://checkout.stripe.com/c/pay/cs_1')
+    end
+
+    it "404s for a plan that isn't the family's" do
+      other_plan = create(:enrollment_payment_plan, :with_monthly_plan)
+
+      post '/api/portal/payments/checkout',
+           params: { enrollment_payment_plan_id: other_plan.id, installment_index: 0 }
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it 'rejects an already-completed installment' do
+      plan.mark_installment_paid!(0, create(:payment, program_enrollment: enrollment))
+
+      post '/api/portal/payments/checkout',
+           params: { enrollment_payment_plan_id: plan.id, installment_index: 0 }
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
   end
 end
