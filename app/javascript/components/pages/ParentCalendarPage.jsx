@@ -38,13 +38,21 @@ export default function ParentCalendarPage() {
         borderColor: "#1565c0",
     }));
 
-    const schoolEvents = data.events.map((evt) => ({
-        id: `event-${evt.id}`,
-        title: evt.location ? `${evt.title} @ ${evt.location}` : evt.title,
-        start: evt.scheduled_at,
-        backgroundColor: "#7b1fa2",
-        borderColor: "#6a1b9a",
-    }));
+    // Recurring / multi-day events expand into one entry per occurrence.
+    const schoolEvents = data.events.flatMap((evt) => {
+        const title = evt.location ? `${evt.title} @ ${evt.location}` : evt.title;
+        const occurrences = evt.occurrences_json?.length
+            ? evt.occurrences_json
+            : [{ start: evt.scheduled_at, end: evt.ends_at || null }];
+        return occurrences.map((occ, idx) => ({
+            id: `event-${evt.id}-${idx}`,
+            title,
+            start: occ.start,
+            end: occ.end || undefined,
+            backgroundColor: "#7b1fa2",
+            borderColor: "#6a1b9a",
+        }));
+    });
 
     return (
         <Box>

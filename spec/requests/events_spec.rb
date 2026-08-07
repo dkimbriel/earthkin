@@ -120,6 +120,44 @@ RSpec.describe 'Api::Events', type: :request do
         expect(response).to have_http_status(:ok)
         expect(event.reload.published).to be true
       end
+
+      it 'creates a multi-day event with an end time' do
+        post '/api/events', params: {
+          event: {
+            event_type: 'other',
+            title: 'Summer Vacation',
+            scheduled_at: '2026-08-29T00:00',
+            ends_at: '2026-09-05T23:59'
+          }
+        }
+
+        expect(response).to have_http_status(:created)
+        expect(Event.last.ends_at).to be_present
+      end
+
+      it 'creates a weekly recurring event and returns expanded occurrences' do
+        post '/api/events', params: {
+          event: {
+            event_type: 'other',
+            title: 'Grad School',
+            scheduled_at: '2026-08-31T18:00',
+            recurrence_frequency: 'weekly',
+            recurrence_interval: 1,
+            recurrence_days_of_week: [1, 3],
+            recurrence_until: '2026-09-14'
+          }
+        }
+
+        expect(response).to have_http_status(:created)
+        event = Event.last
+        expect(event.recurrence_frequency).to eq('weekly')
+        expect(event.recurrence_days_of_week).to eq([1, 3])
+
+        get "/api/events/#{event.id}"
+        json = JSON.parse(response.body)
+        expect(json['occurrences_json'].length).to eq(event.occurrences.length)
+        expect(json).to have_key('ends_at')
+      end
     end
 
     context 'when creating a generic event' do
