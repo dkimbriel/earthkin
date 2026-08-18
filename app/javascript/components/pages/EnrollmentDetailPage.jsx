@@ -22,6 +22,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EmailIcon from "@mui/icons-material/Email";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
@@ -30,7 +31,7 @@ import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentP
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
 
-const getPaymentColumns = (onSendInvoice) => [
+const getPaymentColumns = (onSendInvoice, onCopyPayLink) => [
     {
         key: "payment_date",
         label: "Date",
@@ -69,16 +70,30 @@ const getPaymentColumns = (onSendInvoice) => [
             key: "actions",
             label: "Actions",
             render: (row) => (
-                <Button
-                    size="small"
-                    startIcon={<EmailIcon />}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onSendInvoice(row.id, row.status);
-                    }}
-                >
-                    {row.status === "completed" ? "Send Receipt" : "Send Invoice"}
-                </Button>
+                <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                    <Button
+                        size="small"
+                        startIcon={<EmailIcon />}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onSendInvoice(row.id, row.status);
+                        }}
+                    >
+                        {row.status === "completed" ? "Send Receipt" : "Send Invoice"}
+                    </Button>
+                    {onCopyPayLink && row.status !== "completed" && (
+                        <Button
+                            size="small"
+                            startIcon={<ContentCopyIcon />}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onCopyPayLink(row.id);
+                            }}
+                        >
+                            Copy Pay Link
+                        </Button>
+                    )}
+                </Box>
             ),
         }]
         : []),
@@ -169,6 +184,17 @@ export default function EnrollmentDetailPage() {
                 ? "Receipt sent successfully!"
                 : "Invoice sent successfully!";
             setInvoiceMessage(message);
+            setTimeout(() => setInvoiceMessage(null), 5000);
+        } catch (err) {
+            setInvoiceMessage(`Error: ${err.message}`);
+        }
+    };
+
+    const handleCopyPayLink = async (paymentId) => {
+        try {
+            const { url } = await paymentsApi.payLink(paymentId);
+            await navigator.clipboard.writeText(url);
+            setInvoiceMessage("Pay link copied to clipboard");
             setTimeout(() => setInvoiceMessage(null), 5000);
         } catch (err) {
             setInvoiceMessage(`Error: ${err.message}`);
@@ -459,7 +485,10 @@ export default function EnrollmentDetailPage() {
                     </Alert>
                 )}
                 <DataTable
-                    columns={getPaymentColumns(isAdmin ? handleSendInvoice : null)}
+                    columns={getPaymentColumns(
+                        isAdmin ? handleSendInvoice : null,
+                        isAdmin ? handleCopyPayLink : null,
+                    )}
                     data={enrollment.payments}
                     loading={false}
                     onDelete={isAdmin ? setDeleteTarget : undefined}

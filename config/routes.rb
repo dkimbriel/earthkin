@@ -25,6 +25,7 @@ Rails.application.routes.draw do
 		resources :payments, only: [:index, :show, :create, :destroy] do
 			member do
 				post :send_invoice
+				post :pay_link
 			end
 		end
 		resources :locations, only: [:index, :show, :create, :update, :destroy]

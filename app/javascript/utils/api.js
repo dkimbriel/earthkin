@@ -147,6 +147,7 @@ export const paymentsApi = {
 	create: (data) => api.post("/api/payments", { payment: data }),
 	delete: (id) => api.delete(`/api/payments/${id}`),
 	sendInvoice: (id) => api.post(`/api/payments/${id}/send_invoice`),
+	payLink: (id) => api.post(`/api/payments/${id}/pay_link`),
 };
 
 export const reportsApi = {
