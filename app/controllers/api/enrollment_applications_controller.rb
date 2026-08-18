@@ -65,7 +65,7 @@ module Api
             }
           }
         },
-        methods: [:full_child_name, :full_parent_name, :effective_enrollment_fee, :effective_tuition_amount]
+        methods: [:full_child_name, :full_parent_name, :effective_enrollment_fee, :effective_tuition_amount, :payment_selection_url]
       ).merge(
         emails: sorted_emails.as_json(
           only: [:id, :mailer_class, :email_type, :recipient, :subject, :status, :sent_at, :failed_at, :created_at, :html_body],
