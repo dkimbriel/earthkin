@@ -32,6 +32,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import PersonIcon from "@mui/icons-material/Person";
 import DescriptionIcon from "@mui/icons-material/Description";
 import EmailIcon from "@mui/icons-material/Email";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
@@ -285,6 +286,12 @@ export default function EnrollmentApplicationDetailPage() {
         } catch (err) {
             setError(err.message);
         }
+    };
+
+    const handleCopyPaymentLink = () => {
+        if (!application?.payment_selection_url) return;
+        navigator.clipboard.writeText(application.payment_selection_url);
+        setEmailNotification("Payment link copied to clipboard");
     };
 
     const openFeeDialog = () => {
@@ -685,6 +692,45 @@ export default function EnrollmentApplicationDetailPage() {
                             Resend Fee Request Email
                         </ActionButtonWithEmail>
                     )}
+
+                    {application.status === "fee_requested" &&
+                        application.payment_selection_url && (
+                            <Box sx={{ width: "100%" }}>
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    display="block"
+                                    gutterBottom
+                                >
+                                    Enrollment fee payment link (same link the
+                                    fee request email sends &mdash; paste into a
+                                    custom email)
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        gap: 1,
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <TextField
+                                        fullWidth
+                                        size="small"
+                                        value={application.payment_selection_url}
+                                        InputProps={{ readOnly: true }}
+                                    />
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        startIcon={<ContentCopyIcon />}
+                                        onClick={handleCopyPaymentLink}
+                                        sx={{ flexShrink: 0 }}
+                                    >
+                                        Copy
+                                    </Button>
+                                </Box>
+                            </Box>
+                        )}
 
                     {[
                         "submitted",
