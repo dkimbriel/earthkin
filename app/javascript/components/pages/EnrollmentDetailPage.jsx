@@ -253,6 +253,7 @@ export default function EnrollmentDetailPage() {
             label: "Payment Method",
             type: "select",
             options: [
+                { value: "stripe", label: "Stripe" },
                 { value: "check", label: "Check" },
                 { value: "cash", label: "Cash" },
                 { value: "other", label: "Other" },
