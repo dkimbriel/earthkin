@@ -36,6 +36,18 @@ module Api
 			end
 		end
 
+		# Returns the public pay link for this payment so an admin can paste it
+		# into a custom email instead of sending the built-in invoice. Admin-only
+		# (mints/returns a payment token); the link works regardless of the
+		# enrollment's status, unlike the enrollment-fee selection page.
+		def pay_link
+			require_admin!
+			return if performed?
+
+			payment = Payment.find(params[:id])
+			render json: { url: payment.pay_url }
+		end
+
 		private
 
 		def payment_params

@@ -64,6 +64,27 @@ RSpec.describe 'Api::Payments', type: :request do
     end
   end
 
+  describe 'POST /api/payments/:id/pay_link' do
+    let!(:payment) { create(:payment, program_enrollment: enrollment) }
+
+    it 'returns the public pay link for an admin' do
+      post "/api/payments/#{payment.id}/pay_link"
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json['url']).to include("/pay/#{payment.reload.payment_token}")
+    end
+
+    context 'as a teacher (non-admin staff)' do
+      let(:user) { create(:user, :teacher) }
+
+      it 'is forbidden' do
+        post "/api/payments/#{payment.id}/pay_link"
+        expect(response).to have_http_status(:forbidden)
+      end
+    end
+  end
+
   describe 'DELETE /api/payments/:id' do
     let!(:payment) { create(:payment, program_enrollment: enrollment) }
 
