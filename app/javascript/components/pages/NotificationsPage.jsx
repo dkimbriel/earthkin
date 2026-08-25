@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import EventIcon from "@mui/icons-material/Event";
 import PaymentIcon from "@mui/icons-material/Payment";
+import PaidIcon from "@mui/icons-material/Paid";
 import DescriptionIcon from "@mui/icons-material/Description";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import NotificationsIcon from "@mui/icons-material/Notifications";
@@ -25,6 +26,7 @@ const EVENT_ICON = {
 	application_submitted: <PersonAddIcon />,
 	meeting_scheduled: <EventIcon />,
 	payment_plan_selected: <PaymentIcon />,
+	payment_completed: <PaidIcon />,
 	form_signed: <DescriptionIcon />,
 };
 

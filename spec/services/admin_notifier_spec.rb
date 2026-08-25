@@ -38,6 +38,25 @@ RSpec.describe AdminNotifier do
     end
   end
 
+  describe '.payment_completed' do
+    it 'creates a notification with the child name, amount, and payment kind' do
+      child = create(:child, first_name: 'Sam', last_name: 'Rivera')
+      enrollment = create(:program_enrollment, child: child, enrollment_application: application)
+      payment = create(:payment, program_enrollment: enrollment,
+                                 payment_type: 'enrollment_fee', amount: 150)
+
+      expect {
+        described_class.payment_completed(payment)
+      }.to change(Notification, :count).by(1)
+
+      notification = Notification.last
+      expect(notification.event_type).to eq('payment_completed')
+      expect(notification.title).to include('Sam Rivera').and include('150.00')
+      expect(notification.body).to include('enrollment fee').and include('Stripe')
+      expect(notification.enrollment_application).to eq(application)
+    end
+  end
+
   describe '.family_first_login' do
     it "creates a notification linked to the family's latest application" do
       family = create(:family)
