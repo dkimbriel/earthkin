@@ -36,6 +36,26 @@ class AdminNotifier
       )
     end
 
+    # Fired when a Stripe checkout completes and we record the payment (via the
+    # webhook) — the school's cue that money actually landed.
+    def payment_completed(payment)
+      enrollment = payment.program_enrollment
+      child_name = enrollment&.child&.full_name.presence || 'a family'
+      amount = format('%.2f', payment.amount.to_d)
+      label = case payment.payment_type
+              when 'enrollment_fee' then 'enrollment fee'
+              when 'tuition'
+                payment.installment_number ? "tuition installment ##{payment.installment_number}" : 'tuition payment'
+              else 'payment'
+              end
+      notify(
+        event_type: 'payment_completed',
+        title: "Payment received — #{child_name} ($#{amount})",
+        body: "A #{label} of $#{amount} was paid via Stripe for #{child_name}.",
+        enrollment_application: enrollment&.enrollment_application
+      )
+    end
+
     # Fired the first time a parent signs in to the portal — a cue that the
     # family is set up and their enrollment forms can be issued.
     def family_first_login(user)

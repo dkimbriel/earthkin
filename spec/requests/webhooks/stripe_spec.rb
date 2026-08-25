@@ -60,9 +60,16 @@ RSpec.describe 'Webhooks::Stripe', type: :request do
       expect(payment.stripe_receipt_url).to eq('https://pay.stripe.com/receipts/abc')
     end
 
+    it 'notifies the school that the payment landed' do
+      expect { post_webhook }
+        .to change { Notification.where(event_type: 'payment_completed').count }.by(1)
+    end
+
     it 'is idempotent when Stripe replays the event' do
       post_webhook
       expect { post_webhook }.not_to change(Payment, :count)
+      expect { post_webhook }
+        .not_to change { Notification.where(event_type: 'payment_completed').count }
     end
   end
 
@@ -87,6 +94,11 @@ RSpec.describe 'Webhooks::Stripe', type: :request do
       expect(payment.payment_type).to eq('tuition')
       expect(payment.payment_method).to eq('stripe')
       expect(plan.reload.installments[0]['status']).to eq('completed')
+    end
+
+    it 'notifies the school that the payment landed' do
+      expect { post_webhook }
+        .to change { Notification.where(event_type: 'payment_completed').count }.by(1)
     end
 
     it 'does not double-charge a replayed event' do
@@ -120,6 +132,11 @@ RSpec.describe 'Webhooks::Stripe', type: :request do
       expect(payment.payment_method).to eq('stripe')
       expect(payment.stripe_checkout_session_id).to eq('cs_invoice_1')
       expect(plan.reload.installments[0]['status']).to eq('completed')
+    end
+
+    it 'notifies the school that the payment landed' do
+      expect { post_webhook }
+        .to change { Notification.where(event_type: 'payment_completed').count }.by(1)
     end
 
     it 'is idempotent on replay' do

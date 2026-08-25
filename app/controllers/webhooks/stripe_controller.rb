@@ -53,16 +53,23 @@ module Webhooks
 				receipt_url: receipt_url_for(session.payment_intent)
 			}
 
-			case metadata['kind']
-			when 'enrollment_fee'
-				record_enrollment_fee(metadata, stripe_ids)
-			when 'installment'
-				record_installment(metadata, stripe_ids)
-			when 'invoice'
-				record_invoice(metadata, stripe_ids)
-			else
-				Rails.logger.warn("[stripe webhook] unknown checkout kind: #{metadata['kind'].inspect}")
-			end
+			payment =
+				case metadata['kind']
+				when 'enrollment_fee'
+					record_enrollment_fee(metadata, stripe_ids)
+				when 'installment'
+					record_installment(metadata, stripe_ids)
+				when 'invoice'
+					record_invoice(metadata, stripe_ids)
+				else
+					Rails.logger.warn("[stripe webhook] unknown checkout kind: #{metadata['kind'].inspect}")
+					nil
+				end
+
+			# Alert the school that money landed. Never let a notification hiccup
+			# fail the webhook (which would make Stripe retry an already-recorded
+			# payment) — AdminNotifier already swallows its own errors.
+			AdminNotifier.payment_completed(payment) if payment
 		end
 
 		def record_enrollment_fee(metadata, stripe_ids)
@@ -71,11 +78,12 @@ module Webhooks
 			# Terminal states already have (or can't take) a fee payment.
 			return if %w[declined enrolled].include?(application.status)
 
-			EnrollmentWorkflowService.new(application).process_enrollment_fee_payment(
+			result = EnrollmentWorkflowService.new(application).process_enrollment_fee_payment(
 				payment_plan_id: metadata['payment_plan_id'],
 				payment_method: 'stripe',
 				stripe: stripe_ids
 			)
+			result[:payment]
 		end
 
 		def record_installment(metadata, stripe_ids)
@@ -118,6 +126,8 @@ module Webhooks
 					plan.mark_installment_paid!(index, payment) if plan.installments[index]
 				end
 			end
+
+			payment
 		end
 
 		# The hosted receipt lives on the charge behind the payment intent.
