@@ -1,0 +1,64 @@
+<h2 style="color: #2e7d32;">Your next tuition payment is due</h2>
+
+<p>Dear <%= @family.name %>,</p>
+
+<p>This is a friendly reminder that the next payment for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %> is due today.</p>
+
+<h3>Amount Due</h3>
+<ul>
+  <li><strong>Amount:</strong> <%= number_to_currency(@payment.amount) %></li>
+  <li><strong>Due Date:</strong> <%= @payment.payment_date.strftime('%B %d, %Y') %></li>
+  <li><strong>Type:</strong> Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %></li>
+</ul>
+
+<p style="margin: 24px 0;">
+  <a href="<%= @pay_url %>" style="background-color: #2e7d32; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; display: inline-block;">
+    Pay <%= number_to_currency(@payment.amount) %> Securely
+  </a>
+</p>
+<p style="font-size: 13px; color: #666;">Pay by card through our secure Stripe page — a receipt is emailed to you automatically. If the button doesn't work, paste this link into your browser:<br><%= @pay_url %></p>
+
+<h3>Payment Plan Status</h3>
+<ul>
+  <li><strong>Plan:</strong> <%= @plan.payment_plan.name %></li>
+  <li><strong>Total Tuition:</strong> <%= number_to_currency(@plan.total_amount) %></li>
+  <li><strong>Total Paid:</strong> <%= number_to_currency(@total_paid) %></li>
+  <li><strong>Outstanding Balance:</strong> <span style="color: #b00020; font-weight: bold;"><%= number_to_currency(@remaining) %></span></li>
+</ul>
+
+<h3>Payment History</h3>
+<table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+  <thead>
+    <tr style="background: #f7f7f7; text-align: left;">
+      <th style="padding: 8px; border-bottom: 2px solid #e0e0e0;">Invoice</th>
+      <th style="padding: 8px; border-bottom: 2px solid #e0e0e0;">Due Date</th>
+      <th style="padding: 8px; border-bottom: 2px solid #e0e0e0;">Amount</th>
+      <th style="padding: 8px; border-bottom: 2px solid #e0e0e0;">Status</th>
+      <th style="padding: 8px; border-bottom: 2px solid #e0e0e0;">Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @invoice_rows.each do |row| %>
+      <tr<%= row[:current] ? ' style="background: #fff8e1;"'.html_safe : '' %>>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= row[:label] %></td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= row[:due_date] ? Date.parse(row[:due_date].to_s).strftime('%b %d, %Y') : '—' %></td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= number_to_currency(row[:amount]) %></td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; color: <%= %w[Due Due\ now Overdue].include?(row[:status]) ? '#b00020' : '#2e7d32' %>;"><%= row[:status] %></td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+          <% if row[:url] %>
+            <a href="<%= row[:url] %>" style="color: #2e7d32;"><%= row[:status] == 'Paid' ? 'View invoice' : 'Pay now' %></a>
+          <% else %>
+            —
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<p style="margin-top: 24px;">If you have any questions about this payment or your account, please don't hesitate to contact us.</p>
+
+<p>Thank you for being part of the Earthkin community!</p>
+
+<p>Warmly,<br>
+The Earthkin Team</p>
