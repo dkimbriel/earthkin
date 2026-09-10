@@ -2,7 +2,7 @@
 
 <p>Dear <%= @family.name %>,</p>
 
-<p>This is a friendly reminder that the next payment for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %> is due today.</p>
+<p>This is a friendly reminder that the next payment for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %> program is due in three days.</p>
 
 <h3>Amount Due</h3>
 <ul>
@@ -43,7 +43,7 @@
         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= row[:label] %></td>
         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= row[:due_date] ? Date.parse(row[:due_date].to_s).strftime('%b %d, %Y') : '—' %></td>
         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= number_to_currency(row[:amount]) %></td>
-        <td style="padding: 8px; border-bottom: 1px solid #eee; color: <%= %w[Due Due\ now Overdue].include?(row[:status]) ? '#b00020' : '#2e7d32' %>;"><%= row[:status] %></td>
+        <td style="padding: 8px; border-bottom: 1px solid #eee; color: <%= ['Due', 'Due soon', 'Overdue'].include?(row[:status]) ? '#b00020' : '#2e7d32' %>;"><%= row[:status] %></td>
         <td style="padding: 8px; border-bottom: 1px solid #eee;">
           <% if row[:url] %>
             <a href="<%= row[:url] %>" style="color: #2e7d32;"><%= row[:status] == 'Paid' ? 'View invoice' : 'Pay now' %></a>

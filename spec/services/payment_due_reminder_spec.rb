@@ -2,6 +2,8 @@ require 'rails_helper'
 
 RSpec.describe PaymentDueReminder do
   let(:due_date) { Date.new(2026, 10, 1) }
+  # Reminders go out LEAD_DAYS (3) before the due date.
+  let(:run_date) { due_date - PaymentDueReminder::LEAD_DAYS }
   let(:family) { create(:family) }
   let!(:parent) { create(:parent, family: family, email: 'parent@example.com') }
   let(:child) { create(:child, family: family) }
@@ -32,8 +34,8 @@ RSpec.describe PaymentDueReminder do
   end
 
   describe '.run' do
-    it 'emails parents for the installment due that day' do
-      expect { PaymentDueReminder.run(date: due_date) }
+    it 'emails parents three days before the installment is due' do
+      expect { PaymentDueReminder.run(date: run_date) }
         .to change { ActionMailer::Base.deliveries.count }.by(1)
 
       mail = ActionMailer::Base.deliveries.last
@@ -42,7 +44,7 @@ RSpec.describe PaymentDueReminder do
     end
 
     it 'creates a pending invoice for the due installment so it has a pay link' do
-      expect { PaymentDueReminder.run(date: due_date) }
+      expect { PaymentDueReminder.run(date: run_date) }
         .to change { plan.payments.where(installment_number: 2).count }.from(0).to(1)
 
       invoice = plan.payments.find_by(installment_number: 2)
@@ -52,19 +54,19 @@ RSpec.describe PaymentDueReminder do
     end
 
     it 'tracks the reminder as a payment_due email' do
-      PaymentDueReminder.run(date: due_date)
+      PaymentDueReminder.run(date: run_date)
       invoice = plan.payments.find_by(installment_number: 2)
       expect(invoice.emails.by_type('payment_due').sent.count).to eq(1)
     end
 
     it 'is idempotent — a second run does not re-email' do
-      PaymentDueReminder.run(date: due_date)
-      expect { PaymentDueReminder.run(date: due_date) }
+      PaymentDueReminder.run(date: run_date)
+      expect { PaymentDueReminder.run(date: run_date) }
         .not_to change { ActionMailer::Base.deliveries.count }
     end
 
     it 'returns the number of reminders sent' do
-      expect(PaymentDueReminder.run(date: due_date)).to eq(1)
+      expect(PaymentDueReminder.run(date: run_date)).to eq(1)
     end
 
     it 'sends nothing when no installment is due that day' do
@@ -74,7 +76,7 @@ RSpec.describe PaymentDueReminder do
 
     it 'skips cancelled enrollments' do
       enrollment.update!(status: 'cancelled')
-      expect { PaymentDueReminder.run(date: due_date) }
+      expect { PaymentDueReminder.run(date: run_date) }
         .not_to change { ActionMailer::Base.deliveries.count }
     end
   end

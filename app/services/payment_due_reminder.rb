@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-# Emails parents a reminder on the due date of each tuition installment. Run
-# once a day (see lib/tasks/payment_reminders.rake / Heroku Scheduler).
+# Emails parents a reminder three days before each tuition installment falls
+# due. Run once a day (see lib/tasks/payment_reminders.rake / Heroku Scheduler);
+# with installments dated the 24th this lands on the 21st.
 #
-# For every payment plan with a pending installment due today it:
+# For every payment plan with a pending installment due LEAD_DAYS from now it:
 #   1. finds or creates the pending invoice (Payment) for that installment, so
 #      the reminder can carry a working "Pay now" link — the same pending
 #      Payment the Stripe webhook later settles (kind: 'invoice');
@@ -14,6 +15,10 @@
 # Returns the number of reminders sent.
 module PaymentDueReminder
   module_function
+
+  # How many days before an installment's due date the reminder goes out. The
+  # email copy ("due in three days") is written to match this.
+  LEAD_DAYS = 3
 
   def run(date: Date.current, logger: Rails.logger)
     sent = 0
@@ -33,9 +38,11 @@ module PaymentDueReminder
     sent
   end
 
-  # [[plan, installment_index], ...] for pending installments due on `date`,
-  # skipping cancelled or soft-deleted enrollments.
+  # [[plan, installment_index], ...] for pending installments falling due
+  # LEAD_DAYS after `date`, skipping cancelled or soft-deleted enrollments.
   def due_installments(date)
+    reminder_target = date + LEAD_DAYS
+
     EnrollmentPaymentPlan
       .includes(program_enrollment: { child: { family: :parents } })
       .flat_map do |plan|
@@ -45,7 +52,7 @@ module PaymentDueReminder
         plan.installments.each_with_index.filter_map do |installment, index|
           next unless installment['status'] == 'pending'
           next if installment['due_date'].blank?
-          next unless Date.parse(installment['due_date'].to_s) == date
+          next unless Date.parse(installment['due_date'].to_s) == reminder_target
 
           [plan, index]
         end

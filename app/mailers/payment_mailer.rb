@@ -114,13 +114,14 @@ class PaymentMailer < ApplicationMailer
 
     plan.installments.each_with_index.map do |installment, index|
       payment = tuition[index + 1]
+      current = payment&.id == @payment.id
       rows << {
         label: "Installment ##{index + 1}",
         due_date: installment['due_date'],
         amount: installment['amount'],
-        status: installment_status(installment),
+        status: current ? 'Due soon' : installment_status(installment),
         url: payment&.pay_url,
-        current: payment&.id == @payment.id
+        current: current
       }
     end
 
@@ -130,13 +131,6 @@ class PaymentMailer < ApplicationMailer
   def installment_status(installment)
     return 'Paid' if installment['status'] == 'completed'
 
-    due = Date.parse(installment['due_date'].to_s)
-    if due == Date.current
-      'Due now'
-    elsif due < Date.current
-      'Overdue'
-    else
-      'Upcoming'
-    end
+    Date.parse(installment['due_date'].to_s) < Date.current ? 'Overdue' : 'Upcoming'
   end
 end
