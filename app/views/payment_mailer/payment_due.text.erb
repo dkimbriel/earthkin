@@ -1,0 +1,31 @@
+Your next tuition payment is due
+
+Dear <%= @family.name %>,
+
+This is a friendly reminder that the next payment for <%= @child.first_name %> <%= @child.last_name %>'s enrollment in <%= @program.name %> program is due in three days.
+
+AMOUNT DUE
+Amount: $<%= sprintf('%.2f', @payment.amount) %>
+Due Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
+Type: Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %>
+
+Pay securely by card (a receipt is emailed automatically):
+<%= @pay_url %>
+
+PAYMENT PLAN STATUS
+Plan: <%= @plan.payment_plan.name %>
+Total Tuition: $<%= sprintf('%.2f', @plan.total_amount) %>
+Total Paid: $<%= sprintf('%.2f', @total_paid) %>
+Outstanding Balance: $<%= sprintf('%.2f', @remaining) %>
+
+PAYMENT HISTORY
+<% @invoice_rows.each do |row| -%>
+<%= row[:label] %> — <%= row[:due_date] ? Date.parse(row[:due_date].to_s).strftime('%b %d, %Y') : 'n/a' %> — $<%= sprintf('%.2f', row[:amount]) %> — <%= row[:status] %><%= " — #{row[:url]}" if row[:url] %>
+<% end -%>
+
+If you have any questions about this payment or your account, please don't hesitate to contact us.
+
+Thank you for being part of the Earthkin community!
+
+Warmly,
+The Earthkin Team

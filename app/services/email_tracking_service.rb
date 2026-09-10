@@ -104,6 +104,8 @@ class EmailTrackingService
       "You're Invited to Apply: #{program_name}"
     when ['PaymentMailer', 'invoice']
       "Payment Invoice"
+    when ['PaymentMailer', 'payment_due']
+      "Payment Due"
     when ['PaymentMailer', 'receipt']
       "Payment Receipt"
     when ['ParentMailer', 'welcome_email']
