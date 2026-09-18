@@ -24,18 +24,70 @@ class FormTemplate < ApplicationRecord
     'current_date' => "Today's date, filled in when the parent opens the form."
   }.freeze
 
+  CATEGORIES = %w[enrollment staff].freeze
+
+  # Staff documents (written warnings, termination letters) are issued to an
+  # employee rather than a family, so they get their own token vocabulary.
+  # Anything case-specific (dates, incidents, final pay) is typed into the
+  # letter body when it is issued, not tokenized.
+  STAFF_FORMS = {
+    'termination_letter' => 'Termination Letter'
+  }.freeze
+
+  STAFF_TOKENS = %w[employee_name employee_position employee_email school_name current_date issued_by issued_by_title].freeze
+
+  STAFF_TOKEN_INFO = {
+    'employee_name' => "The employee's full name, from their teacher record.",
+    'employee_position' => "The employee's position or title, from their teacher record.",
+    'employee_email' => "The employee's email address on file.",
+    'school_name' => 'The school name.',
+    'current_date' => "Today's date, filled in when the document is issued.",
+    'issued_by' => 'The name of the admin who issued the document.',
+    'issued_by_title' => "The issuer's title (defaults to Executive Director)."
+  }.freeze
+
   has_many :enrollment_form_signatures, dependent: :restrict_with_error
+  has_many :staff_documents, dependent: :nullify
 
   validates :key, presence: true, uniqueness: true
   validates :name, presence: true
+  validates :category, inclusion: { in: CATEGORIES }
   validate :tokens_must_be_valid
+
+  scope :enrollment, -> { where(category: 'enrollment') }
+  scope :staff, -> { where(category: 'staff') }
+
+  # The tokens a template may use, which depend on who signs it.
+  def self.tokens_for(category)
+    category.to_s == 'staff' ? STAFF_TOKENS : KNOWN_TOKENS
+  end
+
+  def self.token_info_for(category)
+    category.to_s == 'staff' ? STAFF_TOKEN_INFO : TOKEN_INFO
+  end
+
+  def known_tokens
+    self.class.tokens_for(category)
+  end
 
   # Idempotently create the four standard forms (called when forms are sent).
   def self.ensure_defaults!
     DEFAULT_FORMS.map do |key, name|
       find_or_create_by!(key: key) do |form|
         form.name = name
-        form.body = "#{name}\n\n(Form text not set yet — an admin can edit this under Emails → Enrollment Forms.)"
+        form.category = 'enrollment'
+        form.body = "#{name}\n\n(Form text not set yet, an admin can edit this under Emails → Enrollment Forms.)"
+      end
+    end
+  end
+
+  # Staff document skeletons, created on demand when an admin issues one.
+  def self.ensure_staff_defaults!
+    STAFF_FORMS.map do |key, name|
+      find_or_create_by!(key: key) do |form|
+        form.name = name
+        form.category = 'staff'
+        form.body = StaffDocumentTemplates.body_for(key)
       end
     end
   end
@@ -47,7 +99,7 @@ class FormTemplate < ApplicationRecord
   # are left untouched.
   def tokens_must_be_valid
     used = body.to_s.scan(/{{\s*(\w+)\s*}}/).flatten.uniq
-    unknown = used - KNOWN_TOKENS
+    unknown = used - known_tokens
     return if unknown.empty?
 
     errors.add(:base, "Unknown token(s): #{unknown.map { |t| "{{#{t}}}" }.join(', ')}")

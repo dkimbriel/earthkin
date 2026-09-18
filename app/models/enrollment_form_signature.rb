@@ -1,5 +1,6 @@
 class EnrollmentFormSignature < ApplicationRecord
   include SoftDeletable
+  include SignatureAuditable
 
   belongs_to :child
   belongs_to :form_template
@@ -12,8 +13,6 @@ class EnrollmentFormSignature < ApplicationRecord
 
   scope :pending, -> { where(status: 'pending') }
   scope :signed, -> { where(status: 'signed') }
-
-  after_create :log_issued
 
   def signed?
     status == 'signed'
@@ -61,11 +60,7 @@ class EnrollmentFormSignature < ApplicationRecord
                'email' => email,
                'ip' => ip,
                'user_agent' => user_agent,
-               'document_sha256' => Digest::SHA256.hexdigest(document))
-  end
-
-  def record_view!(email: nil, ip: nil, user_agent: nil)
-    log_event!('viewed', 'by' => email, 'ip' => ip, 'user_agent' => user_agent)
+               'document_sha256' => document_fingerprint(document))
   end
 
   def as_json(_options = {})
@@ -159,16 +154,5 @@ class EnrollmentFormSignature < ApplicationRecord
   # Labels live inside [[...|label]] markers, so strip the delimiters.
   def sanitize_label(text)
     text.tr('|', '/').gsub(']]', ')')
-  end
-
-  # Append an event to the audit trail without touching validations —
-  # audit entries must never be blocked or rewritten by model state.
-  def log_event!(event, details = {})
-    entry = { 'event' => event, 'at' => Time.current.iso8601 }.merge(details.compact)
-    update_columns(audit_log: audit_log + [entry], updated_at: Time.current)
-  end
-
-  def log_issued
-    log_event!('issued')
   end
 end

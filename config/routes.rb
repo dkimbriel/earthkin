@@ -115,6 +115,19 @@ Rails.application.routes.draw do
 			end
 		end
 
+		# Staff documents: issued by admins, signed by the employee and
+		# counter-signed by the director.
+		resources :staff_documents, only: [:index, :show, :create] do
+			member do
+				post :sign
+				post :view
+				get :pdf
+			end
+			collection do
+				get :templates
+			end
+		end
+
 		# Parent portal (parent role only, scoped to their family)
 		get 'portal/overview', to: 'portal#overview'
 		get 'portal/events', to: 'portal#events'

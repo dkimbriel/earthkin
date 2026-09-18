@@ -140,7 +140,7 @@ function InlineField({ type, fieldKey, label, values, onChange, readOnly, error 
 	);
 }
 
-function SignatureBlock({ readOnly, signatureName, onSignatureChange, signedAt }) {
+function SignatureBlock({ readOnly, signatureName, onSignatureChange, signedAt, signerLabel }) {
 	return (
 		<Box id="form-signature-block" sx={{ my: 2, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: 1 }}>
 			{readOnly ? (
@@ -149,8 +149,8 @@ function SignatureBlock({ readOnly, signatureName, onSignatureChange, signedAt }
 						{signatureName || " "}
 					</Typography>
 					<Typography variant="caption" color="text.secondary">
-						Parent/Guardian signature
-						{signedAt ? ` — signed ${new Date(signedAt).toLocaleString()}` : ""}
+						{signerLabel}
+						{signedAt ? `, signed ${new Date(signedAt).toLocaleString()}` : ""}
 					</Typography>
 				</>
 			) : (
@@ -184,6 +184,7 @@ export default function FormDocument({
 	onSignatureChange = () => {},
 	signedAt = null,
 	errors = {},
+	signerLabel = "Parent/Guardian signature",
 }) {
 	const renderInline = (text, keyPrefix) => {
 		const nodes = [];
@@ -204,6 +205,7 @@ export default function FormDocument({
 						signatureName={signatureName}
 						onSignatureChange={onSignatureChange}
 						signedAt={signedAt}
+						signerLabel={signerLabel}
 					/>
 				);
 			} else if (type === "date") {
