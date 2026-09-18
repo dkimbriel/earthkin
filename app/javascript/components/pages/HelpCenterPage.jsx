@@ -166,6 +166,17 @@ const SECTIONS = [
 		img("teacher-calendar", "A teacher's view of the portal"),
 	]),
 
+	S("staff-documents", "Staff Documents", ["admin", "teacher"], [
+		p("Staff documents are notices issued to one employee for signature: a written warning, a performance notice, a termination letter. They are separate from enrollment forms, and only the employee named on a document and admins can see it."),
+		p("Admins: open Staff Documents \u2192 Issue Document, pick the employee, start from a template, and edit the text before issuing. The text is copied onto that employee's document when you issue it, so editing the template later never changes a notice already issued. The document then appears in the employee's My Documents page."),
+		p("Employees: open My Documents, read the notice, and type your name to sign. Signing records that you received and read the notice, not that you agree with it, and you can attach written comments of your own before you sign."),
+		list(
+			"Both parties sign: the employee acknowledges the notice and an admin counter-signs it. Either can go first, and the document is complete only once both have signed.",
+			"The text is frozen at the first signature, so both parties demonstrably sign the same document.",
+			"Every issue, view, and signature is recorded with the time, the signer, and their IP address. Download the PDF for the notice, the comments, both signatures, and that full audit trail."
+		),
+	]),
+
 	S("support", "Support", ["admin", "teacher", "parent"], [
 		p("Questions about enrollment, payments, or forms? Contact the school at earthkinnatureschool@gmail.com."),
 		p("For anything technical — the web address, email connection, or unexpected errors — contact David Kimbriel (dkimbriel@gofreedompower.com), who set up the portal."),

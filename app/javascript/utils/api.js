@@ -231,6 +231,24 @@ export const formSignaturesApi = {
 	pdfPath: (id) => `/api/enrollment_form_signatures/${id}/pdf`,
 };
 
+export const staffDocumentsApi = {
+	list: (teacherId) =>
+		api.get(teacherId ? `/api/staff_documents?teacher_id=${teacherId}` : "/api/staff_documents"),
+	get: (id) => api.get(`/api/staff_documents/${id}`),
+	templates: () => api.get("/api/staff_documents/templates"),
+	issue: (data) => api.post("/api/staff_documents", data),
+	// One endpoint for both parties: a teacher signing acknowledges the notice,
+	// an admin signing counter-signs it.
+	sign: (id, signedByName, employeeComments, formFields) =>
+		api.post(`/api/staff_documents/${id}/sign`, {
+			signed_by_name: signedByName,
+			employee_comments: employeeComments,
+			form_fields: formFields || {},
+		}),
+	view: (id) => api.post(`/api/staff_documents/${id}/view`),
+	pdfPath: (id) => `/api/staff_documents/${id}/pdf`,
+};
+
 export const contentItemsApi = {
 	list: () => api.get("/api/content_items"),
 	create: (data) => api.post("/api/content_items", { content_item: data }),

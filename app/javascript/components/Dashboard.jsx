@@ -4,9 +4,12 @@ import {
     NavLink,
     Navigate,
     useNavigate,
+    useLocation,
 } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import {
+    Alert,
+    AlertTitle,
     Avatar,
     Box,
     Button,
@@ -34,8 +37,9 @@ import EmailIcon from "@mui/icons-material/Email";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import RestoreFromTrashIcon from "@mui/icons-material/RestoreFromTrash";
+import DescriptionIcon from "@mui/icons-material/Description";
 import { useAuth } from "../contexts/AuthContext";
-import { notificationsApi } from "../utils/api";
+import { notificationsApi, staffDocumentsApi } from "../utils/api";
 
 import DashboardPage from "./pages/DashboardPage";
 import ParentDashboardPage from "./pages/ParentDashboardPage";
@@ -69,6 +73,9 @@ import ParentFormsPage from "./pages/ParentFormsPage";
 import ParentContentPage from "./pages/ParentContentPage";
 import ParentFormSignPage from "./pages/ParentFormSignPage";
 import HelpCenterPage from "./pages/HelpCenterPage";
+import StaffDocumentsPage from "./pages/StaffDocumentsPage";
+import StaffDocumentSignPage from "./pages/StaffDocumentSignPage";
+import EarthkinLoader from "./shared/EarthkinLoader";
 
 const drawerWidth = 220;
 
@@ -89,6 +96,7 @@ const notificationsNavItem = { path: "/notifications", label: "Notifications", i
 // Admin-only pages.
 const adminNavItems = [
     { path: "/emails", label: "Emails", icon: <EmailIcon /> },
+    { path: "/staff-documents", label: "Staff Documents", icon: <DescriptionIcon /> },
     { path: "/users", label: "Users", icon: <ManageAccountsIcon /> },
     { path: "/recently-deleted", label: "Recently Deleted", icon: <RestoreFromTrashIcon /> },
 ];
@@ -103,8 +111,14 @@ export default function Dashboard() {
     const navigate = useNavigate();
     const [mobileOpen, setMobileOpen] = useState(false);
     const [unreadNotifications, setUnreadNotifications] = useState(0);
+    // null until the first fetch resolves, so the landing redirect below can
+    // wait rather than bouncing a teacher to the calendar and back.
+    const [pendingDocuments, setPendingDocuments] = useState(null);
+    const location = useLocation();
 
     const isAdmin = user?.role === "admin";
+    const isParent = user?.role === "parent";
+    const isTeacher = user?.role === "teacher";
 
     // Refresh the sidebar's unread badge. Exposed to the notifications page so
     // it can update the count the moment an admin reads something, rather than
@@ -125,12 +139,33 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, [isAdmin, refreshUnreadCount]);
 
+    // A staff document awaiting your signature is the most important thing in
+    // the portal for whoever owes it: the employee's acknowledgment, or the
+    // director's counter-signature. Same fetch, opposite side of the document.
+    const refreshPendingDocuments = useCallback(() => {
+        if (!isAdmin && !isTeacher) return;
+        staffDocumentsApi
+            .list()
+            .then((docs) =>
+                setPendingDocuments(
+                    docs.filter((doc) => (isAdmin ? !doc.director_signed_at : !doc.employee_signed_at))
+                )
+            )
+            .catch(() => setPendingDocuments([]));
+    }, [isAdmin, isTeacher]);
+
+    // Re-checked on every navigation, and on a timer so someone already sitting
+    // on a page sees a document that arrived while they were logged in.
+    useEffect(() => {
+        if (!isAdmin && !isTeacher) return undefined;
+        refreshPendingDocuments();
+        const interval = setInterval(refreshPendingDocuments, 60000);
+        return () => clearInterval(interval);
+    }, [isAdmin, isTeacher, refreshPendingDocuments, location.pathname]);
+
     // Single source of truth for the nav bar height, shared by the fixed header
     // and the two layout spacers below it so they always line up.
     const navHeight = { xs: 72, sm: 104 };
-
-    const isParent = user?.role === "parent";
-    const isTeacher = user?.role === "teacher";
 
     const displayName = user?.display_name || user?.email || "";
     const initials = displayName
@@ -150,6 +185,13 @@ export default function Dashboard() {
         ["/calendar", "/programs", "/families", "/teachers", "/content"].includes(item.path)
     );
     const helpNavItem = { path: "/help", label: "Help", icon: <HelpOutlineIcon /> };
+    const pendingCount = pendingDocuments?.length || 0;
+    const myDocumentsNavItem = {
+        path: "/staff-documents",
+        label: "My Documents",
+        icon: <DescriptionIcon />,
+        badge: pendingCount,
+    };
     const navItems = isParent
         ? [
             { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
@@ -160,11 +202,15 @@ export default function Dashboard() {
             helpNavItem,
         ]
         : isTeacher
-            ? [...teacherNavItems, helpNavItem]
+            ? [...teacherNavItems, myDocumentsNavItem, helpNavItem]
             : [
                 ...(isAdmin ? [notificationsNavItem] : []),
                 ...baseNavItems,
-                ...(isAdmin ? adminNavItems : []),
+                ...(isAdmin
+                    ? adminNavItems.map((item) =>
+                        item.path === "/staff-documents" ? { ...item, badge: pendingCount } : item
+                    )
+                    : []),
                 ...(user?.super_admin ? superAdminNavItems : []),
                 helpNavItem,
             ];
@@ -188,10 +234,10 @@ export default function Dashboard() {
                             >
                                 <ListItemIcon>{item.icon}</ListItemIcon>
                                 <ListItemText primary={item.label} />
-                                {item.path === "/notifications" && unreadNotifications > 0 && (
+                                {(item.path === "/notifications" ? unreadNotifications : item.badge) > 0 && (
                                     <Chip
-                                        label={unreadNotifications}
-                                        color="primary"
+                                        label={item.path === "/notifications" ? unreadNotifications : item.badge}
+                                        color={item.path === "/notifications" ? "primary" : "warning"}
                                         size="small"
                                         sx={{ height: 20, minWidth: 20, "& .MuiChip-label": { px: 0.75 } }}
                                     />
@@ -320,6 +366,44 @@ export default function Dashboard() {
                     }}
                 >
                     <Box sx={{ height: navHeight, flexShrink: 0 }} />
+
+                    {/* Unmissable while anything is unsigned, for whoever owes
+                        the signature. A notice sitting unsigned is the one thing
+                        neither side should scroll past. Hidden only on the
+                        document pages themselves, where they are already there. */}
+                    {(isTeacher || isAdmin) && pendingCount > 0 && !location.pathname.startsWith("/staff-documents") && (
+                        <Alert
+                            severity="warning"
+                            variant="filled"
+                            icon={<DescriptionIcon fontSize="inherit" />}
+                            action={
+                                <Button
+                                    color="inherit"
+                                    variant="outlined"
+                                    size="small"
+                                    sx={{ whiteSpace: "nowrap", fontWeight: 600 }}
+                                    onClick={() => navigate(`/staff-documents/${pendingDocuments[0].id}`)}
+                                >
+                                    {isAdmin ? "Review & Counter-sign" : "Review & Sign"}
+                                </Button>
+                            }
+                            sx={{ mb: 3, alignItems: "center", boxShadow: 3 }}
+                        >
+                            <AlertTitle sx={{ fontWeight: 700, mb: 0.25 }}>
+                                {isAdmin
+                                    ? pendingCount === 1
+                                        ? "A staff document is waiting for your counter-signature"
+                                        : `${pendingCount} staff documents are waiting for your counter-signature`
+                                    : pendingCount === 1
+                                        ? "You have a document waiting for your signature"
+                                        : `You have ${pendingCount} documents waiting for your signature`}
+                            </AlertTitle>
+                            {pendingDocuments
+                                .map((doc) => (isAdmin ? `${doc.title} (${doc.teacher_name})` : doc.title))
+                                .join(", ")}
+                        </Alert>
+                    )}
+
                     <Routes>
                         <Route
                             path="/"
@@ -331,7 +415,16 @@ export default function Dashboard() {
                                 isParent ? (
                                     <ParentDashboardPage />
                                 ) : isTeacher ? (
-                                    <Navigate to="/calendar" replace />
+                                    // Wait for the first fetch before choosing
+                                    // where to land, so an unsigned document is
+                                    // never missed by a race.
+                                    pendingDocuments === null ? (
+                                        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+                                            <EarthkinLoader />
+                                        </Box>
+                                    ) : (
+                                        <Navigate to={pendingCount > 0 ? "/staff-documents" : "/calendar"} replace />
+                                    )
                                 ) : (
                                     <DashboardPage />
                                 )
@@ -402,6 +495,12 @@ export default function Dashboard() {
                             element={<EnrollmentApplicationDetailPage />}
                         />
                         <Route path="/content" element={<ContentPage />} />
+                        {!isParent && (
+                            <Route path="/staff-documents" element={<StaffDocumentsPage />} />
+                        )}
+                        {!isParent && (
+                            <Route path="/staff-documents/:id" element={<StaffDocumentSignPage />} />
+                        )}
                         <Route path="/help" element={<HelpCenterPage />} />
                         {user?.role === "admin" && (
                             <Route path="/users" element={<UsersPage />} />

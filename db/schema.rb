@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_08_06_000004) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_17_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -251,6 +251,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_06_000004) do
     t.text "body", default: "", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "category", default: "enrollment", null: false
+    t.index ["category"], name: "index_form_templates_on_category"
     t.index ["key"], name: "index_form_templates_on_key", unique: true
   end
 
@@ -431,6 +433,36 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_06_000004) do
     t.index ["deleted_at"], name: "index_programs_on_deleted_at"
   end
 
+  create_table "staff_documents", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "teacher_id", null: false
+    t.uuid "form_template_id"
+    t.uuid "issued_by_id"
+    t.string "title", null: false
+    t.string "employee_position"
+    t.text "body", default: "", null: false
+    t.string "status", default: "pending", null: false
+    t.string "employee_signed_by_name"
+    t.string "employee_signed_by_email"
+    t.string "employee_signature_ip"
+    t.datetime "employee_signed_at"
+    t.text "employee_comments"
+    t.string "director_signed_by_name"
+    t.string "director_signed_by_email"
+    t.string "director_signature_ip"
+    t.datetime "director_signed_at"
+    t.text "body_snapshot"
+    t.jsonb "form_fields", default: {}, null: false
+    t.jsonb "audit_log", default: [], null: false
+    t.datetime "deleted_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["deleted_at"], name: "index_staff_documents_on_deleted_at"
+    t.index ["form_template_id"], name: "index_staff_documents_on_form_template_id"
+    t.index ["issued_by_id"], name: "index_staff_documents_on_issued_by_id"
+    t.index ["status"], name: "index_staff_documents_on_status"
+    t.index ["teacher_id"], name: "index_staff_documents_on_teacher_id"
+  end
+
   create_table "teachers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "first_name"
     t.string "last_name"
@@ -496,5 +528,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_08_06_000004) do
   add_foreign_key "program_enrollments", "programs"
   add_foreign_key "program_teachers", "programs"
   add_foreign_key "program_teachers", "teachers"
+  add_foreign_key "staff_documents", "form_templates"
+  add_foreign_key "staff_documents", "teachers"
+  add_foreign_key "staff_documents", "users", column: "issued_by_id"
   add_foreign_key "teachers", "users"
 end

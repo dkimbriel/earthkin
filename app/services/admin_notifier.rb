@@ -93,6 +93,18 @@ class AdminNotifier
       )
     end
 
+    # Fired when an employee acknowledges a staff document (a warning or a
+    # termination letter) in the portal, so the director knows it landed and
+    # can counter-sign it.
+    def staff_document_signed(document)
+      comments = document.employee_comments.present? ? ' They left written comments.' : ''
+      notify(
+        event_type: 'staff_document_signed',
+        title: "Staff document signed: #{document.teacher.full_name}",
+        body: "#{document.employee_signed_by_name} acknowledged the #{document.title}.#{comments} It is ready for your counter-signature."
+      )
+    end
+
     # The mailbox alerts are delivered to: the connected Gmail with a "+alerts"
     # sub-address so it threads/labels cleanly instead of colliding with mail
     # the account sends to itself. Nil when no mailbox is connected.
