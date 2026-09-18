@@ -139,25 +139,29 @@ export default function Dashboard() {
         return () => clearInterval(interval);
     }, [isAdmin, refreshUnreadCount]);
 
-    // A staff document waiting on this teacher's signature is the most
-    // important thing in their portal, so it is re-checked on every navigation
-    // and surfaced until they sign it.
+    // A staff document awaiting your signature is the most important thing in
+    // the portal for whoever owes it: the employee's acknowledgment, or the
+    // director's counter-signature. Same fetch, opposite side of the document.
     const refreshPendingDocuments = useCallback(() => {
-        if (!isTeacher) return;
+        if (!isAdmin && !isTeacher) return;
         staffDocumentsApi
             .list()
-            .then((docs) => setPendingDocuments(docs.filter((doc) => !doc.employee_signed_at)))
+            .then((docs) =>
+                setPendingDocuments(
+                    docs.filter((doc) => (isAdmin ? !doc.director_signed_at : !doc.employee_signed_at))
+                )
+            )
             .catch(() => setPendingDocuments([]));
-    }, [isTeacher]);
+    }, [isAdmin, isTeacher]);
 
-    // Re-checked on every navigation, and on a timer so a teacher already
-    // sitting on a page sees a notice issued while they were logged in.
+    // Re-checked on every navigation, and on a timer so someone already sitting
+    // on a page sees a document that arrived while they were logged in.
     useEffect(() => {
-        if (!isTeacher) return undefined;
+        if (!isAdmin && !isTeacher) return undefined;
         refreshPendingDocuments();
         const interval = setInterval(refreshPendingDocuments, 60000);
         return () => clearInterval(interval);
-    }, [isTeacher, refreshPendingDocuments, location.pathname]);
+    }, [isAdmin, isTeacher, refreshPendingDocuments, location.pathname]);
 
     // Single source of truth for the nav bar height, shared by the fixed header
     // and the two layout spacers below it so they always line up.
@@ -202,7 +206,11 @@ export default function Dashboard() {
             : [
                 ...(isAdmin ? [notificationsNavItem] : []),
                 ...baseNavItems,
-                ...(isAdmin ? adminNavItems : []),
+                ...(isAdmin
+                    ? adminNavItems.map((item) =>
+                        item.path === "/staff-documents" ? { ...item, badge: pendingCount } : item
+                    )
+                    : []),
                 ...(user?.super_admin ? superAdminNavItems : []),
                 helpNavItem,
             ];
@@ -359,11 +367,11 @@ export default function Dashboard() {
                 >
                     <Box sx={{ height: navHeight, flexShrink: 0 }} />
 
-                    {/* Unmissable while anything is unsigned: a notice sitting
-                        in a teacher's portal is the one thing they must not
-                        scroll past. Hidden only on the document page itself,
-                        where they are already reading it. */}
-                    {isTeacher && pendingCount > 0 && !location.pathname.startsWith("/staff-documents") && (
+                    {/* Unmissable while anything is unsigned, for whoever owes
+                        the signature. A notice sitting unsigned is the one thing
+                        neither side should scroll past. Hidden only on the
+                        document pages themselves, where they are already there. */}
+                    {(isTeacher || isAdmin) && pendingCount > 0 && !location.pathname.startsWith("/staff-documents") && (
                         <Alert
                             severity="warning"
                             variant="filled"
@@ -376,17 +384,23 @@ export default function Dashboard() {
                                     sx={{ whiteSpace: "nowrap", fontWeight: 600 }}
                                     onClick={() => navigate(`/staff-documents/${pendingDocuments[0].id}`)}
                                 >
-                                    Review &amp; Sign
+                                    {isAdmin ? "Review & Counter-sign" : "Review & Sign"}
                                 </Button>
                             }
                             sx={{ mb: 3, alignItems: "center", boxShadow: 3 }}
                         >
                             <AlertTitle sx={{ fontWeight: 700, mb: 0.25 }}>
-                                {pendingCount === 1
-                                    ? "You have a document waiting for your signature"
-                                    : `You have ${pendingCount} documents waiting for your signature`}
+                                {isAdmin
+                                    ? pendingCount === 1
+                                        ? "A staff document is waiting for your counter-signature"
+                                        : `${pendingCount} staff documents are waiting for your counter-signature`
+                                    : pendingCount === 1
+                                        ? "You have a document waiting for your signature"
+                                        : `You have ${pendingCount} documents waiting for your signature`}
                             </AlertTitle>
-                            {pendingDocuments.map((doc) => doc.title).join(", ")}
+                            {pendingDocuments
+                                .map((doc) => (isAdmin ? `${doc.title} (${doc.teacher_name})` : doc.title))
+                                .join(", ")}
                         </Alert>
                     )}
 
