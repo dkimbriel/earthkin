@@ -84,6 +84,37 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
     end
   end
 
+  describe 'email outcome reporting' do
+    it 'reports :sent when the email goes out' do
+      service.request_enrollment_fee
+      expect(service.email_outcome).to eq(:sent)
+    end
+
+    it 'reports :suppressed when the family has automated emails muted' do
+      application.update!(mute_automated_emails: true)
+
+      expect {
+        service.request_enrollment_fee
+      }.not_to change { ActionMailer::Base.deliveries.count }
+
+      expect(service.email_outcome).to eq(:suppressed)
+      expect(service.email_record).to be_nil
+    end
+
+    it 'reports :failed when delivery raises' do
+      allow(EnrollmentMailer).to receive(:enrollment_fee_request).and_raise(StandardError, 'Gmail is down')
+
+      service.request_enrollment_fee
+
+      expect(service.email_outcome).to eq(:failed)
+      expect(service.email_record.error_message).to include('Gmail is down')
+    end
+
+    it 'reports :not_attempted before any send' do
+      expect(service.email_outcome).to eq(:not_attempted)
+    end
+  end
+
   describe '#process_enrollment_fee_payment' do
     let(:payment_plan) { create(:payment_plan, program: application.program) }
     let(:payment_params) do

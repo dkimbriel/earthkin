@@ -187,6 +187,8 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
       sign_in user
       allow(EnrollmentWorkflowService).to receive(:new).with(application).and_return(service)
       allow(service).to receive(:request_enrollment_fee)
+      allow(service).to receive(:email_outcome).and_return(:sent)
+      allow(service).to receive(:email_record).and_return(nil)
     end
 
     it 'requests enrollment fee' do
@@ -194,6 +196,52 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
 
       expect(response).to have_http_status(:success)
       expect(service).to have_received(:request_enrollment_fee)
+    end
+  end
+
+  describe 'POST /api/enrollment_applications/:id/send_meeting_invite' do
+    let(:application) { create(:enrollment_application, :reviewed, program: program) }
+    let(:location) { create(:location) }
+    let(:params) do
+      {
+        location_id: location.id,
+        proposed_dates: [2.days.from_now.iso8601, 3.days.from_now.iso8601]
+      }
+    end
+
+    before { sign_in user }
+
+    it 'reports the invite as sent when it goes out' do
+      post "/api/enrollment_applications/#{application.id}/send_meeting_invite", params: params
+
+      expect(response).to have_http_status(:success)
+      json = JSON.parse(response.body)
+      expect(json['email_status']).to eq('sent')
+      expect(json['message']).to include('sent to parent')
+    end
+
+    it 'does not claim success when the family has automated emails muted' do
+      application.update!(mute_automated_emails: true)
+
+      post "/api/enrollment_applications/#{application.id}/send_meeting_invite", params: params
+
+      json = JSON.parse(response.body)
+      expect(json['email_status']).to eq('suppressed')
+      expect(json['message']).to include('NOT sent')
+      expect(json['message']).to include('muted')
+      # The event is still created, so the tab shows a meeting with no email.
+      expect(application.events.where(status: 'pending_selection')).to exist
+      expect(Email.where(emailable: application, email_type: 'meeting_invite')).to be_empty
+    end
+
+    it 'reports a delivery failure instead of success' do
+      allow(EnrollmentMailer).to receive(:meeting_invite).and_raise(StandardError, 'The Gmail connection has expired')
+
+      post "/api/enrollment_applications/#{application.id}/send_meeting_invite", params: params
+
+      json = JSON.parse(response.body)
+      expect(json['email_status']).to eq('failed')
+      expect(json['message']).to include('The Gmail connection has expired')
     end
   end
 

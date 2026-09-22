@@ -105,6 +105,21 @@ class AdminNotifier
       )
     end
 
+    # Fired when an outgoing email failed to deliver. EmailTrackingService
+    # records the failure and carries on, so without this the only trace is a
+    # log line and a status chip nobody is looking at.
+    def email_delivery_failed(email)
+      application = email.emailable.is_a?(EnrollmentApplication) ? email.emailable : nil
+      notify(
+        event_type: 'email_delivery_failed',
+        title: "Email failed to send to #{email.recipient}",
+        body: "The #{email.type_label.downcase} email to #{email.recipient} did not go out " \
+              "(#{EmailOutcome.first_line(email.error_message)}). They have not heard from us. " \
+              'Check the Communications tab and re-send once the problem is fixed.',
+        enrollment_application: application
+      )
+    end
+
     # The mailbox alerts are delivered to: the connected Gmail with a "+alerts"
     # sub-address so it threads/labels cleanly instead of colliding with mail
     # the account sends to itself. Nil when no mailbox is connected.

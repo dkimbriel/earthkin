@@ -157,14 +157,18 @@ module Api
       service = EnrollmentWorkflowService.new(application)
       service.complete_meeting(event&.id, outcome_notes: params[:outcome_notes])
 
-      render json: application.reload
+      render json: application.reload.as_json.merge(
+        workflow_email(service, 'Enrollment fee request')
+      )
     end
 
     def request_fee
       application = EnrollmentApplication.find(params[:id])
       service = EnrollmentWorkflowService.new(application)
       service.request_enrollment_fee
-      render json: application.reload
+      render json: application.reload.as_json.merge(
+        workflow_email(service, 'Enrollment fee request')
+      )
     end
 
     def process_fee_payment
@@ -205,7 +209,9 @@ module Api
 
       service = EnrollmentWorkflowService.new(application)
       service.send_enrollment_forms
-      render json: application.reload
+      render json: application.reload.as_json.merge(
+        workflow_email(service, 'Enrollment forms')
+      )
     end
 
     def confirm_enrollment
@@ -218,7 +224,9 @@ module Api
 
       service = EnrollmentWorkflowService.new(application)
       service.confirm_enrollment
-      render json: application.reload
+      render json: application.reload.as_json.merge(
+        workflow_email(service, 'Enrollment confirmation')
+      )
     end
 
     def update_parent_email
@@ -325,9 +333,11 @@ module Api
 
       # Manual admin send: always delivers, even when automated comms are muted.
       email_service = EmailTrackingService.new(application)
-      email_service.send_email('EnrollmentMailer', email_type, mailer_args, {}, automated: false)
+      email = email_service.send_email('EnrollmentMailer', email_type, mailer_args, {}, automated: false)
 
-      render json: { message: "#{email_type.titleize} email sent successfully" }
+      render json: EmailOutcome.describe(
+        "#{email_type.titleize} email", EmailOutcome.classify(email), email
+      )
     end
 
     # Prefill the manual composer with a workflow email, tokens resolved for
@@ -396,12 +406,19 @@ module Api
       )
 
       render json: {
-        message: 'Meeting invite email sent successfully',
         event: event.as_json(include: :location)
-      }
+      }.merge(workflow_email(service, 'Meeting invite'))
     end
 
     private
+
+    # Never report a workflow email as sent without asking what became of it:
+    # EmailTrackingService records failures on the Email row rather than
+    # raising, and skips the send outright when the family has automated
+    # emails muted.
+    def workflow_email(service, label)
+      EmailOutcome.describe(label, service.email_outcome, service.email_record)
+    end
 
     def can_send_email?(application, email_type)
       case email_type
