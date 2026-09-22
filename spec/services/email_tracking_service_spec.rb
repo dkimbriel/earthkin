@@ -43,6 +43,18 @@ RSpec.describe EmailTrackingService do
         expect(email.error_message).to include('Gmail is down')
       end
 
+      it 'alerts admins when delivery fails, so the failure is not silent' do
+        allow(EnrollmentMailer).to receive(:enrollment_fee_request).and_raise(StandardError, 'Gmail is down')
+
+        expect {
+          service.send_email('EnrollmentMailer', 'enrollment_fee_request', [application.id])
+        }.to change { Notification.where(event_type: 'email_delivery_failed').count }.by(1)
+
+        notification = Notification.where(event_type: 'email_delivery_failed').last
+        expect(notification.title).to include('parent@example.com')
+        expect(notification.enrollment_application).to eq(application)
+      end
+
       it 'marks the email failed for an unknown email type' do
         email = service.send_email('EnrollmentMailer', 'unknown_type', [])
 

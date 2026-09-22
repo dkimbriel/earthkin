@@ -91,6 +91,22 @@ export default function EnrollmentApplicationDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [emailNotification, setEmailNotification] = useState(null);
+
+    const notify = (message, severity = "success") =>
+        setEmailNotification({ message, severity });
+
+    // Report what the server says actually happened to the email rather than
+    // assuming the button worked. A family with automated emails muted, or a
+    // mail failure, must not look like a successful send: that is how a
+    // meet-and-greet invite went unsent for a week without anyone noticing.
+    const notifyEmailOutcome = (res, fallback) =>
+        setEmailNotification({
+            message: res?.message || fallback,
+            severity:
+                res?.email_status && res.email_status !== "sent"
+                    ? "warning"
+                    : "success",
+        });
     const [composeDraft, setComposeDraft] = useState(null);
     const [showDob, setShowDob] = useState(false);
 
@@ -239,7 +255,7 @@ export default function EnrollmentApplicationDetailPage() {
                 return;
             }
 
-            await enrollmentApplicationsApi.sendMeetingInvite(id, {
+            const res = await enrollmentApplicationsApi.sendMeetingInvite(id, {
                 locationId: meetingForm.location_id,
                 proposedDates: proposedDates,
                 notes: meetingForm.notes,
@@ -252,7 +268,8 @@ export default function EnrollmentApplicationDetailPage() {
                 proposed_date_3: "",
                 notes: "",
             });
-            setEmailNotification(
+            notifyEmailOutcome(
+                res,
                 "Meeting invite email sent to parent with date options",
             );
             loadApplication();
@@ -263,13 +280,14 @@ export default function EnrollmentApplicationDetailPage() {
 
     const handleCompleteMeeting = async () => {
         try {
-            await enrollmentApplicationsApi.completeMeeting(
+            const res = await enrollmentApplicationsApi.completeMeeting(
                 id,
                 completeMeetingNotes,
             );
             setShowCompleteMeetingDialog(false);
             setCompleteMeetingNotes("");
-            setEmailNotification(
+            notifyEmailOutcome(
+                res,
                 "Meeting completed. Enrollment fee request email sent to parent.",
             );
             loadApplication();
@@ -280,8 +298,8 @@ export default function EnrollmentApplicationDetailPage() {
 
     const handleRequestFee = async () => {
         try {
-            await enrollmentApplicationsApi.requestFee(id);
-            setEmailNotification("Enrollment fee request email sent to parent");
+            const res = await enrollmentApplicationsApi.requestFee(id);
+            notifyEmailOutcome(res, "Enrollment fee request email sent to parent");
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -291,7 +309,7 @@ export default function EnrollmentApplicationDetailPage() {
     const handleCopyPaymentLink = () => {
         if (!application?.payment_selection_url) return;
         navigator.clipboard.writeText(application.payment_selection_url);
-        setEmailNotification("Payment link copied to clipboard");
+        notify("Payment link copied to clipboard");
     };
 
     const openFeeDialog = () => {
@@ -320,8 +338,8 @@ export default function EnrollmentApplicationDetailPage() {
 
     const handleSendEnrollmentForms = async () => {
         try {
-            await enrollmentApplicationsApi.sendEnrollmentForms(id);
-            setEmailNotification("Enrollment forms sent to parent");
+            const res = await enrollmentApplicationsApi.sendEnrollmentForms(id);
+            notifyEmailOutcome(res, "Enrollment forms sent to parent");
             loadApplication();
         } catch (err) {
             setError(err.message);
@@ -330,8 +348,9 @@ export default function EnrollmentApplicationDetailPage() {
 
     const handleConfirmEnrollment = async () => {
         try {
-            await enrollmentApplicationsApi.confirmEnrollment(id);
-            setEmailNotification(
+            const res = await enrollmentApplicationsApi.confirmEnrollment(id);
+            notifyEmailOutcome(
+                res,
                 "Enrollment confirmed! Welcome email sent to family.",
             );
             loadApplication();
@@ -368,7 +387,7 @@ export default function EnrollmentApplicationDetailPage() {
     const handleSaveEmail = async () => {
         try {
             await enrollmentApplicationsApi.updateParentEmail(id, editedEmail);
-            setEmailNotification("Email address updated successfully");
+            notify("Email address updated successfully");
             setShowEmailEditDialog(false);
             loadApplication();
         } catch (err) {
@@ -404,7 +423,7 @@ export default function EnrollmentApplicationDetailPage() {
                 customEnrollmentFee: customFeesForm.customEnrollmentFee || null,
                 customTuitionAmount: customFeesForm.customTuitionAmount || null,
             });
-            setEmailNotification("Custom fees updated successfully");
+            notify("Custom fees updated successfully");
             setShowCustomFeesDialog(false);
             loadApplication();
         } catch (err) {
@@ -420,7 +439,7 @@ export default function EnrollmentApplicationDetailPage() {
     const handleSaveChangePlan = async () => {
         try {
             await enrollmentApplicationsApi.updatePaymentPlan(id, changePlanId);
-            setEmailNotification("Payment plan updated");
+            notify("Payment plan updated");
             setShowChangePlanDialog(false);
             loadApplication();
         } catch (err) {
@@ -438,7 +457,7 @@ export default function EnrollmentApplicationDetailPage() {
                     id,
                     muted,
                 );
-            setEmailNotification(res.message);
+            notify(res.message);
         } catch (err) {
             setApplication((prev) => ({
                 ...prev,
@@ -2379,13 +2398,11 @@ export default function EnrollmentApplicationDetailPage() {
                     initial={composeDraft}
                     showPickers={false}
                     onSaved={() => {
-                        setEmailNotification(
-                            "Draft saved — it's under Emails > Drafts",
-                        );
+                        notify("Draft saved, it's under Emails > Drafts");
                         loadApplication();
                     }}
                     onSent={() => {
-                        setEmailNotification("Email sent to parent");
+                        notify("Email sent to parent");
                         loadApplication();
                     }}
                 />
@@ -2394,16 +2411,18 @@ export default function EnrollmentApplicationDetailPage() {
             {/* Email Notification Toast */}
             <Snackbar
                 open={!!emailNotification}
-                autoHideDuration={6000}
+                autoHideDuration={
+                    emailNotification?.severity === "success" ? 6000 : null
+                }
                 onClose={() => setEmailNotification(null)}
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             >
                 <Alert
                     onClose={() => setEmailNotification(null)}
-                    severity="success"
+                    severity={emailNotification?.severity || "success"}
                     sx={{ width: "100%" }}
                 >
-                    {emailNotification}
+                    {emailNotification?.message}
                 </Alert>
             </Snackbar>
         </Box>

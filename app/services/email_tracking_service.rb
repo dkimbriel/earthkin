@@ -57,6 +57,9 @@ class EmailTrackingService
       "Email delivery failed (#{mailer_class}##{email_type}, email #{email.id}): #{e.class}: #{e.message}"
     )
     email.mark_failed!(e)
+    # A swallowed failure that nobody is told about is how a family ends up
+    # waiting on an email that never left. AdminNotifier never raises.
+    AdminNotifier.email_delivery_failed(email)
   end
 
   def capture_html_body(message)

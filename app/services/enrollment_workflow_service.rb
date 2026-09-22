@@ -1,6 +1,13 @@
 class EnrollmentWorkflowService
+  # What became of the email this step tried to send, for the caller to report
+  # back to the admin who triggered it: :sent, :failed, :suppressed (automated
+  # emails muted for this family) or :not_attempted. Never assume :sent; see
+  # EmailOutcome.
+  attr_reader :email_outcome, :email_record
+
   def initialize(enrollment_application)
     @application = enrollment_application
+    @email_outcome = :not_attempted
   end
 
   def process_inquiry
@@ -23,7 +30,7 @@ class EnrollmentWorkflowService
 
     # Send tracked email
     email_service = EmailTrackingService.new(@application)
-    email_service.send_email('EnrollmentMailer', 'meeting_scheduled', [event.id], { event_id: event.id })
+    track_email(email_service.send_email('EnrollmentMailer', 'meeting_scheduled', [event.id], { event_id: event.id }))
 
     event
   end
@@ -42,7 +49,7 @@ class EnrollmentWorkflowService
 
     # Send the meeting invite email
     email_service = EmailTrackingService.new(@application)
-    email_service.send_email('EnrollmentMailer', 'meeting_invite', [event.id, base_url], { event_id: event.id })
+    track_email(email_service.send_email('EnrollmentMailer', 'meeting_invite', [event.id, base_url], { event_id: event.id }))
 
     event
   end
@@ -63,7 +70,7 @@ class EnrollmentWorkflowService
   def request_enrollment_fee
     @application.request_enrollment_fee!
     email_service = EmailTrackingService.new(@application)
-    email_service.send_email('EnrollmentMailer', 'enrollment_fee_request', [@application.id])
+    track_email(email_service.send_email('EnrollmentMailer', 'enrollment_fee_request', [@application.id]))
     @application
   end
 
@@ -118,7 +125,7 @@ class EnrollmentWorkflowService
       create_pending_form_signatures
 
       email_service = EmailTrackingService.new(@application)
-      email_service.send_email('EnrollmentMailer', 'enrollment_forms', [@application.id])
+      track_email(email_service.send_email('EnrollmentMailer', 'enrollment_forms', [@application.id]))
     end
     @application
   end
@@ -131,12 +138,21 @@ class EnrollmentWorkflowService
 
       email_service = EmailTrackingService.new(@application)
       # The confirmed mailer takes the program enrollment, not the application
-      email_service.send_email('EnrollmentMailer', 'enrollment_confirmed', [@application.program_enrollment.id]) if @application.program_enrollment
+      if @application.program_enrollment
+        track_email(email_service.send_email('EnrollmentMailer', 'enrollment_confirmed', [@application.program_enrollment.id]))
+      end
     end
     @application
   end
 
   private
+
+  # Record the fate of a send so the caller can tell the admin the truth.
+  def track_email(email)
+    @email_record = email
+    @email_outcome = EmailOutcome.classify(email)
+    email
+  end
 
   # Issue the four standard enrollment forms for e-signature in the parent
   # portal. Skipped when the application has no linked child yet.
