@@ -54,11 +54,11 @@ class EnrollmentWorkflowService
     event
   end
 
-  def complete_meeting(event_id = nil, outcome_notes: nil)
+  def complete_meeting(event_id = nil, outcome_notes: nil, occurred_at: nil)
     # event_id is nil when an admin marks the meeting complete without ever
     # scheduling one (skipping the meet-and-greet); just advance the app.
     event = event_id && @application.events.find(event_id)
-    event&.complete!(outcome_notes)
+    event&.complete!(outcome_notes, occurred_at: occurred_at)
     @application.complete_meeting!
 
     # Optionally auto-request enrollment fee

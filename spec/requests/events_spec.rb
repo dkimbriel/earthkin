@@ -222,7 +222,7 @@ RSpec.describe 'Api::Events', type: :request do
         }
 
         expect(response).to have_http_status(:success)
-        expect(service).to have_received(:complete_meeting).with(event.id, outcome_notes: 'Went well')
+        expect(service).to have_received(:complete_meeting).with(event.id, outcome_notes: 'Went well', occurred_at: nil)
       end
     end
 

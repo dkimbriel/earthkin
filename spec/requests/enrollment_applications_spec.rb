@@ -199,6 +199,46 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
     end
   end
 
+  describe 'POST /api/enrollment_applications/:id/complete_meeting' do
+    let(:application) { create(:enrollment_application, :reviewed, program: program) }
+
+    before { sign_in user }
+
+    context 'when the parent never picked a date from the meeting invite' do
+      let!(:event) { create(:event, :pending_selection, eventable: application) }
+
+      it 'completes the meeting the admin arranged offline' do
+        occurred_at = 1.day.ago.change(usec: 0)
+
+        post "/api/enrollment_applications/#{application.id}/complete_meeting",
+             params: { outcome_notes: 'Done offline', meeting_date: occurred_at.strftime('%Y-%m-%dT%H:%M') }
+
+        expect(response).to have_http_status(:success)
+        expect(event.reload.status).to eq('completed')
+        expect(event.scheduled_at).to be_within(1.minute).of(occurred_at)
+        expect(event.outcome_notes).to eq('Done offline')
+        # Auto-advances past meeting_completed and asks the parent for the fee.
+        expect(application.reload.status).to eq('fee_requested')
+      end
+
+      it 'completes the meeting when no date is given' do
+        post "/api/enrollment_applications/#{application.id}/complete_meeting"
+
+        expect(response).to have_http_status(:success)
+        expect(event.reload.status).to eq('completed')
+        expect(event.scheduled_at).to be_present
+        expect(application.reload.status).to eq('fee_requested')
+      end
+    end
+
+    it 'advances the application when there is no meeting at all' do
+      post "/api/enrollment_applications/#{application.id}/complete_meeting"
+
+      expect(response).to have_http_status(:success)
+      expect(application.reload.status).to eq('fee_requested')
+    end
+  end
+
   describe 'POST /api/enrollment_applications/:id/send_meeting_invite' do
     let(:application) { create(:enrollment_application, :reviewed, program: program) }
     let(:location) { create(:location) }

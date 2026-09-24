@@ -279,7 +279,7 @@ export const enrollmentApplicationsApi = {
 	markReviewed: (id) => api.post(`/api/enrollment_applications/${id}/mark_reviewed`),
 	decline: (id, notes) => api.post(`/api/enrollment_applications/${id}/decline`, { notes }),
 	reopen: (id) => api.post(`/api/enrollment_applications/${id}/reopen`),
-	completeMeeting: (id, outcomeNotes) => api.post(`/api/enrollment_applications/${id}/complete_meeting`, { outcome_notes: outcomeNotes }),
+	completeMeeting: (id, outcomeNotes, meetingDate) => api.post(`/api/enrollment_applications/${id}/complete_meeting`, { outcome_notes: outcomeNotes, meeting_date: meetingDate }),
 	requestFee: (id) => api.post(`/api/enrollment_applications/${id}/request_fee`),
 	processFeePayment: (id, data) => api.post(`/api/enrollment_applications/${id}/process_fee_payment`, data),
 	sendEnrollmentForms: (id) => api.post(`/api/enrollment_applications/${id}/send_enrollment_forms`),
@@ -321,7 +321,7 @@ export const eventsApi = {
 	get: (id) => api.get(`/api/events/${id}`),
 	create: (data) => api.post("/api/events", { event: data }),
 	update: (id, data) => api.patch(`/api/events/${id}`, { event: data }),
-	complete: (id, outcomeNotes) => api.post(`/api/events/${id}/complete`, { outcome_notes: outcomeNotes }),
+	complete: (id, outcomeNotes, meetingDate) => api.post(`/api/events/${id}/complete`, { outcome_notes: outcomeNotes, meeting_date: meetingDate }),
 	cancel: (id, reason) => api.post(`/api/events/${id}/cancel`, { reason }),
 	confirm: (id) => api.post(`/api/events/${id}/confirm`),
 };

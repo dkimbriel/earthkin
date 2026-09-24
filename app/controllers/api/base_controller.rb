@@ -26,6 +26,17 @@ module Api
 			render json: { error: 'Forbidden' }, status: :forbidden unless current_user&.admin?
 		end
 
+		# When a meet-and-greet was arranged offline, the admin tells us the date
+		# it actually happened. Blank or unparseable input falls back to nil, and
+		# Event#complete! then stamps the time the admin marked it complete.
+		def parsed_meeting_date
+			return nil if params[:meeting_date].blank?
+
+			Time.zone.parse(params[:meeting_date].to_s)
+		rescue ArgumentError
+			nil
+		end
+
 		def not_found
 			render json: { error: 'Record not found' }, status: :not_found
 		end
