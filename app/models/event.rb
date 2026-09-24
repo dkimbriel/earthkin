@@ -36,9 +36,14 @@ class Event < ApplicationRecord
     update!(status: 'confirmed')
   end
 
-  def complete!(outcome_notes = nil)
+  # A meet-and-greet arranged offline never gets a date from the invite the
+  # parent ignored, so completing it would trip the scheduled_at validation.
+  # Record when the meeting actually happened instead: the date the admin gives
+  # us, or failing that the moment they marked it complete.
+  def complete!(outcome_notes = nil, occurred_at: nil)
     update!(
       status: 'completed',
+      scheduled_at: scheduled_at || occurred_at || Time.current,
       completed_at: Time.current,
       outcome_notes: outcome_notes
     )

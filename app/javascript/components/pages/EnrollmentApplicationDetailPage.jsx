@@ -128,6 +128,7 @@ export default function EnrollmentApplicationDetailPage() {
     const [editedEmail, setEditedEmail] = useState("");
     const [declineNotes, setDeclineNotes] = useState("");
     const [completeMeetingNotes, setCompleteMeetingNotes] = useState("");
+    const [completeMeetingDate, setCompleteMeetingDate] = useState("");
     const [customFeesForm, setCustomFeesForm] = useState({
         customEnrollmentFee: "",
         customTuitionAmount: "",
@@ -283,9 +284,11 @@ export default function EnrollmentApplicationDetailPage() {
             const res = await enrollmentApplicationsApi.completeMeeting(
                 id,
                 completeMeetingNotes,
+                completeMeetingDate,
             );
             setShowCompleteMeetingDialog(false);
             setCompleteMeetingNotes("");
+            setCompleteMeetingDate("");
             notifyEmailOutcome(
                 res,
                 "Meeting completed. Enrollment fee request email sent to parent.",
@@ -1879,6 +1882,19 @@ export default function EnrollmentApplicationDetailPage() {
                             move to the "Fee Requested" status and the parent
                             will receive the enrollment fee email.
                         </Alert>
+                        {meetAndGreet && !meetAndGreet.scheduled_at && (
+                            <TextField
+                                label="Meeting Date (optional)"
+                                type="datetime-local"
+                                value={completeMeetingDate}
+                                onChange={(e) =>
+                                    setCompleteMeetingDate(e.target.value)
+                                }
+                                fullWidth
+                                slotProps={{ inputLabel: { shrink: true } }}
+                                helperText="The parent never picked a date from the invite. Enter when the meet & greet actually happened, or leave blank to record it as now."
+                            />
+                        )}
                         <TextField
                             label="Outcome Notes (optional)"
                             value={completeMeetingNotes}
@@ -1897,6 +1913,7 @@ export default function EnrollmentApplicationDetailPage() {
                         onClick={() => {
                             setShowCompleteMeetingDialog(false);
                             setCompleteMeetingNotes("");
+                            setCompleteMeetingDate("");
                         }}
                     >
                         Cancel

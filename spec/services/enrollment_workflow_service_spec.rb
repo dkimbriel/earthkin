@@ -65,6 +65,26 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
       service.complete_meeting(nil)
       expect(application.reload.status).to eq('meeting_completed')
     end
+
+    context 'when the meeting invite is still awaiting the parent selection' do
+      let!(:event) { create(:event, :pending_selection, eventable: application) }
+
+      it 'completes it with the date the admin gives' do
+        occurred_at = 1.day.ago.change(usec: 0)
+        service.complete_meeting(event.id, outcome_notes: 'Done offline', occurred_at: occurred_at)
+
+        expect(event.reload.status).to eq('completed')
+        expect(event.scheduled_at).to be_within(1.second).of(occurred_at)
+        expect(application.reload.status).to eq('meeting_completed')
+      end
+
+      it 'completes it even with no date at all' do
+        service.complete_meeting(event.id)
+
+        expect(event.reload.status).to eq('completed')
+        expect(application.reload.status).to eq('meeting_completed')
+      end
+    end
   end
 
   describe '#request_enrollment_fee' do

@@ -32,6 +32,32 @@ RSpec.describe Event, type: :model do
         expect(event.status).to eq('completed')
         expect(event.completed_at).to be_present
       end
+
+      it 'leaves an already scheduled date alone' do
+        scheduled = event.scheduled_at
+        event.complete!(nil, occurred_at: 3.days.ago)
+        expect(event.scheduled_at).to be_within(1.second).of(scheduled)
+      end
+
+      context 'when the parent never picked a date from the invite' do
+        let(:event) { create(:event, :pending_selection) }
+
+        it 'records the date the meeting actually happened' do
+          occurred_at = 2.days.ago.change(usec: 0)
+          event.complete!('Arranged over email', occurred_at: occurred_at)
+
+          expect(event.status).to eq('completed')
+          expect(event.scheduled_at).to be_within(1.second).of(occurred_at)
+          expect(event.outcome_notes).to eq('Arranged over email')
+        end
+
+        it 'falls back to the completion time when no date is given' do
+          event.complete!
+
+          expect(event.status).to eq('completed')
+          expect(event.scheduled_at).to be_within(5.seconds).of(Time.current)
+        end
+      end
     end
 
     describe '#cancel!' do

@@ -155,7 +155,11 @@ module Api
                          .order(:created_at).last
 
       service = EnrollmentWorkflowService.new(application)
-      service.complete_meeting(event&.id, outcome_notes: params[:outcome_notes])
+      service.complete_meeting(
+        event&.id,
+        outcome_notes: params[:outcome_notes],
+        occurred_at: parsed_meeting_date
+      )
 
       render json: application.reload.as_json.merge(
         workflow_email(service, 'Enrollment fee request')

@@ -75,7 +75,11 @@ module Api
       # If it's a meet_and_greet, use the workflow service
       if event.event_type == 'meet_and_greet' && event.eventable_type == 'EnrollmentApplication'
         service = EnrollmentWorkflowService.new(event.eventable)
-        service.complete_meeting(event.id, outcome_notes: params[:outcome_notes])
+        service.complete_meeting(
+          event.id,
+          outcome_notes: params[:outcome_notes],
+          occurred_at: parsed_meeting_date
+        )
       else
         event.complete!(params[:outcome_notes])
       end
