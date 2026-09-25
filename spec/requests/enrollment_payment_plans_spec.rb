@@ -102,4 +102,57 @@ RSpec.describe 'Api::EnrollmentPaymentPlans', type: :request do
       expect(enrollment_payment_plan.enrollment_fee_paid).to be true
     end
   end
+
+  describe 'POST /api/enrollment_payment_plans with a custom total' do
+    it 'splits the custom total instead of the template amount' do
+      monthly = create(:payment_plan, :monthly, program: program)
+
+      post '/api/enrollment_payment_plans', params: {
+        enrollment_payment_plan: { program_enrollment_id: enrollment.id, payment_plan_id: monthly.id, total_amount: 2460 }
+      }
+
+      amounts = EnrollmentPaymentPlan.last.installments.map { |i| BigDecimal(i['amount'].to_s) }
+      expect(amounts.sum).to eq(2460)
+    end
+  end
+
+  describe 'PATCH /api/enrollment_payment_plans/:id' do
+    let(:plan) { create(:enrollment_payment_plan, :with_monthly_plan, program_enrollment: enrollment) }
+    let(:rows) do
+      [{ due_date: '2026-09-28', amount: '1230.00', original_index: 0 },
+       { due_date: '2026-10-24', amount: '1230.00' }]
+    end
+
+    it 'saves an edited schedule for an admin' do
+      patch "/api/enrollment_payment_plans/#{plan.id}", params: {
+        enrollment_payment_plan: { total_amount: '2460', installments: rows }
+      }
+
+      expect(response).to have_http_status(:success)
+      expect(plan.reload.installments.map { |i| i['due_date'] }).to eq(%w[2026-09-28 2026-10-24])
+      expect(plan.total_amount).to eq(2460)
+    end
+
+    it 'returns the reason when the schedule is invalid' do
+      patch "/api/enrollment_payment_plans/#{plan.id}", params: {
+        enrollment_payment_plan: { total_amount: '2800', installments: rows }
+      }
+
+      expect(response).to have_http_status(:unprocessable_entity)
+      expect(JSON.parse(response.body)['error']).to match(/add up to/)
+    end
+
+    context 'as a teacher' do
+      let(:user) { create(:user, :teacher) }
+
+      it 'is forbidden' do
+        patch "/api/enrollment_payment_plans/#{plan.id}", params: {
+          enrollment_payment_plan: { total_amount: '2460', installments: rows }
+        }
+
+        expect(response).to have_http_status(:forbidden)
+        expect(plan.reload.installments.size).to eq(10)
+      end
+    end
+  end
 end

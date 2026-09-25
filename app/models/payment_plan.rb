@@ -19,20 +19,31 @@ class PaymentPlan < ApplicationRecord
 
   # Generate installment schedule starting from a given date
   # Returns array of hashes with { due_date:, amount: }
-  def generate_schedule(start_date)
+  #
+  # `total` is what the family actually owes, which differs from the plan's
+  # standard amount when the application carries custom (e.g. prorated)
+  # tuition. It is split to the cent so the schedule sums exactly to the
+  # total; any leftover cents land on the first installment.
+  def generate_schedule(start_date, total: total_amount)
     start_date = Date.parse(start_date.to_s) if start_date.is_a?(String)
     return [] if installment_count.nil? || installment_count < 1
 
-    schedule = []
-    installment_count.times do |i|
-      due_date = start_date >> i # Add i months
-      schedule << {
-        'due_date' => due_date.to_s,
-        'amount' => installment_amount.to_f,
+    amounts = self.class.split_evenly(total, installment_count)
+    amounts.each_with_index.map do |amount, i|
+      {
+        'due_date' => (start_date >> i).to_s, # Add i months
+        'amount' => amount.to_f,
         'status' => 'pending'
       }
     end
-    schedule
+  end
+
+  # Split `total` into `count` amounts that sum exactly to it, with the
+  # remainder cents on the first: 2460 / 9 => [273.36, 273.33 x 8].
+  def self.split_evenly(total, count)
+    cents = (BigDecimal(total.to_s) * 100).round.to_i
+    base, remainder = cents.divmod(count)
+    Array.new(count) { |i| BigDecimal(base + (i.zero? ? remainder : 0)) / 100 }
   end
 
   # Generate a preview schedule for display (month/day format for UI)

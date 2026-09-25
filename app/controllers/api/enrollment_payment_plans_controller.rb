@@ -1,5 +1,7 @@
 module Api
   class EnrollmentPaymentPlansController < BaseController
+    before_action :require_admin!, only: :update
+
     def index
       plans = EnrollmentPaymentPlan.includes(:payment_plan, :program_enrollment, :payments)
       if params[:program_enrollment_id].present?
@@ -36,7 +38,7 @@ module Api
       start_date = params.dig(:enrollment_payment_plan, :start_date).presence ||
                    enrollment.program.start_date ||
                    Date.current
-      enrollment_plan.installments = payment_plan.generate_schedule(start_date).map do |installment|
+      enrollment_plan.installments = payment_plan.generate_schedule(start_date, total: enrollment_plan.total_amount).map do |installment|
         installment.merge('paid_at' => nil)
       end
 
@@ -46,6 +48,17 @@ module Api
         render json: { errors: enrollment_plan.errors.full_messages },
                status: :unprocessable_entity
       end
+    end
+
+    # Admin edit of the tuition total and installment schedule (custom dates,
+    # prorated amounts, adding or dropping unpaid installments).
+    def update
+      plan = EnrollmentPaymentPlan.find(params[:id])
+      plan.update_schedule!(total_amount: schedule_params[:total_amount], rows: schedule_params[:installments])
+
+      render json: plan.reload.as_json(include: :payments)
+    rescue EnrollmentPaymentPlan::ScheduleError => e
+      render json: { error: e.message }, status: :unprocessable_entity
     end
 
     def record_enrollment_fee
@@ -91,6 +104,10 @@ module Api
     end
 
     private
+
+    def schedule_params
+      params.require(:enrollment_payment_plan).permit(:total_amount, installments: %i[due_date amount original_index])
+    end
 
     def enrollment_plan_params
       params.require(:enrollment_payment_plan).permit(

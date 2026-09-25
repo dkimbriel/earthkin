@@ -233,17 +233,18 @@ class EnrollmentWorkflowService
   def create_enrollment_payment_plan(enrollment, payment_plan, start_date)
     # Create the payment plan selection for this enrollment
     # Use application's effective amounts (custom overrides or defaults)
+    total = @application.custom_tuition_amount || payment_plan.total_amount
     enrollment.create_enrollment_payment_plan!(
       payment_plan: payment_plan,
-      total_amount: @application.custom_tuition_amount || payment_plan.total_amount,
+      total_amount: total,
       enrollment_fee: @application.effective_enrollment_fee,
-      installments: build_installment_snapshot(payment_plan, start_date)
+      installments: build_installment_snapshot(payment_plan, start_date, total)
     )
   end
 
-  def build_installment_snapshot(payment_plan, start_date)
-    # Use payment plan's generate_schedule method to create enrollment-specific installments
-    payment_plan.generate_schedule(start_date).map do |installment|
+  def build_installment_snapshot(payment_plan, start_date, total)
+    # Split this family's actual tuition (custom or standard) across the plan's schedule
+    payment_plan.generate_schedule(start_date, total: total).map do |installment|
       {
         due_date: installment['due_date'],
         amount: installment['amount'],

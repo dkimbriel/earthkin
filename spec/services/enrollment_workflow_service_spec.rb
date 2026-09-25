@@ -195,6 +195,19 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
       expect(enrollment.workflow_status).to eq('fee_paid')
     end
 
+    it 'splits custom tuition across the installments' do
+      monthly = create(:payment_plan, :monthly, program: application.program)
+      application.update!(custom_tuition_amount: BigDecimal('2465.07'))
+
+      service.process_enrollment_fee_payment(**payment_params, payment_plan_id: monthly.id)
+
+      plan = ProgramEnrollment.last.enrollment_payment_plan
+      amounts = plan.installments.map { |i| BigDecimal(i['amount'].to_s) }
+      expect(plan.total_amount).to eq(BigDecimal('2465.07'))
+      expect(amounts.sum).to eq(BigDecimal('2465.07'))
+      expect(amounts).to eq([BigDecimal('246.57')] + [BigDecimal('246.50')] * 9)
+    end
+
     it 'creates enrollment payment plan' do
       expect {
         service.process_enrollment_fee_payment(**payment_params)
