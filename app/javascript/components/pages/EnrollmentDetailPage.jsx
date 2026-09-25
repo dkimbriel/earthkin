@@ -30,6 +30,7 @@ import PageHeader from "../shared/PageHeader";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
+import EditScheduleDialog from "../enrollment/EditScheduleDialog";
 
 const getPaymentColumns = (onSendInvoice, onCopyPayLink) => [
     {
@@ -116,6 +117,7 @@ export default function EnrollmentDetailPage() {
     const [invoiceMessage, setInvoiceMessage] = useState(null);
     const [showPlanForm, setShowPlanForm] = useState(false);
     const [paymentPlans, setPaymentPlans] = useState([]);
+    const [showScheduleForm, setShowScheduleForm] = useState(false);
 
     const loadEnrollment = async () => {
         setLoading(true);
@@ -404,16 +406,30 @@ export default function EnrollmentDetailPage() {
                                 )}
                             </Box>
                             {enrollment.enrollment_payment_plan ? (
-                                <Typography
-                                    variant="body2"
-                                    color="text.secondary"
-                                    sx={{ mt: 1 }}
-                                >
-                                    {enrollment.enrollment_payment_plan.payment_plan?.name}
-                                    {enrollment.enrollment_payment_plan.enrollment_fee > 0 && (
-                                        <> (+ ${parseFloat(enrollment.enrollment_payment_plan.enrollment_fee).toFixed(2)} enrollment fee)</>
+                                <>
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ mt: 1 }}
+                                    >
+                                        {enrollment.enrollment_payment_plan.payment_plan?.name}
+                                        {enrollment.enrollment_payment_plan.enrollment_fee > 0 && (
+                                            <> (+ ${parseFloat(enrollment.enrollment_payment_plan.enrollment_fee).toFixed(2)} enrollment fee)</>
+                                        )}
+                                        <br />
+                                        ${parseFloat(enrollment.enrollment_payment_plan.total_amount).toFixed(2)} tuition in {enrollment.enrollment_payment_plan.installments?.length || 0} installment{enrollment.enrollment_payment_plan.installments?.length === 1 ? "" : "s"}
+                                    </Typography>
+                                    {isAdmin && (
+                                        <Button
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{ mt: 1 }}
+                                            onClick={() => setShowScheduleForm(true)}
+                                        >
+                                            Edit Schedule
+                                        </Button>
                                     )}
-                                </Typography>
+                                </>
                             ) : (
                                 <>
                                     <Typography
@@ -542,6 +558,16 @@ export default function EnrollmentDetailPage() {
                             helperText: "Defaults to the program start date — monthly payments fall on this day of the month.",
                         },
                     ]}
+                />
+            )}
+
+            {enrollment.enrollment_payment_plan && (
+                <EditScheduleDialog
+                    open={showScheduleForm}
+                    onClose={() => setShowScheduleForm(false)}
+                    onSaved={loadEnrollment}
+                    plan={enrollment.enrollment_payment_plan}
+                    payments={enrollment.payments}
                 />
             )}
 

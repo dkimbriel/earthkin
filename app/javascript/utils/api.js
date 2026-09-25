@@ -343,6 +343,7 @@ export const paymentPlansApi = {
 export const enrollmentPaymentPlansApi = {
 	get: (id) => api.get(`/api/enrollment_payment_plans/${id}`),
 	create: (data) => api.post("/api/enrollment_payment_plans", { enrollment_payment_plan: data }),
+	update: (id, data) => api.patch(`/api/enrollment_payment_plans/${id}`, { enrollment_payment_plan: data }),
 	recordEnrollmentFee: (id, data) => api.post(`/api/enrollment_payment_plans/${id}/record_enrollment_fee`, data),
 	recordInstallmentPayment: (id, data) => api.post(`/api/enrollment_payment_plans/${id}/record_installment_payment`, data),
 };
