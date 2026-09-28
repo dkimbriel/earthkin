@@ -7,7 +7,7 @@ module Api
 
 		def index
 			items = ContentItem.visible_to(current_user).includes(:teachers).order(:category, :title)
-			render json: items.as_json
+			render_list(items)
 		end
 
 		def create

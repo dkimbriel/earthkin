@@ -11,19 +11,21 @@ module Api
       applications = applications.where(status: params[:status]) if params[:status].present?
       applications = applications.where(program_id: params[:program_id]) if params[:program_id].present?
 
-      render json: applications.as_json(
-        include: {
-          program: { only: [:id, :name, :start_date, :end_date] },
-          child: { only: [:id, :first_name, :last_name] },
-          family: { only: [:id, :name] },
-          selected_payment_plan: { only: [:id, :name] },
-          events: {
-            only: [:id, :event_type, :scheduled_at, :status, :proposed_dates],
-            include: { location: { only: [:id, :name] } }
-          }
-        },
-        methods: [:full_child_name, :full_parent_name]
-      )
+      render_list(applications) do |application|
+        application.as_json(
+          include: {
+            program: { only: [:id, :name, :start_date, :end_date] },
+            child: { only: [:id, :first_name, :last_name] },
+            family: { only: [:id, :name] },
+            selected_payment_plan: { only: [:id, :name] },
+            events: {
+              only: [:id, :event_type, :scheduled_at, :status, :proposed_dates],
+              include: { location: { only: [:id, :name] } }
+            }
+          },
+          methods: [:full_child_name, :full_parent_name]
+        )
+      end
     end
 
     def counts

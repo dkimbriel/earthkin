@@ -2,6 +2,8 @@
 
 module Api
 	class BaseController < ApplicationController
+		include PaginatedList
+
 		before_action :authenticate_user!
 		before_action :require_staff!
 

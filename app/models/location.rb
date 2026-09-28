@@ -1,5 +1,8 @@
 class Location < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'locations.name', 'locations.address', 'locations.notes'
 
   has_many :program_classes
   has_many :events, dependent: :nullify

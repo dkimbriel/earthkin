@@ -4,7 +4,7 @@ module Api
   class TeachersController < BaseController
     def index
       teachers = Teacher.includes(:user, :programs).order(:last_name, :first_name)
-      render json: teachers.map { |t| teacher_json(t) }
+      render_list(teachers) { |t| teacher_json(t) }
     end
 
     def show

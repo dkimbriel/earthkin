@@ -18,8 +18,11 @@ import {
 } from "@mui/material";
 import DescriptionIcon from "@mui/icons-material/Description";
 import { staffDocumentsApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 
 // What each status means to the person looking at the list. A document sits in
 // partially_signed whether the employee or the director signed first, so the
@@ -171,22 +174,12 @@ export default function StaffDocumentsPage() {
     const navigate = useNavigate();
     const { user } = useAuth();
     const isAdmin = user?.role === "admin";
-    const [documents, setDocuments] = useState(null);
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
     const [issuing, setIssuing] = useState(false);
+    // The server lists documents waiting on this viewer first, so each page
+    // still splits cleanly into the two groups below.
+    const list = usePagedList(staffDocumentsApi.list);
 
-    const load = () => {
-        staffDocumentsApi
-            .list()
-            .then(setDocuments)
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(load, []);
-
-    if (loading) {
+    if (list.initialLoading) {
         return (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
                 <EarthkinLoader />
@@ -194,14 +187,14 @@ export default function StaffDocumentsPage() {
         );
     }
 
-    if (error) {
-        return <Alert severity="error">{error}</Alert>;
+    if (list.error && list.rows.length === 0) {
+        return <Alert severity="error">{list.error}</Alert>;
     }
 
-    const needsMe = documents.filter((doc) =>
+    const needsMe = list.rows.filter((doc) =>
         isAdmin ? !doc.director_signed_at : !doc.employee_signed_at
     );
-    const rest = documents.filter((doc) => !needsMe.includes(doc));
+    const rest = list.rows.filter((doc) => !needsMe.includes(doc));
 
     const renderCard = (doc) => {
         const status = statusLabel(doc);
@@ -239,9 +232,23 @@ export default function StaffDocumentsPage() {
                 )}
             </Box>
 
-            {documents.length === 0 && (
+            {(list.total > 0 || list.query) && (
+                <SearchField
+                    value={list.query}
+                    onChange={list.setQuery}
+                    placeholder={isAdmin ? "Search title, teacher, position" : "Search title, position"}
+                    total={list.total}
+                    noun="documents"
+                />
+            )}
+
+            {list.error && <Alert severity="error" sx={{ mb: 2 }}>{list.error}</Alert>}
+
+            {list.total === 0 && !list.loading && (
                 <Alert severity="info">
-                    {isAdmin ? "No staff documents have been issued yet." : "You have no documents to review."}
+                    {list.query
+                        ? `No documents match "${list.query}".`
+                        : isAdmin ? "No staff documents have been issued yet." : "You have no documents to review."}
                 </Alert>
             )}
 
@@ -262,6 +269,8 @@ export default function StaffDocumentsPage() {
                     <Stack spacing={1}>{rest.map(renderCard)}</Stack>
                 </>
             )}
+
+            <ListPagination list={list} />
 
             {issuing && (
                 <IssueDialog

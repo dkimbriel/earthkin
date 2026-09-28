@@ -73,9 +73,21 @@ export const api = {
 	delete: (url) => request(url, { method: "DELETE" }),
 };
 
+// Append query params, skipping blank values: withQuery("/api/families", { q: "", page: 2 })
+// => "/api/families?page=2". List endpoints take q (search), page, and per_page;
+// with page they return { data, meta }, without it the plain array.
+export function withQuery(path, params = {}) {
+	const query = new URLSearchParams();
+	Object.entries(params).forEach(([key, value]) => {
+		if (value !== undefined && value !== null && value !== "") query.append(key, value);
+	});
+	const qs = query.toString();
+	return qs ? `${path}?${qs}` : path;
+}
+
 // Resource-specific API calls
 export const familiesApi = {
-	list: () => api.get("/api/families"),
+	list: (params) => api.get(withQuery("/api/families", params)),
 	get: (id) => api.get(`/api/families/${id}`),
 	create: (data) => api.post("/api/families", { family: data }),
 	delete: (id) => api.delete(`/api/families/${id}`),
@@ -104,7 +116,7 @@ export const childrenApi = {
 };
 
 export const programsApi = {
-	list: () => api.get("/api/programs"),
+	list: (params) => api.get(withQuery("/api/programs", params)),
 	get: (id) => api.get(`/api/programs/${id}`),
 	// Public (no auth) — used by the enrollment application page
 	getPublic: (id) => api.get(`/api/public/programs/${id}`),
@@ -163,7 +175,7 @@ export const integrationsApi = {
 };
 
 export const locationsApi = {
-	list: () => api.get("/api/locations"),
+	list: (params) => api.get(withQuery("/api/locations", params)),
 	get: (id) => api.get(`/api/locations/${id}`),
 	create: (data) => api.post("/api/locations", { location: data }),
 	update: (id, data) => api.patch(`/api/locations/${id}`, { location: data }),
@@ -171,7 +183,7 @@ export const locationsApi = {
 };
 
 export const teachersApi = {
-	list: () => api.get("/api/teachers"),
+	list: (params) => api.get(withQuery("/api/teachers", params)),
 	get: (id) => api.get(`/api/teachers/${id}`),
 	create: (data) => api.post("/api/teachers", { teacher: data }),
 	update: (id, data) => api.patch(`/api/teachers/${id}`, { teacher: data }),
@@ -232,8 +244,7 @@ export const formSignaturesApi = {
 };
 
 export const staffDocumentsApi = {
-	list: (teacherId) =>
-		api.get(teacherId ? `/api/staff_documents?teacher_id=${teacherId}` : "/api/staff_documents"),
+	list: (params) => api.get(withQuery("/api/staff_documents", params)),
 	get: (id) => api.get(`/api/staff_documents/${id}`),
 	templates: () => api.get("/api/staff_documents/templates"),
 	issue: (data) => api.post("/api/staff_documents", data),
@@ -250,14 +261,14 @@ export const staffDocumentsApi = {
 };
 
 export const contentItemsApi = {
-	list: () => api.get("/api/content_items"),
+	list: (params) => api.get(withQuery("/api/content_items", params)),
 	create: (data) => api.post("/api/content_items", { content_item: data }),
 	update: (id, data) => api.patch(`/api/content_items/${id}`, { content_item: data }),
 	delete: (id) => api.delete(`/api/content_items/${id}`),
 };
 
 export const usersApi = {
-	list: () => api.get("/api/users"),
+	list: (params) => api.get(withQuery("/api/users", params)),
 	create: (data) => api.post("/api/users", { user: data }),
 	update: (id, data) => api.patch(`/api/users/${id}`, { user: data }),
 	delete: (id) => api.delete(`/api/users/${id}`),
@@ -265,13 +276,7 @@ export const usersApi = {
 
 // Enrollment workflow APIs
 export const enrollmentApplicationsApi = {
-	list: (filters = {}) => {
-		const params = new URLSearchParams();
-		if (filters.status) params.append("status", filters.status);
-		if (filters.programId) params.append("program_id", filters.programId);
-		const query = params.toString();
-		return api.get(`/api/enrollment_applications${query ? `?${query}` : ""}`);
-	},
+	list: (params) => api.get(withQuery("/api/enrollment_applications", params)),
 	counts: () => api.get("/api/enrollment_applications/counts"),
 	get: (id) => api.get(`/api/enrollment_applications/${id}`),
 	create: (data) => api.post("/api/enrollment_applications", { enrollment_application: data }),

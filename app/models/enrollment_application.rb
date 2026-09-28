@@ -1,5 +1,13 @@
 class EnrollmentApplication < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'enrollment_applications.child_first_name', 'enrollment_applications.child_last_name',
+             'enrollment_applications.parent_first_name', 'enrollment_applications.parent_last_name',
+             'enrollment_applications.parent_email', 'enrollment_applications.parent2_first_name',
+             'enrollment_applications.parent2_last_name', 'enrollment_applications.parent2_email',
+             'enrollment_applications.status', 'programs.name', 'payment_plans.name',
+             joins: %i[program selected_payment_plan]
 
   belongs_to :family, optional: true
   belongs_to :program

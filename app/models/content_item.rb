@@ -1,5 +1,10 @@
 class ContentItem < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'content_items.title', 'content_items.description', 'content_items.category',
+             'teachers.first_name', 'teachers.last_name',
+             joins: :teachers
 
   VISIBILITIES = %w[all_staff specific_teachers].freeze
   CATEGORIES = %w[general manual curriculum form policy].freeze

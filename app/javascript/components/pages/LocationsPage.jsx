@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { locationsApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 
 const columns = [
 	{ key: "name", label: "Name" },
@@ -21,49 +24,42 @@ const formFields = [
 
 export default function LocationsPage() {
 	const navigate = useNavigate();
-	const [locations, setLocations] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const list = usePagedList(locationsApi.list);
 	const [showForm, setShowForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 
-	const loadLocations = async () => {
-		setLoading(true);
-		try {
-			const data = await locationsApi.list();
-			setLocations(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		loadLocations();
-	}, []);
-
 	const handleCreate = async (formData) => {
 		await locationsApi.create(formData);
-		loadLocations();
+		list.reload();
 	};
 
 	const handleDelete = async () => {
 		if (deleteTarget) {
 			await locationsApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
-			loadLocations();
+			list.reload();
 		}
 	};
 
 	return (
 		<Box>
 			<PageHeader title="Locations" onAdd={() => setShowForm(true)} addLabel="Add Location" />
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search name, address, notes"
+				total={list.total}
+				noun="locations"
+			/>
 			<DataTable
 				columns={columns}
-				data={locations}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={setDeleteTarget}
 				onRowClick={(row) => navigate(`/locations/${row.id}/edit`)}
-				emptyMessage="No locations yet. Add one to get started."
+				emptyMessage={list.query ? `No locations match "${list.query}".` : "No locations yet. Add one to get started."}
 			/>
+			<ListPagination list={list} />
 			<FormDialog
 				open={showForm}
 				onClose={() => setShowForm(false)}

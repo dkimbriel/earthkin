@@ -10,6 +10,11 @@
 # the template later must never rewrite a letter already issued.
 class StaffDocument < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'staff_documents.title', 'staff_documents.employee_position',
+             'teachers.first_name', 'teachers.last_name',
+             joins: :teacher
   include SignatureAuditable
 
   # An HR record has to outlive the employee record it concerns. Staff are

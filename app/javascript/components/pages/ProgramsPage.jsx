@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Chip, Typography, Tooltip, Alert, Snackbar } from "@mui/material";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { programsApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { useAuth } from "../../contexts/AuthContext";
 
 function EnrollmentProgress({ confirmed, pending, capacity }) {
@@ -105,29 +108,14 @@ export default function ProgramsPage() {
 	const { user } = useAuth();
 	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
-	const [programs, setPrograms] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const list = usePagedList(programsApi.list);
 	const [showForm, setShowForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 	const [deleteError, setDeleteError] = useState(null);
 
-	const loadPrograms = async () => {
-		setLoading(true);
-		try {
-			const data = await programsApi.list();
-			setPrograms(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		loadPrograms();
-	}, []);
-
 	const handleCreate = async (formData) => {
 		await programsApi.create(formData);
-		loadPrograms();
+		list.reload();
 	};
 
 	const handleDelete = async () => {
@@ -135,7 +123,7 @@ export default function ProgramsPage() {
 		try {
 			await programsApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
-			loadPrograms();
+			list.reload();
 		} catch (err) {
 			setDeleteTarget(null);
 			setDeleteError(err.message);
@@ -145,14 +133,22 @@ export default function ProgramsPage() {
 	return (
 		<Box>
 			<PageHeader title="Programs" onAdd={isAdmin ? () => setShowForm(true) : undefined} addLabel="Add Program" />
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search programs"
+				total={list.total}
+				noun="programs"
+			/>
 			<DataTable
 				columns={columns}
-				data={programs}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/programs/${row.id}`)}
-				emptyMessage="No programs yet. Add one to get started."
+				emptyMessage={list.query ? `No programs match "${list.query}".` : "No programs yet. Add one to get started."}
 			/>
+			<ListPagination list={list} />
 			<FormDialog
 				open={showForm}
 				onClose={() => setShowForm(false)}

@@ -19,7 +19,10 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import DataTable from "../shared/DataTable";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { contentItemsApi, teachersApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { useAuth } from "../../contexts/AuthContext";
 
 const CATEGORY_OPTIONS = ["general", "manual", "curriculum", "form", "policy"];
@@ -145,25 +148,13 @@ function ContentItemDialog({ open, onClose, onSubmit, initial, teachers, title }
 export default function ContentPage() {
 	const { user } = useAuth();
 	const isAdmin = user?.role === "admin";
-	const [items, setItems] = useState([]);
+	const list = usePagedList(contentItemsApi.list);
 	const [teachers, setTeachers] = useState([]);
-	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [editTarget, setEditTarget] = useState(null);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 
-	const loadItems = async () => {
-		setLoading(true);
-		try {
-			const data = await contentItemsApi.list();
-			setItems(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		loadItems();
 		if (isAdmin) {
 			teachersApi.list().then(setTeachers).catch(() => {});
 		}
@@ -214,14 +205,22 @@ export default function ContentPage() {
 				addLabel="Add Content"
 			/>
 
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search title, description, category"
+				total={list.total}
+				noun="items"
+			/>
 			<DataTable
 				columns={columns}
-				data={items}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={isAdmin ? (row) => setEditTarget(row) : undefined}
-				emptyMessage="No content yet. Add Google Drive links to manuals, curriculum, and forms."
+				emptyMessage={list.query ? `No items match "${list.query}".` : "No content yet. Add Google Drive links to manuals, curriculum, and forms."}
 			/>
+			<ListPagination list={list} />
 
 			{showForm && (
 				<ContentItemDialog
@@ -229,7 +228,7 @@ export default function ContentPage() {
 					onClose={() => setShowForm(false)}
 					onSubmit={async (form) => {
 						await contentItemsApi.create(form);
-						loadItems();
+						list.reload();
 					}}
 					teachers={teachers}
 					title="Add Content"
@@ -244,7 +243,7 @@ export default function ContentPage() {
 					onSubmit={async (form) => {
 						await contentItemsApi.update(editTarget.id, form);
 						setEditTarget(null);
-						loadItems();
+						list.reload();
 					}}
 					initial={editTarget}
 					teachers={teachers}
@@ -258,7 +257,7 @@ export default function ContentPage() {
 				onConfirm={async () => {
 					await contentItemsApi.delete(deleteTarget.id);
 					setDeleteTarget(null);
-					loadItems();
+					list.reload();
 				}}
 				title="Delete Content"
 				message={`Remove "${deleteTarget?.title}" from the portal? The file itself stays in Google Drive.`}

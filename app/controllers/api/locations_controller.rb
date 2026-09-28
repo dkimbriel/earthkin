@@ -4,7 +4,7 @@ module Api
 	class LocationsController < BaseController
 		def index
 			locations = Location.order(:name)
-			render json: locations
+			render_list(locations)
 		end
 
 		def show

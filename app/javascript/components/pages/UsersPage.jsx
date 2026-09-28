@@ -4,7 +4,10 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { usersApi, teachersApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { useAuth } from "../../contexts/AuthContext";
 
 const ROLE_COLORS = { admin: "primary", teacher: "success", parent: "default" };
@@ -32,44 +35,32 @@ const columns = [
 
 export default function UsersPage() {
 	const { user: currentUser } = useAuth();
-	const [users, setUsers] = useState([]);
+	const list = usePagedList(usersApi.list);
 	const [teachers, setTeachers] = useState([]);
-	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [editTarget, setEditTarget] = useState(null);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 
-	const loadUsers = async () => {
-		setLoading(true);
-		try {
-			const data = await usersApi.list();
-			setUsers(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	useEffect(() => {
-		loadUsers();
 		teachersApi.list().then(setTeachers).catch(() => {});
 	}, []);
 
 	const handleCreate = async (formData) => {
 		await usersApi.create(formData);
-		loadUsers();
+		list.reload();
 	};
 
 	const handleUpdate = async (formData) => {
 		await usersApi.update(editTarget.id, formData);
 		setEditTarget(null);
-		loadUsers();
+		list.reload();
 	};
 
 	const handleDelete = async () => {
 		if (deleteTarget) {
 			await usersApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
-			loadUsers();
+			list.reload();
 		}
 	};
 
@@ -117,14 +108,22 @@ export default function UsersPage() {
 				addLabel="Add User"
 			/>
 
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search name, email, role"
+				total={list.total}
+				noun="users"
+			/>
 			<DataTable
 				columns={columns}
-				data={users}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={(row) => (row.id === currentUser?.id ? null : setDeleteTarget(row))}
 				onRowClick={(row) => setEditTarget(row)}
-				emptyMessage="No users yet."
+				emptyMessage={list.query ? `No users match "${list.query}".` : "No users yet."}
 			/>
+			<ListPagination list={list} />
 
 			<FormDialog
 				open={showForm}

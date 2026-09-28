@@ -16,10 +16,9 @@ module Api
 
 		def index
 			programs = Program.includes(:program_classes, :teachers).order(:start_date)
-			render json: programs.as_json(
-				include: [:program_classes, :teachers],
-				methods: %i[enrolled_count pending_count]
-			)
+			render_list(programs) do |program|
+				program.as_json(include: [:program_classes, :teachers], methods: %i[enrolled_count pending_count])
+			end
 		end
 
 		def show

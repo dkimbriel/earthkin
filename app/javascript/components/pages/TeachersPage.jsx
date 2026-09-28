@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box, Avatar } from "@mui/material";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { teachersApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { formatPhoneNumber } from "../../utils/phoneFormatter";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -41,35 +44,20 @@ export default function TeachersPage() {
 	const { user } = useAuth();
 	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
-	const [teachers, setTeachers] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const list = usePagedList(teachersApi.list);
 	const [showForm, setShowForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
 
-	const loadTeachers = async () => {
-		setLoading(true);
-		try {
-			const data = await teachersApi.list();
-			setTeachers(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		loadTeachers();
-	}, []);
-
 	const handleCreate = async (formData) => {
 		await teachersApi.create(formData);
-		loadTeachers();
+		list.reload();
 	};
 
 	const handleDelete = async () => {
 		if (deleteTarget) {
 			await teachersApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
-			loadTeachers();
+			list.reload();
 		}
 	};
 
@@ -89,14 +77,22 @@ export default function TeachersPage() {
 				addLabel="Add Teacher"
 			/>
 
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search name, email, phone"
+				total={list.total}
+				noun="teachers"
+			/>
 			<DataTable
 				columns={columns}
-				data={teachers}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/teachers/${row.id}`)}
-				emptyMessage="No teachers yet. Add your first teacher to get started."
+				emptyMessage={list.query ? `No teachers match "${list.query}".` : "No teachers yet. Add your first teacher to get started."}
 			/>
+			<ListPagination list={list} />
 
 			<FormDialog
 				open={showForm}
