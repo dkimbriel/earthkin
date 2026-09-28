@@ -280,6 +280,13 @@ module Api
         custom_enrollment_fee: custom_enrollment_fee,
         custom_tuition_amount: custom_tuition_amount
       )
+        # Once enrolled, the locked-in schedule is what gets billed, so carry
+        # the new amounts onto its unpaid installments.
+        application.program_enrollment&.enrollment_payment_plan&.reprice!(
+          tuition: application.custom_tuition_amount,
+          enrollment_fee: application.effective_enrollment_fee
+        )
+
         render json: {
           application: application.as_json(
             methods: [:effective_enrollment_fee, :effective_tuition_amount]

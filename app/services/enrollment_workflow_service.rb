@@ -242,8 +242,9 @@ class EnrollmentWorkflowService
   end
 
   def build_installment_snapshot(payment_plan, start_date)
-    # Use payment plan's generate_schedule method to create enrollment-specific installments
-    payment_plan.generate_schedule(start_date).map do |installment|
+    # Use payment plan's generate_schedule method to create enrollment-specific
+    # installments, billed from the family's custom tuition when there is one.
+    payment_plan.generate_schedule(start_date, total_amount: @application.custom_tuition_amount).map do |installment|
       {
         due_date: installment['due_date'],
         amount: installment['amount'],

@@ -36,7 +36,9 @@ module Api
       start_date = params.dig(:enrollment_payment_plan, :start_date).presence ||
                    enrollment.program.start_date ||
                    Date.current
-      enrollment_plan.installments = payment_plan.generate_schedule(start_date).map do |installment|
+      # An admin-entered total is a custom tuition: bill the installments from it.
+      custom_total = enrollment_plan_params[:total_amount].presence
+      enrollment_plan.installments = payment_plan.generate_schedule(start_date, total_amount: custom_total).map do |installment|
         installment.merge('paid_at' => nil)
       end
 

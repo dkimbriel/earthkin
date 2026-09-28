@@ -38,4 +38,27 @@ RSpec.describe PaymentPlan, type: :model do
       expect(payment_plan.installment_amount).to eq(280.0)
     end
   end
+
+  describe '.split_amount' do
+    it 'puts the rounding remainder on the last payment so the total is exact' do
+      amounts = described_class.split_amount(2500, 9)
+      expect(amounts.first(8)).to all(eq(277.78))
+      expect(amounts.last).to eq(277.76)
+      expect(amounts.sum).to eq(2500)
+    end
+  end
+
+  describe '#generate_schedule' do
+    let(:payment_plan) { create(:payment_plan, :monthly) }
+
+    it 'uses the standard installment amount by default' do
+      expect(payment_plan.generate_schedule('2026-08-01').map { |i| i['amount'] }).to all(eq(280.0))
+    end
+
+    it 'bills from a custom total when given one' do
+      schedule = payment_plan.generate_schedule('2026-08-01', total_amount: 2500)
+      expect(schedule.map { |i| i['amount'] }).to all(eq(250.0))
+      expect(schedule.map { |i| i['due_date'] }.first(2)).to eq(%w[2026-08-01 2026-09-01])
+    end
+  end
 end
