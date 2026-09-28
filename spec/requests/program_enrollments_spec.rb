@@ -58,6 +58,24 @@ RSpec.describe 'Api::ProgramEnrollments', type: :request do
       expect(json).to have_key('program')
       expect(json).to have_key('child')
     end
+
+    # The admin enrollment page renders its Payment Schedule from these fields.
+    it 'includes the payment plan installment schedule' do
+      plan = create(:enrollment_payment_plan, :with_monthly_plan, :fee_paid, program_enrollment: enrollment)
+      plan.installments[0].merge!('status' => 'completed', 'paid_at' => '2026-08-01')
+      plan.save!
+
+      get "/api/program_enrollments/#{enrollment.id}"
+      json = JSON.parse(response.body)
+      schedule = json.dig('enrollment_payment_plan', 'installments')
+
+      expect(schedule.length).to eq(10)
+      expect(schedule.first).to include('due_date' => '2026-08-01', 'status' => 'completed', 'paid_at' => '2026-08-01')
+      expect(schedule.second).to include('due_date' => '2026-09-01', 'status' => 'pending', 'paid_at' => nil)
+      expect(schedule.second['amount'].to_f).to eq(280.0)
+      expect(json['enrollment_payment_plan']).to include('enrollment_fee_paid' => true)
+      expect(json['enrollment_payment_plan']['enrollment_fee_paid_at']).to be_present
+    end
   end
 
   describe 'POST /api/program_enrollments' do
