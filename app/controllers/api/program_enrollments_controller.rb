@@ -56,10 +56,11 @@ module Api
 		# bodies carry pay links). Same shape as the application's Communications
 		# tab so EmailTimeline renders it.
 		def family_emails_json(enrollment)
-			return {} unless current_user.admin?
+			family = enrollment.child&.family
+			return {} unless current_user.admin? && family
 
 			{
-				family_emails: enrollment.child.family.emails.as_json(
+				family_emails: family.emails.as_json(
 					only: %i[id mailer_class email_type recipient subject status sent_at failed_at error_message created_at html_body],
 					methods: %i[type_label status_color]
 				)
