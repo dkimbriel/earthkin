@@ -17,30 +17,28 @@ class PaymentPlan < ApplicationRecord
   before_save :calculate_installment_amount
   before_create :assign_display_order
 
-  # Split a total into `count` cent-exact payments, the rounding remainder on
-  # the last one so the payments always add up to the total.
+  # Split `total` into `count` amounts that sum exactly to it, with the
+  # leftover cents on the first: 2460 / 9 => [273.36, 273.33 x 8].
   def self.split_amount(total, count)
     return [] if count.to_i < 1
 
-    each = (total.to_d / count).round(2)
-    Array.new(count - 1, each) + [(total.to_d - (each * (count - 1))).round(2)]
+    cents = (BigDecimal(total.to_s) * 100).round.to_i
+    base, remainder = cents.divmod(count)
+    Array.new(count) { |i| BigDecimal(base + (i.zero? ? remainder : 0)) / 100 }
   end
 
   # Generate installment schedule starting from a given date
   # Returns array of hashes with { due_date:, amount: }
-  # Pass total_amount to bill a custom tuition (an application's
-  # custom_tuition_amount) instead of the plan's standard price; without it,
-  # every installment is the plan's own installment_amount.
+  #
+  # `total_amount` is what the family actually owes, which differs from the
+  # plan's standard price when the application carries custom (e.g. prorated)
+  # tuition; blank means the plan's own total. Either way it is split to the
+  # cent so the schedule sums exactly to the total.
   def generate_schedule(start_date, total_amount: nil)
     start_date = Date.parse(start_date.to_s) if start_date.is_a?(String)
     return [] if installment_count.nil? || installment_count < 1
 
-    amounts = if total_amount.present?
-                self.class.split_amount(total_amount, installment_count)
-              else
-                Array.new(installment_count, installment_amount)
-              end
-
+    amounts = self.class.split_amount(total_amount.presence || self.total_amount, installment_count)
     amounts.each_with_index.map do |amount, i|
       {
         'due_date' => (start_date >> i).to_s, # Add i months
