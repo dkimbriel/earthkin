@@ -1,11 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import SearchField from "../shared/SearchField";
+import ListPagination from "../shared/ListPagination";
 import { familiesApi } from "../../utils/api";
+import usePagedList from "../../utils/usePagedList";
 import { useAuth } from "../../contexts/AuthContext";
 
 const columns = [
@@ -28,49 +31,42 @@ export default function FamiliesPage() {
 	const { user } = useAuth();
 	const isAdmin = user?.role === "admin";
 	const navigate = useNavigate();
-	const [families, setFamilies] = useState([]);
-	const [loading, setLoading] = useState(true);
 	const [showForm, setShowForm] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState(null);
-
-	const loadFamilies = async () => {
-		setLoading(true);
-		try {
-			const data = await familiesApi.list();
-			setFamilies(data);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		loadFamilies();
-	}, []);
+	const list = usePagedList(familiesApi.list);
 
 	const handleCreate = async (formData) => {
 		await familiesApi.create(formData);
-		loadFamilies();
+		list.reload();
 	};
 
 	const handleDelete = async () => {
 		if (deleteTarget) {
 			await familiesApi.delete(deleteTarget.id);
 			setDeleteTarget(null);
-			loadFamilies();
+			list.reload();
 		}
 	};
 
 	return (
 		<Box>
 			<PageHeader title="Families" onAdd={isAdmin ? () => setShowForm(true) : undefined} addLabel="Add Family" />
+			<SearchField
+				value={list.query}
+				onChange={list.setQuery}
+				placeholder="Search families, parents, children"
+				total={list.total}
+				noun="families"
+			/>
 			<DataTable
 				columns={columns}
-				data={families}
-				loading={loading}
+				data={list.rows}
+				loading={list.initialLoading}
 				onDelete={isAdmin ? setDeleteTarget : undefined}
 				onRowClick={(row) => navigate(`/families/${row.id}`)}
-				emptyMessage="No families yet. Add one to get started."
+				emptyMessage={list.query ? `No families match "${list.query}".` : "No families yet. Add one to get started."}
 			/>
+			<ListPagination list={list} />
 			<FormDialog
 				open={showForm}
 				onClose={() => setShowForm(false)}

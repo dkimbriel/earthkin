@@ -1,5 +1,8 @@
 class Program < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'programs.name', 'programs.description'
 
   has_many :program_classes, -> { order(:date, :start_time) }, dependent: :destroy
   has_many :locations, -> { distinct }, through: :program_classes

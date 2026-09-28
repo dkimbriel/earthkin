@@ -4,7 +4,7 @@ module Api
 	class FamiliesController < BaseController
 		def index
 			families = Family.includes(:parents, :children).order(:name)
-			render json: families.as_json(include: %i[parents children])
+			render_list(families) { |family| family.as_json(include: %i[parents children]) }
 		end
 
 		def show

@@ -3,7 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Box, Chip, Tabs, Tab } from '@mui/material';
 import DataTable from '../shared/DataTable';
 import PageHeader from '../shared/PageHeader';
+import SearchField from '../shared/SearchField';
+import ListPagination from '../shared/ListPagination';
 import { enrollmentApplicationsApi } from '../../utils/api';
+import usePagedList from '../../utils/usePagedList';
 
 const statusColors = {
   invited: 'default',
@@ -75,19 +78,16 @@ const columns = [
 export default function EnrollmentApplicationsPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({});
 
   const statusFilter = searchParams.get('status') || 'all';
+  const list = usePagedList(enrollmentApplicationsApi.list, {
+    filters: statusFilter !== 'all' ? { status: statusFilter } : {},
+  });
 
   useEffect(() => {
     loadCounts();
   }, []);
-
-  useEffect(() => {
-    loadApplications();
-  }, [statusFilter]);
 
   const loadCounts = async () => {
     try {
@@ -98,23 +98,13 @@ export default function EnrollmentApplicationsPage() {
     }
   };
 
-  const loadApplications = async () => {
-    setLoading(true);
-    try {
-      const filters = statusFilter !== 'all' ? { status: statusFilter } : {};
-      const data = await enrollmentApplicationsApi.list(filters);
-      setApplications(data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Switching status keeps any search (?q=) and starts again at page 1.
   const handleStatusChange = (event, newValue) => {
-    if (newValue === 'all') {
-      setSearchParams({});
-    } else {
-      setSearchParams({ status: newValue });
-    }
+    const next = new URLSearchParams(searchParams);
+    if (newValue === 'all') next.delete('status');
+    else next.set('status', newValue);
+    next.delete('page');
+    setSearchParams(next);
   };
 
   const getTabLabel = (label, status) => {
@@ -145,13 +135,22 @@ export default function EnrollmentApplicationsPage() {
         <Tab label={getTabLabel("Declined", "declined")} value="declined" sx={{ textTransform: 'none' }} />
       </Tabs>
 
+      <SearchField
+        value={list.query}
+        onChange={list.setQuery}
+        placeholder="Search child, parent, email, program"
+        total={list.total}
+        noun="applications"
+      />
+
       <DataTable
         columns={columns}
-        data={applications}
-        loading={loading}
+        data={list.rows}
+        loading={list.initialLoading}
         onRowClick={(row) => navigate(`/enrollment-applications/${row.id}`)}
-        emptyMessage="No applications found."
+        emptyMessage={list.query ? `No applications match "${list.query}".` : 'No applications found.'}
       />
+      <ListPagination list={list} />
     </Box>
   );
 }

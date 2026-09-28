@@ -1,5 +1,8 @@
 class Teacher < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'teachers.first_name', 'teachers.last_name', 'teachers.email', 'teachers.phone'
 
   belongs_to :user, optional: true
   has_one_attached :avatar

@@ -1,5 +1,11 @@
 class User < ApplicationRecord
 	include SoftDeletable
+	include Searchable
+
+	# Users have no name of their own; it comes from the linked teacher or parent.
+	searchable 'users.email', 'users.role', 'teachers.first_name', 'teachers.last_name',
+	           'parents.first_name', 'parents.last_name',
+	           joins: %i[teacher parent]
 
 	# Include default devise modules. Others available are:
 	# :confirmable, :lockable, :timeoutable, :trackable and :omniauthable

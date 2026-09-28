@@ -1,5 +1,10 @@
 class Family < ApplicationRecord
   include SoftDeletable
+  include Searchable
+
+  searchable 'families.name', 'parents.first_name', 'parents.last_name', 'parents.email',
+             'children.first_name', 'children.last_name',
+             joins: %i[parents children]
 
   has_many :parents, dependent: :destroy
   has_many :children, dependent: :destroy

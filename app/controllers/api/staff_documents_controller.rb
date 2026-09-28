@@ -9,6 +9,8 @@ module Api
 	# and counter-sign, an employee reads and signs their own documents and
 	# nobody else's.
 	class StaffDocumentsController < ApplicationController
+		include PaginatedList
+
 		before_action :authenticate_user!
 		before_action :require_staff!
 		before_action :require_admin!, only: %i[create templates]
@@ -16,10 +18,14 @@ module Api
 		rescue_from ActiveRecord::RecordNotFound, with: -> { render json: { error: 'Record not found' }, status: :not_found }
 
 		def index
-			documents = scoped_documents.includes(:teacher, :issued_by).order(created_at: :desc)
+			# Documents waiting on the viewer's signature first, so paging keeps the
+			# "waiting for you" group on top; then newest first.
+			awaiting = current_user.admin? ? 'director_signed_at' : 'employee_signed_at'
+			documents = scoped_documents.includes(:teacher, :issued_by)
+			                            .order(Arel.sql("staff_documents.#{awaiting} IS NULL DESC"), created_at: :desc)
 			documents = documents.where(teacher_id: params[:teacher_id]) if params[:teacher_id].present? && current_user.admin?
 
-			render json: documents.map(&:as_json)
+			render_list(documents)
 		end
 
 		def show

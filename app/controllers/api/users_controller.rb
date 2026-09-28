@@ -7,7 +7,7 @@ module Api
 
 		def index
 			users = User.includes(:teacher, :parent).order(:created_at)
-			render json: users.map { |u| UserSerializer.new(u).as_json }
+			render_list(users) { |u| UserSerializer.new(u).as_json }
 		end
 
 		def create
