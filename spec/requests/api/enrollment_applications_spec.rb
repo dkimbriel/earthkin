@@ -166,6 +166,68 @@ RSpec.describe 'Api::EnrollmentApplications', type: :request do
 
       expect(response).to have_http_status(:unprocessable_entity)
     end
+
+    it 'rebuilds the schedule at the custom tuition rate' do
+      application = create(:enrollment_application, program: program, selected_payment_plan: plan_a, custom_tuition_amount: 2500)
+      enrollment = create(:program_enrollment, program: program, enrollment_application: application)
+      epp = create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: plan_a, total_amount: 2500,
+                                             installments: [{ 'due_date' => '2026-08-01', 'amount' => 2500, 'status' => 'pending', 'paid_at' => nil }])
+
+      patch "/api/enrollment_applications/#{application.id}/update_payment_plan",
+        params: { payment_plan_id: plan_b.id }
+
+      epp.reload
+      expect(epp.total_amount).to eq(2500)
+      expect(epp.installments.map { |i| i['amount'] }).to all(eq(250.0))
+    end
+  end
+
+  describe 'PATCH /api/enrollment_applications/:id/update_custom_fees' do
+    let!(:plan) { create(:payment_plan, :monthly, program: program) }
+    let(:application) { create(:enrollment_application, program: program, selected_payment_plan: plan) }
+    let(:enrollment) { create(:program_enrollment, program: program, enrollment_application: application) }
+    let!(:epp) do
+      installments = 10.times.map do |i|
+        { 'due_date' => (Date.new(2026, 8, 1) >> i).to_s, 'amount' => 280.0,
+          'status' => i < 2 ? 'completed' : 'pending', 'paid_at' => i < 2 ? '2026-08-01' : nil }
+      end
+      create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: plan, total_amount: 2800,
+                                       enrollment_fee: 150, installments: installments)
+    end
+
+    it 'spreads the remaining custom tuition over the unpaid installments' do
+      patch "/api/enrollment_applications/#{application.id}/update_custom_fees",
+        params: { custom_tuition_amount: 2400 }
+
+      expect(response).to have_http_status(:ok)
+      epp.reload
+      expect(epp.total_amount).to eq(2400)
+      # $560 already paid, so $1,840 left over 8 payments.
+      expect(epp.installments.first(2).map { |i| i['amount'] }).to eq([280.0, 280.0])
+      expect(epp.installments.last(8).map { |i| i['amount'] }).to all(eq(230.0))
+    end
+
+    it 'goes back to the standard price when the custom tuition is cleared' do
+      epp.reprice!(tuition: 2400)
+
+      patch "/api/enrollment_applications/#{application.id}/update_custom_fees",
+        params: { custom_tuition_amount: '' }
+
+      epp.reload
+      expect(epp.total_amount).to eq(2800)
+      expect(epp.installments.last(8).map { |i| i['amount'] }).to all(eq(280.0))
+    end
+
+    it 'updates an unpaid enrollment fee but leaves a paid one alone' do
+      patch "/api/enrollment_applications/#{application.id}/update_custom_fees",
+        params: { custom_enrollment_fee: 100 }
+      expect(epp.reload.enrollment_fee).to eq(100)
+
+      epp.update!(enrollment_fee_paid: true)
+      patch "/api/enrollment_applications/#{application.id}/update_custom_fees",
+        params: { custom_enrollment_fee: 75 }
+      expect(epp.reload.enrollment_fee).to eq(100)
+    end
   end
 
   describe 'POST /api/enrollment_applications/:id/reopen' do

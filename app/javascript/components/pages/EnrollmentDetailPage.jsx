@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
     Box,
     Typography,
@@ -14,6 +14,13 @@ import {
     ListItem,
     ListItemText,
     Alert,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell,
+    Tabs,
+    Tab,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -23,20 +30,121 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EmailIcon from "@mui/icons-material/Email";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import TabPanel from "../shared/TabPanel";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
 import EditScheduleDialog from "../enrollment/EditScheduleDialog";
+import EmailTimeline from "../enrollment/EmailTimeline";
+
+const money = (v) => `$${parseFloat(v || 0).toFixed(2)}`;
+
+// Parse date-only strings ("2026-08-24") in local time. new Date(str)
+// treats them as UTC and shifts the displayed day in western timezones.
+const parseDateOnly = (dateStr) => {
+    const [y, m, d] = String(dateStr).split("T")[0].split("-");
+    return new Date(y, m - 1, d);
+};
+
+const formatDate = (dateStr) => (dateStr ? parseDateOnly(dateStr).toLocaleDateString() : "—");
+
+const startOfToday = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const installmentStatus = (inst, isNext) => {
+    if (inst.status === "completed") return { label: "Paid", color: "success" };
+    if (parseDateOnly(inst.due_date) < startOfToday()) return { label: "Overdue", color: "error" };
+    if (isNext) return { label: "Due next", color: "warning" };
+    return { label: "Upcoming", color: "default" };
+};
+
+// Upcoming and past installments for an enrollment on a payment plan, plus the
+// enrollment fee when there is one. Mirrors the parent Payments page schedule.
+function PaymentSchedule({ plan }) {
+    const installments = plan.installments || [];
+    const nextIdx = installments.findIndex((inst) => inst.status !== "completed");
+    const unpaid = installments.filter((inst) => inst.status !== "completed");
+    const scheduledTotal = unpaid.reduce((sum, inst) => sum + parseFloat(inst.amount || 0), 0);
+    const hasFee = parseFloat(plan.enrollment_fee || 0) > 0;
+
+    return (
+        <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" gutterBottom>
+                Payment Schedule
+            </Typography>
+            <Table size="small">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell>Due Date</TableCell>
+                        <TableCell>Amount</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Paid On</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {hasFee && (
+                        <TableRow>
+                            <TableCell>Enrollment fee</TableCell>
+                            <TableCell>—</TableCell>
+                            <TableCell>{money(plan.enrollment_fee)}</TableCell>
+                            <TableCell>
+                                <Chip
+                                    size="small"
+                                    label={plan.enrollment_fee_paid ? "Paid" : "Unpaid"}
+                                    color={plan.enrollment_fee_paid ? "success" : "default"}
+                                />
+                            </TableCell>
+                            <TableCell>
+                                {plan.enrollment_fee_paid_at
+                                    ? new Date(plan.enrollment_fee_paid_at).toLocaleDateString()
+                                    : "—"}
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {installments.map((inst, i) => {
+                        const status = installmentStatus(inst, i === nextIdx);
+                        return (
+                            <TableRow
+                                key={i}
+                                sx={i === nextIdx ? { backgroundColor: "action.selected", "& td": { fontWeight: 700 } } : undefined}
+                            >
+                                <TableCell>{i + 1} of {installments.length}</TableCell>
+                                <TableCell>{formatDate(inst.due_date)}</TableCell>
+                                <TableCell>{money(inst.amount)}</TableCell>
+                                <TableCell>
+                                    <Chip size="small" label={status.label} color={status.color} />
+                                </TableCell>
+                                <TableCell>{formatDate(inst.paid_at)}</TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                {unpaid.length === 0
+                    ? "All installments paid."
+                    : `${unpaid.length} remaining, ${money(scheduledTotal)} still scheduled`}
+            </Typography>
+        </Box>
+    );
+}
+
+// Tabs on this page, in order. The first is the default (no ?tab= param).
+const TAB_NAMES = ["payments", "communications"];
 
 const getPaymentColumns = (onSendInvoice, onCopyPayLink) => [
     {
         key: "payment_date",
         label: "Date",
-        render: (row) => new Date(row.payment_date).toLocaleDateString(),
+        render: (row) => formatDate(row.payment_date),
     },
     {
         key: "amount",
@@ -107,6 +215,10 @@ export default function EnrollmentDetailPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const backTo = location.state?.from;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = Math.max(0, TAB_NAMES.indexOf(searchParams.get("tab")));
+    const handleTabChange = (e, newValue) =>
+        setSearchParams(newValue === 0 ? {} : { tab: TAB_NAMES[newValue] }, { state: location.state });
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -289,6 +401,8 @@ export default function EnrollmentDetailPage() {
         return <Typography>Enrollment not found</Typography>;
     }
 
+    // Admins only: the API leaves family_emails out for teachers.
+    const showComms = isAdmin && Array.isArray(enrollment.family_emails);
     const totalOwed = parseFloat(enrollment.total_owed) || 0;
     const totalPaid = parseFloat(enrollment.total_paid) || 0;
     const balanceDue = parseFloat(enrollment.balance_due) || 0;
@@ -298,7 +412,7 @@ export default function EnrollmentDetailPage() {
             <Button
                 startIcon={<ArrowBackIcon />}
                 onClick={() =>
-                    navigate(backTo || `/programs/${enrollment.program?.id}`)
+                    navigate(backTo || `/programs/${enrollment.program?.id}?tab=enrollments`)
                 }
                 sx={{ mb: 2 }}
             >
@@ -487,30 +601,87 @@ export default function EnrollmentDetailPage() {
             </Grid>
 
             <Paper sx={{ p: 3 }}>
-                <PageHeader
-                    title="Payments"
-                    onAdd={isAdmin ? () => setShowPaymentForm(true) : undefined}
-                    addLabel="Record Payment"
-                />
-                {invoiceMessage && (
-                    <Alert
-                        severity={invoiceMessage.startsWith("Error") ? "error" : "success"}
-                        sx={{ mb: 2 }}
-                        onClose={() => setInvoiceMessage(null)}
+                {showComms && (
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        variant="scrollable"
+                        allowScrollButtonsMobile
+                        sx={{ borderBottom: 1, borderColor: "divider" }}
                     >
-                        {invoiceMessage}
-                    </Alert>
+                        <Tab
+                            icon={<PaymentsIcon />}
+                            iconPosition="start"
+                            label={`Payments (${enrollment.payments?.length || 0})`}
+                            id="enrollment-tab-0"
+                            aria-controls="enrollment-tabpanel-0"
+                            sx={{ textTransform: "none", minHeight: 48 }}
+                        />
+                        <Tab
+                            icon={<EmailIcon />}
+                            iconPosition="start"
+                            label={`Communications (${enrollment.family_emails.length})`}
+                            id="enrollment-tab-1"
+                            aria-controls="enrollment-tabpanel-1"
+                            sx={{ textTransform: "none", minHeight: 48 }}
+                        />
+                    </Tabs>
                 )}
-                <DataTable
-                    columns={getPaymentColumns(
-                        isAdmin ? handleSendInvoice : null,
-                        isAdmin ? handleCopyPayLink : null,
+
+                <TabPanel value={showComms ? activeTab : 0} index={0} idPrefix="enrollment">
+                    {enrollment.enrollment_payment_plan?.installments?.length > 0 && (
+                        <PaymentSchedule plan={enrollment.enrollment_payment_plan} />
                     )}
-                    data={enrollment.payments}
-                    loading={false}
-                    onDelete={isAdmin ? setDeleteTarget : undefined}
-                    emptyMessage="No payments recorded yet."
-                />
+
+                    <PageHeader
+                        title="Payments"
+                        onAdd={isAdmin ? () => setShowPaymentForm(true) : undefined}
+                        addLabel="Record Payment"
+                    />
+                    {invoiceMessage && (
+                        <Alert
+                            severity={invoiceMessage.startsWith("Error") ? "error" : "success"}
+                            sx={{ mb: 2 }}
+                            onClose={() => setInvoiceMessage(null)}
+                        >
+                            {invoiceMessage}
+                        </Alert>
+                    )}
+                    <DataTable
+                        columns={getPaymentColumns(
+                            isAdmin ? handleSendInvoice : null,
+                            isAdmin ? handleCopyPayLink : null,
+                        )}
+                        data={enrollment.payments}
+                        loading={false}
+                        onDelete={isAdmin ? setDeleteTarget : undefined}
+                        emptyMessage="No payments recorded yet."
+                    />
+                </TabPanel>
+
+                {showComms && (
+                    <TabPanel value={activeTab} index={1} idPrefix="enrollment">
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Typography variant="h6">Communications</Typography>
+                            {enrollment.enrollment_application_id && (
+                                <Button
+                                    size="small"
+                                    startIcon={<EmailIcon />}
+                                    onClick={() =>
+                                        navigate(`/enrollment-applications/${enrollment.enrollment_application_id}?tab=communications`)
+                                    }
+                                >
+                                    Send Email
+                                </Button>
+                            )}
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Every email sent to this family: enrollment emails for all programs, invoices, receipts, and manual emails.
+                        </Typography>
+                        {/* Read-only here: no application/onSendEmail, so the timeline hides its send buttons. */}
+                        <EmailTimeline emails={enrollment.family_emails} />
+                    </TabPanel>
+                )}
             </Paper>
 
             <FormDialog

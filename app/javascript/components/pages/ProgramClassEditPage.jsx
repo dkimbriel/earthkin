@@ -96,7 +96,7 @@ export default function ProgramClassEditPage() {
 		setSaving(true);
 		try {
 			await programClassesApi.update(id, formData);
-			navigate(`/programs/${programClass.program?.id}`);
+			navigate(`/programs/${programClass.program?.id}?tab=classes`);
 		} catch (err) {
 			setError(err.message);
 		} finally {
@@ -133,7 +133,7 @@ export default function ProgramClassEditPage() {
 		if (backPath) {
 			navigate(backPath);
 		} else {
-			navigate(`/programs/${programClass.program?.id}`);
+			navigate(`/programs/${programClass.program?.id}?tab=classes`);
 		}
 	};
 
@@ -169,7 +169,7 @@ export default function ProgramClassEditPage() {
 					variant="subtitle1"
 					color="text.secondary"
 					sx={{ mb: 2, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-					onClick={() => navigate(`/programs/${programClass.program.id}`)}
+					onClick={() => navigate(`/programs/${programClass.program.id}?tab=classes`)}
 				>
 					{programClass.program.name}
 				</Typography>

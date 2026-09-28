@@ -17,18 +17,28 @@ class PaymentPlan < ApplicationRecord
   before_save :calculate_installment_amount
   before_create :assign_display_order
 
+  # Split `total` into `count` amounts that sum exactly to it, with the
+  # leftover cents on the first: 2460 / 9 => [273.36, 273.33 x 8].
+  def self.split_amount(total, count)
+    return [] if count.to_i < 1
+
+    cents = (BigDecimal(total.to_s) * 100).round.to_i
+    base, remainder = cents.divmod(count)
+    Array.new(count) { |i| BigDecimal(base + (i.zero? ? remainder : 0)) / 100 }
+  end
+
   # Generate installment schedule starting from a given date
   # Returns array of hashes with { due_date:, amount: }
   #
-  # `total` is what the family actually owes, which differs from the plan's
-  # standard amount when the application carries custom (e.g. prorated)
-  # tuition. It is split to the cent so the schedule sums exactly to the
-  # total; any leftover cents land on the first installment.
-  def generate_schedule(start_date, total: total_amount)
+  # `total_amount` is what the family actually owes, which differs from the
+  # plan's standard price when the application carries custom (e.g. prorated)
+  # tuition; blank means the plan's own total. Either way it is split to the
+  # cent so the schedule sums exactly to the total.
+  def generate_schedule(start_date, total_amount: nil)
     start_date = Date.parse(start_date.to_s) if start_date.is_a?(String)
     return [] if installment_count.nil? || installment_count < 1
 
-    amounts = self.class.split_evenly(total, installment_count)
+    amounts = self.class.split_amount(total_amount.presence || self.total_amount, installment_count)
     amounts.each_with_index.map do |amount, i|
       {
         'due_date' => (start_date >> i).to_s, # Add i months
@@ -36,14 +46,6 @@ class PaymentPlan < ApplicationRecord
         'status' => 'pending'
       }
     end
-  end
-
-  # Split `total` into `count` amounts that sum exactly to it, with the
-  # remainder cents on the first: 2460 / 9 => [273.36, 273.33 x 8].
-  def self.split_evenly(total, count)
-    cents = (BigDecimal(total.to_s) * 100).round.to_i
-    base, remainder = cents.divmod(count)
-    Array.new(count) { |i| BigDecimal(base + (i.zero? ? remainder : 0)) / 100 }
   end
 
   # Generate a preview schedule for display (month/day format for UI)

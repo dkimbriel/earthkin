@@ -244,7 +244,7 @@ class EnrollmentWorkflowService
 
   def build_installment_snapshot(payment_plan, start_date, total)
     # Split this family's actual tuition (custom or standard) across the plan's schedule
-    payment_plan.generate_schedule(start_date, total: total).map do |installment|
+    payment_plan.generate_schedule(start_date, total_amount: total).map do |installment|
       {
         due_date: installment['due_date'],
         amount: installment['amount'],

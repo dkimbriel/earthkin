@@ -82,6 +82,20 @@ RSpec.describe EnrollmentPaymentPlan, type: :model do
     end
   end
 
+  describe '#reprice!' do
+    let(:plan) { create(:enrollment_payment_plan, :with_monthly_plan, total_amount: 2800) }
+
+    it 'moves the unpaid installments and their pending invoice to the new price' do
+      invoice = plan.payments.create!(program_enrollment: plan.program_enrollment, payment_type: 'tuition',
+                                      amount: 280, payment_date: '2026-08-01', status: 'pending', installment_number: 1)
+
+      plan.reprice!(tuition: 2460)
+
+      expect(plan.reload.installments.map { |i| i['amount'] }).to eq([246.0] * 10)
+      expect(invoice.reload.amount).to eq(246)
+    end
+  end
+
   describe '#update_schedule!' do
     let(:application) { create(:enrollment_application) }
     let(:enrollment) { create(:program_enrollment, enrollment_application: application) }

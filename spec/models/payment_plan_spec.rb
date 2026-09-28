@@ -39,6 +39,15 @@ RSpec.describe PaymentPlan, type: :model do
     end
   end
 
+  describe '.split_amount' do
+    it 'puts the leftover cents on the first payment so the total is exact' do
+      amounts = described_class.split_amount(2500, 9)
+      expect(amounts.first).to eq(BigDecimal('277.84'))
+      expect(amounts.drop(1)).to all(eq(BigDecimal('277.77')))
+      expect(amounts.sum).to eq(2500)
+    end
+  end
+
   describe '#generate_schedule' do
     let(:plan) { create(:payment_plan, :monthly, total_amount: 2800, installment_count: 10) }
 
@@ -51,10 +60,18 @@ RSpec.describe PaymentPlan, type: :model do
 
     it 'splits a custom total to the cent with the remainder on the first installment' do
       plan.update!(installment_count: 9)
-      amounts = plan.generate_schedule('2026-09-24', total: 2460).map { |i| i['amount'] }
+      amounts = plan.generate_schedule('2026-09-24', total_amount: 2460).map { |i| i['amount'] }
 
       expect(amounts).to eq([273.36] + [273.33] * 8)
       expect(amounts.sum { |a| BigDecimal(a.to_s) }).to eq(2460)
+    end
+
+    it 'splits the plan total exactly even when it does not divide evenly' do
+      plan.update!(total_amount: 3000, installment_count: 7)
+      amounts = plan.generate_schedule('2026-08-24').map { |i| BigDecimal(i['amount'].to_s) }
+
+      expect(amounts.sum).to eq(3000)
+      expect(amounts.first).to eq(BigDecimal('428.58'))
     end
   end
 end

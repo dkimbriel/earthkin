@@ -218,6 +218,19 @@ RSpec.describe EnrollmentWorkflowService, type: :service do
       expect(epp.enrollment_fee_paid).to be true
     end
 
+    # Regression: installments were always the plan's standard price, so a
+    # family on a custom rate was charged the standard rate each month.
+    it 'bills the installments from a custom tuition' do
+      monthly = create(:payment_plan, :monthly, program: application.program)
+      application.update!(custom_tuition_amount: 2500)
+
+      service.process_enrollment_fee_payment(**payment_params, payment_plan_id: monthly.id)
+
+      epp = EnrollmentPaymentPlan.last
+      expect(epp.total_amount).to eq(2500)
+      expect(epp.installments.map { |i| i['amount'] }).to all(eq(250.0))
+    end
+
     it 'creates enrollment fee payment' do
       expect {
         service.process_enrollment_fee_payment(**payment_params)

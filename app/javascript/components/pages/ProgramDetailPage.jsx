@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
     Box,
     Typography,
@@ -9,7 +9,8 @@ import {
     Card,
     CardContent,
     Avatar,
-    ButtonGroup,
+    Tabs,
+    Tab,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -34,6 +35,10 @@ import ShareIcon from "@mui/icons-material/Share";
 import EmailIcon from "@mui/icons-material/Email";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import PersonIcon from "@mui/icons-material/Person";
+import EventIcon from "@mui/icons-material/Event";
+import GroupsIcon from "@mui/icons-material/Groups";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import IconButton from "@mui/material/IconButton";
 import Alert from "@mui/material/Alert";
 import Snackbar from "@mui/material/Snackbar";
@@ -42,6 +47,7 @@ import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import TabPanel from "../shared/TabPanel";
 import GenerateClassesDialog from "../shared/GenerateClassesDialog";
 import EarthkinLoader from "../shared/EarthkinLoader";
 import { useAuth } from "../../contexts/AuthContext";
@@ -168,6 +174,9 @@ const formatSchedule = (schedule) => {
     return `${monthNames[first.month - 1]} ${first.day} – ${monthNames[last.month - 1]} ${last.day}`;
 };
 
+// Tabs on this page, in order. The first is the default (no ?tab= param).
+const TAB_NAMES = ["teachers", "classes", "enrollments", "payment-plans"];
+
 // paymentPlanColumns is defined inside the component to access state
 
 export default function ProgramDetailPage() {
@@ -175,6 +184,11 @@ export default function ProgramDetailPage() {
     const isAdmin = user?.role === "admin";
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = Math.max(0, TAB_NAMES.indexOf(searchParams.get("tab")));
+    const handleTabChange = (e, newValue) =>
+        setSearchParams(newValue === 0 ? {} : { tab: TAB_NAMES[newValue] });
     const [program, setProgram] = useState(null);
     const [enrollments, setEnrollments] = useState([]);
     const [children, setChildren] = useState([]);
@@ -558,20 +572,6 @@ export default function ProgramDetailPage() {
                 {program.end_date && (
                     <Chip label={`Ends: ${formatDate(program.end_date)}`} />
                 )}
-                <ButtonGroup size="small" sx={{ ml: "auto" }}>
-                    <Button onClick={() => document.getElementById("teachers-section")?.scrollIntoView({ behavior: "smooth" })}>
-                        Teachers
-                    </Button>
-                    <Button onClick={() => document.getElementById("classes-section")?.scrollIntoView({ behavior: "smooth" })}>
-                        Classes
-                    </Button>
-                    <Button onClick={() => document.getElementById("enrollments-section")?.scrollIntoView({ behavior: "smooth" })}>
-                        Enrollments
-                    </Button>
-                    <Button onClick={() => document.getElementById("payment-plans-section")?.scrollIntoView({ behavior: "smooth" })}>
-                        Payment Plans
-                    </Button>
-                </ButtonGroup>
             </Box>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
@@ -641,98 +641,127 @@ export default function ProgramDetailPage() {
                 </Grid>
             </Grid>
 
-            <Paper id="teachers-section" sx={{ p: 3, mb: 3 }}>
-                <PageHeader
-                    title="Teachers"
-                    onAdd={isAdmin && availableTeachers.length > 0 ? () => setShowTeacherForm(true) : undefined}
-                    addLabel="Assign Teacher"
-                />
-                {program.teachers?.length > 0 ? (
-                    <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                        {program.teachers.map((teacher) => (
-                            <Chip
-                                key={teacher.id}
-                                avatar={
-                                    <Avatar src={teacher.avatar_url}>
-                                        {teacher.first_name?.[0]}{teacher.last_name?.[0]}
-                                    </Avatar>
-                                }
-                                label={`${teacher.first_name} ${teacher.last_name}`}
-                                onDelete={isAdmin ? () => handleUnassignTeacher(teacher.id) : undefined}
-                                onClick={() => navigate(`/teachers/${teacher.id}`)}
-                                clickable
-                            />
-                        ))}
-                    </Box>
-                ) : (
-                    <Typography color="text.secondary">No teachers assigned yet.</Typography>
-                )}
-            </Paper>
+            <Paper sx={{ p: 3 }}>
+                <Tabs
+                    value={activeTab}
+                    onChange={handleTabChange}
+                    variant="scrollable"
+                    allowScrollButtonsMobile
+                    sx={{ borderBottom: 1, borderColor: "divider" }}
+                >
+                    {[
+                        { icon: <PersonIcon />, label: `Teachers (${program.teachers?.length || 0})` },
+                        { icon: <EventIcon />, label: `Classes (${program.program_classes?.length || 0})` },
+                        { icon: <GroupsIcon />, label: `Enrollments (${enrollments.length})` },
+                        { icon: <PaymentsIcon />, label: `Payment Plans (${paymentPlans.length})` },
+                    ].map((tab, index) => (
+                        <Tab
+                            key={TAB_NAMES[index]}
+                            icon={tab.icon}
+                            iconPosition="start"
+                            label={tab.label}
+                            id={`program-tab-${index}`}
+                            aria-controls={`program-tabpanel-${index}`}
+                            sx={{ textTransform: "none", minHeight: 48 }}
+                        />
+                    ))}
+                </Tabs>
 
-            <Paper id="classes-section" sx={{ p: 3, mb: 3 }}>
-                <PageHeader
-                    title="Classes"
-                    onAdd={isAdmin ? () => setShowClassForm(true) : undefined}
-                    addLabel="Add Class"
-                    actions={
-                        isAdmin ? (
-                            <Button
-                                variant="outlined"
-                                startIcon={<EventRepeatIcon />}
-                                onClick={() => setShowGenerateForm(true)}
-                            >
-                                Generate from Pattern
-                            </Button>
-                        ) : undefined
-                    }
-                />
-                <DataTable
-                    columns={classColumns}
-                    data={program.program_classes}
-                    loading={false}
-                    onDelete={isAdmin ? (item) =>
-                        setDeleteTarget({ type: "class", item }) : undefined
-                    }
-                    canDelete={isClassInFuture}
-                    onRowClick={isAdmin ? (row) => navigate(`/classes/${row.id}/edit`) : undefined}
-                    canRowClick={isClassInFuture}
-                    emptyMessage="No classes scheduled yet."
-                />
-            </Paper>
+                <TabPanel value={activeTab} index={0} idPrefix="program">
+                    <PageHeader
+                        title="Teachers"
+                        onAdd={isAdmin && availableTeachers.length > 0 ? () => setShowTeacherForm(true) : undefined}
+                        addLabel="Assign Teacher"
+                    />
+                    {program.teachers?.length > 0 ? (
+                        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                            {program.teachers.map((teacher) => (
+                                <Chip
+                                    key={teacher.id}
+                                    avatar={
+                                        <Avatar src={teacher.avatar_url}>
+                                            {teacher.first_name?.[0]}{teacher.last_name?.[0]}
+                                        </Avatar>
+                                    }
+                                    label={`${teacher.first_name} ${teacher.last_name}`}
+                                    onDelete={isAdmin ? () => handleUnassignTeacher(teacher.id) : undefined}
+                                    onClick={() => navigate(`/teachers/${teacher.id}`)}
+                                    clickable
+                                />
+                            ))}
+                        </Box>
+                    ) : (
+                        <Typography color="text.secondary">No teachers assigned yet.</Typography>
+                    )}
+                </TabPanel>
 
-            <Paper id="enrollments-section" sx={{ p: 3, mb: 3 }}>
-                <PageHeader
-                    title="Enrollments"
-                    onAdd={
-                        isAdmin && availableChildren.length > 0
-                            ? () => setShowEnrollmentForm(true)
-                            : undefined
-                    }
-                    addLabel="Enroll Child"
-                />
-                <DataTable
-                    columns={enrollmentColumns}
-                    data={enrollments}
-                    loading={false}
-                    onRowClick={(row) => navigate(`/enrollments/${row.id}`)}
-                    emptyMessage="No children enrolled yet."
-                />
-            </Paper>
+                <TabPanel value={activeTab} index={1} idPrefix="program">
+                    <PageHeader
+                        title="Classes"
+                        onAdd={isAdmin ? () => setShowClassForm(true) : undefined}
+                        addLabel="Add Class"
+                        actions={
+                            isAdmin ? (
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<EventRepeatIcon />}
+                                    onClick={() => setShowGenerateForm(true)}
+                                >
+                                    Generate from Pattern
+                                </Button>
+                            ) : undefined
+                        }
+                    />
+                    <DataTable
+                        columns={classColumns}
+                        data={program.program_classes}
+                        loading={false}
+                        onDelete={isAdmin ? (item) =>
+                            setDeleteTarget({ type: "class", item }) : undefined
+                        }
+                        canDelete={isClassInFuture}
+                        onRowClick={isAdmin ? (row) => navigate(`/classes/${row.id}/edit`) : undefined}
+                        canRowClick={isClassInFuture}
+                        emptyMessage="No classes scheduled yet."
+                    />
+                </TabPanel>
 
-            <Paper id="payment-plans-section" sx={{ p: 3 }}>
-                <PageHeader
-                    title="Payment Plans"
-                    onAdd={isAdmin ? () => setShowPaymentPlanForm(true) : undefined}
-                    addLabel="Add Payment Plan"
-                />
-                <DataTable
-                    columns={paymentPlanColumns}
-                    data={paymentPlans}
-                    loading={false}
-                    onEdit={isAdmin ? (row) => setEditingPaymentPlan(row) : undefined}
-                    onDelete={isAdmin ? (row) => setDeletePaymentPlanTarget(row) : undefined}
-                    emptyMessage="No payment plans configured yet."
-                />
+                <TabPanel value={activeTab} index={2} idPrefix="program">
+                    <PageHeader
+                        title="Enrollments"
+                        onAdd={
+                            isAdmin && availableChildren.length > 0
+                                ? () => setShowEnrollmentForm(true)
+                                : undefined
+                        }
+                        addLabel="Enroll Child"
+                    />
+                    <DataTable
+                        columns={enrollmentColumns}
+                        data={enrollments}
+                        loading={false}
+                        onRowClick={(row) =>
+                            navigate(`/enrollments/${row.id}`, { state: { from: `${location.pathname}${location.search}` } })
+                        }
+                        emptyMessage="No children enrolled yet."
+                    />
+                </TabPanel>
+
+                <TabPanel value={activeTab} index={3} idPrefix="program">
+                    <PageHeader
+                        title="Payment Plans"
+                        onAdd={isAdmin ? () => setShowPaymentPlanForm(true) : undefined}
+                        addLabel="Add Payment Plan"
+                    />
+                    <DataTable
+                        columns={paymentPlanColumns}
+                        data={paymentPlans}
+                        loading={false}
+                        onEdit={isAdmin ? (row) => setEditingPaymentPlan(row) : undefined}
+                        onDelete={isAdmin ? (row) => setDeletePaymentPlanTarget(row) : undefined}
+                        emptyMessage="No payment plans configured yet."
+                    />
+                </TabPanel>
             </Paper>
 
             {showGenerateForm && (
