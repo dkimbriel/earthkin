@@ -264,6 +264,13 @@ export default function Dashboard() {
     const itemBadge = (item) => (item.path === "/notifications" ? unreadNotifications : item.badge) || 0;
     const isOnPage = (item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
 
+    // Arriving on an admin page opens the Admin section so the active item is
+    // visible. It's an expand, not a lock: the header can still fold it.
+    useEffect(() => {
+        if ([...adminNavItems, ...superAdminNavItems].some(isOnPage)) setAdminNavOpen(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.pathname]);
+
     const renderNavItem = (item) => (
         <ListItem key={item.path} disablePadding>
             <ListItemButton
@@ -306,8 +313,7 @@ export default function Dashboard() {
             );
         }
 
-        // Always open while you're on one of its pages, so the active item is visible.
-        const open = adminNavOpen || section.items.some(isOnPage);
+        const open = adminNavOpen;
         // A pending signature must not hide inside a folded section.
         const hiddenBadge = open ? 0 : section.items.reduce((sum, item) => sum + itemBadge(item), 0);
 
