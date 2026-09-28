@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
     Box,
     Typography,
@@ -19,6 +19,8 @@ import {
     TableBody,
     TableRow,
     TableCell,
+    Tabs,
+    Tab,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -28,10 +30,12 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EmailIcon from "@mui/icons-material/Email";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import DataTable from "../shared/DataTable";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
+import TabPanel from "../shared/TabPanel";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
@@ -70,7 +74,7 @@ function PaymentSchedule({ plan }) {
     const hasFee = parseFloat(plan.enrollment_fee || 0) > 0;
 
     return (
-        <Paper sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ mb: 4 }}>
             <Typography variant="h6" gutterBottom>
                 Payment Schedule
             </Typography>
@@ -128,9 +132,12 @@ function PaymentSchedule({ plan }) {
                     ? "All installments paid."
                     : `${unpaid.length} remaining, ${money(scheduledTotal)} still scheduled`}
             </Typography>
-        </Paper>
+        </Box>
     );
 }
+
+// Tabs on this page, in order. The first is the default (no ?tab= param).
+const TAB_NAMES = ["payments", "communications"];
 
 const getPaymentColumns = (onSendInvoice, onCopyPayLink) => [
     {
@@ -207,6 +214,10 @@ export default function EnrollmentDetailPage() {
     const navigate = useNavigate();
     const location = useLocation();
     const backTo = location.state?.from;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = Math.max(0, TAB_NAMES.indexOf(searchParams.get("tab")));
+    const handleTabChange = (e, newValue) =>
+        setSearchParams(newValue === 0 ? {} : { tab: TAB_NAMES[newValue] }, { state: location.state });
     const [enrollment, setEnrollment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showPaymentForm, setShowPaymentForm] = useState(false);
@@ -388,6 +399,8 @@ export default function EnrollmentDetailPage() {
         return <Typography>Enrollment not found</Typography>;
     }
 
+    // Admins only: the API leaves family_emails out for teachers.
+    const showComms = isAdmin && Array.isArray(enrollment.family_emails);
     const totalOwed = parseFloat(enrollment.total_owed) || 0;
     const totalPaid = parseFloat(enrollment.total_paid) || 0;
     const balanceDue = parseFloat(enrollment.balance_due) || 0;
@@ -397,7 +410,7 @@ export default function EnrollmentDetailPage() {
             <Button
                 startIcon={<ArrowBackIcon />}
                 onClick={() =>
-                    navigate(backTo || `/programs/${enrollment.program?.id}`)
+                    navigate(backTo || `/programs/${enrollment.program?.id}?tab=enrollments`)
                 }
                 sx={{ mb: 2 }}
             >
@@ -571,60 +584,89 @@ export default function EnrollmentDetailPage() {
                 </Grid>
             </Grid>
 
-            {enrollment.enrollment_payment_plan?.installments?.length > 0 && (
-                <PaymentSchedule plan={enrollment.enrollment_payment_plan} />
-            )}
-
             <Paper sx={{ p: 3 }}>
-                <PageHeader
-                    title="Payments"
-                    onAdd={isAdmin ? () => setShowPaymentForm(true) : undefined}
-                    addLabel="Record Payment"
-                />
-                {invoiceMessage && (
-                    <Alert
-                        severity={invoiceMessage.startsWith("Error") ? "error" : "success"}
-                        sx={{ mb: 2 }}
-                        onClose={() => setInvoiceMessage(null)}
+                {showComms && (
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        variant="scrollable"
+                        allowScrollButtonsMobile
+                        sx={{ borderBottom: 1, borderColor: "divider" }}
                     >
-                        {invoiceMessage}
-                    </Alert>
+                        <Tab
+                            icon={<PaymentsIcon />}
+                            iconPosition="start"
+                            label={`Payments (${enrollment.payments?.length || 0})`}
+                            id="enrollment-tab-0"
+                            aria-controls="enrollment-tabpanel-0"
+                            sx={{ textTransform: "none", minHeight: 48 }}
+                        />
+                        <Tab
+                            icon={<EmailIcon />}
+                            iconPosition="start"
+                            label={`Communications (${enrollment.family_emails.length})`}
+                            id="enrollment-tab-1"
+                            aria-controls="enrollment-tabpanel-1"
+                            sx={{ textTransform: "none", minHeight: 48 }}
+                        />
+                    </Tabs>
                 )}
-                <DataTable
-                    columns={getPaymentColumns(
-                        isAdmin ? handleSendInvoice : null,
-                        isAdmin ? handleCopyPayLink : null,
-                    )}
-                    data={enrollment.payments}
-                    loading={false}
-                    onDelete={isAdmin ? setDeleteTarget : undefined}
-                    emptyMessage="No payments recorded yet."
-                />
-            </Paper>
 
-            {isAdmin && enrollment.family_emails && (
-                <Paper sx={{ p: 3, mt: 3 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                        <Typography variant="h6">Communications</Typography>
-                        {enrollment.enrollment_application_id && (
-                            <Button
-                                size="small"
-                                startIcon={<EmailIcon />}
-                                onClick={() =>
-                                    navigate(`/enrollment-applications/${enrollment.enrollment_application_id}?tab=communications`)
-                                }
-                            >
-                                Send Email
-                            </Button>
+                <TabPanel value={showComms ? activeTab : 0} index={0} idPrefix="enrollment">
+                    {enrollment.enrollment_payment_plan?.installments?.length > 0 && (
+                        <PaymentSchedule plan={enrollment.enrollment_payment_plan} />
+                    )}
+
+                    <PageHeader
+                        title="Payments"
+                        onAdd={isAdmin ? () => setShowPaymentForm(true) : undefined}
+                        addLabel="Record Payment"
+                    />
+                    {invoiceMessage && (
+                        <Alert
+                            severity={invoiceMessage.startsWith("Error") ? "error" : "success"}
+                            sx={{ mb: 2 }}
+                            onClose={() => setInvoiceMessage(null)}
+                        >
+                            {invoiceMessage}
+                        </Alert>
+                    )}
+                    <DataTable
+                        columns={getPaymentColumns(
+                            isAdmin ? handleSendInvoice : null,
+                            isAdmin ? handleCopyPayLink : null,
                         )}
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                        Every email sent to this family: enrollment emails for all programs, invoices, receipts, and manual emails.
-                    </Typography>
-                    {/* Read-only here: no application/onSendEmail, so the timeline hides its send buttons. */}
-                    <EmailTimeline emails={enrollment.family_emails} />
-                </Paper>
-            )}
+                        data={enrollment.payments}
+                        loading={false}
+                        onDelete={isAdmin ? setDeleteTarget : undefined}
+                        emptyMessage="No payments recorded yet."
+                    />
+                </TabPanel>
+
+                {showComms && (
+                    <TabPanel value={activeTab} index={1} idPrefix="enrollment">
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                            <Typography variant="h6">Communications</Typography>
+                            {enrollment.enrollment_application_id && (
+                                <Button
+                                    size="small"
+                                    startIcon={<EmailIcon />}
+                                    onClick={() =>
+                                        navigate(`/enrollment-applications/${enrollment.enrollment_application_id}?tab=communications`)
+                                    }
+                                >
+                                    Send Email
+                                </Button>
+                            )}
+                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                            Every email sent to this family: enrollment emails for all programs, invoices, receipts, and manual emails.
+                        </Typography>
+                        {/* Read-only here: no application/onSendEmail, so the timeline hides its send buttons. */}
+                        <EmailTimeline emails={enrollment.family_emails} />
+                    </TabPanel>
+                )}
+            </Paper>
 
             <FormDialog
                 open={showPaymentForm}
