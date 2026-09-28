@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 export const DEFAULT_PER_PAGE = 25;
+// Matches PaginatedList::MAX_PER_PAGE on the server.
+const MAX_PER_PAGE = 100;
 const SEARCH_DEBOUNCE_MS = 300;
 
 // A server-searched, server-paginated list for the admin list pages. Search
@@ -16,41 +18,60 @@ const SEARCH_DEBOUNCE_MS = 300;
 //   <ListPagination list={list} />
 export default function usePagedList(fetchPage, { filters = {} } = {}) {
 	const [searchParams, setSearchParams] = useSearchParams();
-	const query = searchParams.get("q") || "";
+	const urlQuery = searchParams.get("q") || "";
 	const page = Math.max(1, parseInt(searchParams.get("page"), 10) || 1);
-	const perPage = parseInt(searchParams.get("per_page"), 10) || DEFAULT_PER_PAGE;
+	const perPage = Math.min(MAX_PER_PAGE, Math.max(1, parseInt(searchParams.get("per_page"), 10) || DEFAULT_PER_PAGE));
 
-	const [debouncedQuery, setDebouncedQuery] = useState(query);
+	// What's in the search box. It reaches the URL (and resets to page 1) only
+	// once typing pauses, so each search is a single request.
+	const [inputQuery, setInputQuery] = useState(urlQuery);
 	const [result, setResult] = useState({ rows: [], total: 0, loaded: false });
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(null);
 	const [reloadKey, setReloadKey] = useState(0);
 	const filtersKey = JSON.stringify(filters);
 
-	useEffect(() => {
-		const timer = setTimeout(() => setDebouncedQuery(query), SEARCH_DEBOUNCE_MS);
-		return () => clearTimeout(timer);
-	}, [query]);
-
-	// `replace` for typing and page size (no history entry per keystroke);
-	// page changes push, so Back steps through pages.
+	// `replace` for search and page size (no history entry per search); page
+	// changes push, so Back steps through pages.
 	const updateParams = (changes, { replace = true } = {}) => {
-		const next = new URLSearchParams(searchParams);
-		Object.entries(changes).forEach(([key, value]) => {
-			if (value === null || value === undefined || value === "") next.delete(key);
-			else next.set(key, value);
-		});
-		setSearchParams(next, { replace });
+		setSearchParams(
+			(current) => {
+				const next = new URLSearchParams(current);
+				Object.entries(changes).forEach(([key, value]) => {
+					if (value === null || value === undefined || value === "") next.delete(key);
+					else next.set(key, value);
+				});
+				return next;
+			},
+			{ replace }
+		);
 	};
 
-	const setQuery = (value) => updateParams({ q: value, page: null });
-	const setPage = (value) => updateParams({ page: value > 1 ? value : null }, { replace: false });
-	const setPerPage = (value) => updateParams({ per_page: value === DEFAULT_PER_PAGE ? null : value, page: null });
+	// Follow the URL when it changes underneath us (Back/Forward, a link), but
+	// not when the change is our own debounced write, which could otherwise
+	// clobber a character typed in the meantime.
+	const pushedQuery = useRef(urlQuery);
+	useEffect(() => {
+		if (urlQuery !== pushedQuery.current) {
+			pushedQuery.current = urlQuery;
+			setInputQuery(urlQuery);
+		}
+	}, [urlQuery]);
+
+	useEffect(() => {
+		if (inputQuery === urlQuery) return undefined;
+		const timer = setTimeout(() => {
+			pushedQuery.current = inputQuery;
+			updateParams({ q: inputQuery, page: null });
+		}, SEARCH_DEBOUNCE_MS);
+		return () => clearTimeout(timer);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [inputQuery, urlQuery]);
 
 	useEffect(() => {
 		let cancelled = false;
 		setLoading(true);
-		fetchPage({ ...filters, q: debouncedQuery, page, per_page: perPage })
+		fetchPage({ ...filters, q: urlQuery, page, per_page: perPage })
 			.then((response) => {
 				if (cancelled) return;
 				setResult({ rows: response.data, total: response.meta.total, loaded: true });
@@ -65,7 +86,7 @@ export default function usePagedList(fetchPage, { filters = {} } = {}) {
 			cancelled = true;
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [debouncedQuery, page, perPage, filtersKey, reloadKey]);
+	}, [urlQuery, page, perPage, filtersKey, reloadKey]);
 
 	return {
 		rows: result.rows,
@@ -75,12 +96,12 @@ export default function usePagedList(fetchPage, { filters = {} } = {}) {
 		// on screen until the new ones arrive.
 		initialLoading: loading && !result.loaded,
 		error,
-		query,
-		setQuery,
+		query: inputQuery,
+		setQuery: setInputQuery,
 		page,
-		setPage,
+		setPage: (value) => updateParams({ page: value > 1 ? value : null }, { replace: false }),
 		perPage,
-		setPerPage,
+		setPerPage: (value) => updateParams({ per_page: value === DEFAULT_PER_PAGE ? null : value, page: null }),
 		reload: () => setReloadKey((key) => key + 1),
 	};
 }
