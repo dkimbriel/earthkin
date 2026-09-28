@@ -24,8 +24,26 @@ class EnrollmentPaymentPlan < ApplicationRecord
     update!(
       payment_plan: new_plan,
       total_amount: tuition_override || new_plan.total_amount,
-      installments: new_plan.generate_schedule(schedule_start_date).map { |i| i.merge('paid_at' => nil) }
+      installments: new_plan.generate_schedule(schedule_start_date, total_amount: tuition_override)
+                            .map { |i| i.merge('paid_at' => nil) }
     )
+  end
+
+  # Re-price the unpaid part of the schedule after an admin edits the family's
+  # custom tuition or enrollment fee (nil tuition falls back to the plan's
+  # standard price). Paid installments keep what was actually paid; whatever
+  # tuition is left is split across the unpaid ones, so an earlier over- or
+  # under-charge is absorbed by the remaining payments.
+  def reprice!(tuition:, enrollment_fee: nil)
+    new_total = (tuition.presence || payment_plan.total_amount).to_d
+    paid, pending = installments.partition { |i| i['status'] == 'completed' }
+    remaining = [new_total - paid.sum { |i| i['amount'].to_d }, 0].max
+    amounts = PaymentPlan.split_amount(remaining, pending.size)
+    pending.each_with_index { |installment, idx| installment['amount'] = amounts[idx].to_f }
+
+    attrs = { total_amount: new_total, installments: installments }
+    attrs[:enrollment_fee] = enrollment_fee if enrollment_fee.present? && !enrollment_fee_paid?
+    update!(attrs)
   end
 
   def mark_enrollment_fee_paid!

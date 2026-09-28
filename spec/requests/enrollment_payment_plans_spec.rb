@@ -85,6 +85,21 @@ RSpec.describe 'Api::EnrollmentPaymentPlans', type: :request do
       plan = EnrollmentPaymentPlan.last
       expect(plan.installments.map { |i| i['due_date'] }).to eq(%w[2026-09-01 2026-10-01])
     end
+
+    it 'bills the installments from an admin-entered custom total' do
+      payment_plan.update!(installment_count: 2, total_amount: 3000)
+
+      post '/api/enrollment_payment_plans', params: {
+        enrollment_payment_plan: {
+          program_enrollment_id: enrollment.id,
+          payment_plan_id: payment_plan.id,
+          total_amount: 2000,
+          enrollment_fee: 0
+        }
+      }
+
+      expect(EnrollmentPaymentPlan.last.installments.map { |i| i['amount'] }).to eq([1000.0, 1000.0])
+    end
   end
 
   describe 'POST /api/enrollment_payment_plans/:id/record_enrollment_fee' do
