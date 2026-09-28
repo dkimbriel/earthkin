@@ -14,14 +14,18 @@ import {
     Box,
     Button,
     Chip,
+    Collapse,
     Drawer,
     List,
     ListItem,
     ListItemButton,
     ListItemIcon,
     ListItemText,
+    ListSubheader,
     IconButton,
 } from "@mui/material";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MenuIcon from "@mui/icons-material/Menu";
 import GroupsIcon from "@mui/icons-material/Groups";
 import SchoolIcon from "@mui/icons-material/School";
@@ -79,9 +83,14 @@ import EarthkinLoader from "./shared/EarthkinLoader";
 
 const drawerWidth = 220;
 
-const baseNavItems = [
+// Everyday pages, shown first with no heading.
+const homeNavItems = [
     { path: "/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
+];
+
+// The school's core records.
+const schoolNavItems = [
     { path: "/enrollment-applications", label: "Enrollments", icon: <AssignmentIcon /> },
     { path: "/families", label: "Families", icon: <GroupsIcon /> },
     { path: "/programs", label: "Programs", icon: <SchoolIcon /> },
@@ -89,6 +98,19 @@ const baseNavItems = [
     { path: "/locations", label: "Locations", icon: <LocationOnIcon /> },
     { path: "/content", label: "Content", icon: <FolderSharedIcon /> },
 ];
+
+const baseNavItems = [...homeNavItems, ...schoolNavItems];
+
+// Remembers whether the Admin nav section is expanded. Storage can be
+// unavailable (private windows), so fall back to collapsed.
+const ADMIN_NAV_OPEN_KEY = "earthkin.nav.adminOpen";
+const readAdminNavOpen = () => {
+    try {
+        return window.localStorage.getItem(ADMIN_NAV_OPEN_KEY) === "true";
+    } catch {
+        return false;
+    }
+};
 
 // Pinned to the very top of the admin nav so alerts are the first thing seen.
 const notificationsNavItem = { path: "/notifications", label: "Notifications", icon: <NotificationsIcon /> };
@@ -192,60 +214,129 @@ export default function Dashboard() {
         icon: <DescriptionIcon />,
         badge: pendingCount,
     };
-    const navItems = isParent
-        ? [
-            { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
-            { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
-            { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
-            { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
-            { path: "/documents", label: "Documents", icon: <FolderSharedIcon /> },
-            helpNavItem,
-        ]
-        : isTeacher
-            ? [...teacherNavItems, myDocumentsNavItem, helpNavItem]
-            : [
-                ...(isAdmin ? [notificationsNavItem] : []),
-                ...baseNavItems,
-                ...(isAdmin
-                    ? adminNavItems.map((item) =>
-                        item.path === "/staff-documents" ? { ...item, badge: pendingCount } : item
-                    )
-                    : []),
-                ...(user?.super_admin ? superAdminNavItems : []),
+    // The nav is a list of sections. Parents and teachers have short navs, so
+    // theirs is one untitled section; staff get headed groups with the
+    // rarely-used admin pages folded away.
+    const navSections = isParent
+        ? [{
+            key: "main",
+            items: [
+                { path: "/dashboard", label: "Home", icon: <DashboardIcon /> },
+                { path: "/calendar", label: "Calendar", icon: <CalendarMonthIcon /> },
+                { path: "/payments", label: "Payments", icon: <AssignmentIcon /> },
+                { path: "/forms", label: "Forms", icon: <AssignmentIcon /> },
+                { path: "/documents", label: "Documents", icon: <FolderSharedIcon /> },
                 helpNavItem,
-            ];
+            ],
+        }]
+        : isTeacher
+            ? [{ key: "main", items: [...teacherNavItems, myDocumentsNavItem, helpNavItem] }]
+            : [
+                { key: "home", items: [...(isAdmin ? [notificationsNavItem] : []), ...homeNavItems] },
+                { key: "school", label: "School", items: schoolNavItems },
+                {
+                    key: "admin",
+                    label: "Admin",
+                    collapsible: true,
+                    items: [
+                        ...(isAdmin
+                            ? adminNavItems.map((item) =>
+                                item.path === "/staff-documents" ? { ...item, badge: pendingCount } : item
+                            )
+                            : []),
+                        ...(user?.super_admin ? superAdminNavItems : []),
+                    ],
+                },
+                { key: "help", items: [helpNavItem] },
+            ].filter((section) => section.items.length > 0);
+
+    const [adminNavOpen, setAdminNavOpen] = useState(readAdminNavOpen);
+    const toggleAdminNav = () => {
+        const next = !adminNavOpen;
+        setAdminNavOpen(next);
+        try {
+            window.localStorage.setItem(ADMIN_NAV_OPEN_KEY, String(next));
+        } catch {
+            // Not remembered this time; the toggle still works.
+        }
+    };
+
+    const itemBadge = (item) => (item.path === "/notifications" ? unreadNotifications : item.badge) || 0;
+    const isOnPage = (item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`);
+
+    const renderNavItem = (item) => (
+        <ListItem key={item.path} disablePadding>
+            <ListItemButton
+                component={NavLink}
+                to={item.path}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                    "&.active": {
+                        backgroundColor: "action.selected",
+                    },
+                }}
+            >
+                <ListItemIcon>{item.icon}</ListItemIcon>
+                <ListItemText primary={item.label} />
+                {itemBadge(item) > 0 && (
+                    <Chip
+                        label={itemBadge(item)}
+                        color={item.path === "/notifications" ? "primary" : "warning"}
+                        size="small"
+                        sx={{ height: 20, minWidth: 20, "& .MuiChip-label": { px: 0.75 } }}
+                    />
+                )}
+            </ListItemButton>
+        </ListItem>
+    );
+
+    const sectionHeaderSx = { lineHeight: "32px", mt: 1, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5, fontSize: "0.75rem" };
+
+    const renderSection = (section, index) => {
+        if (!section.collapsible) {
+            return (
+                <List
+                    key={section.key}
+                    disablePadding
+                    subheader={section.label && <ListSubheader disableSticky sx={sectionHeaderSx}>{section.label}</ListSubheader>}
+                    sx={index > 0 && !section.label ? { mt: 1 } : undefined}
+                >
+                    {section.items.map(renderNavItem)}
+                </List>
+            );
+        }
+
+        // Always open while you're on one of its pages, so the active item is visible.
+        const open = adminNavOpen || section.items.some(isOnPage);
+        // A pending signature must not hide inside a folded section.
+        const hiddenBadge = open ? 0 : section.items.reduce((sum, item) => sum + itemBadge(item), 0);
+
+        return (
+            <List key={section.key} disablePadding>
+                <ListItemButton onClick={toggleAdminNav} aria-expanded={open} sx={{ ...sectionHeaderSx, color: "text.secondary", py: 0 }}>
+                    <ListItemText primary={section.label} primaryTypographyProps={{ sx: { fontSize: "inherit", fontWeight: "inherit" } }} />
+                    {hiddenBadge > 0 && (
+                        <Chip
+                            label={hiddenBadge}
+                            color="warning"
+                            size="small"
+                            sx={{ height: 20, minWidth: 20, mr: 1, "& .MuiChip-label": { px: 0.75 } }}
+                        />
+                    )}
+                    {open ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+                </ListItemButton>
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                    {section.items.map(renderNavItem)}
+                </Collapse>
+            </List>
+        );
+    };
 
     const drawerContent = (
         <>
             <Box sx={{ height: navHeight, flexShrink: 0 }} />
-            <Box sx={{ overflow: "auto" }}>
-                <List>
-                    {navItems.map((item) => (
-                        <ListItem key={item.path} disablePadding>
-                            <ListItemButton
-                                component={NavLink}
-                                to={item.path}
-                                onClick={() => setMobileOpen(false)}
-                                sx={{
-                                    "&.active": {
-                                        backgroundColor: "action.selected",
-                                    },
-                                }}
-                            >
-                                <ListItemIcon>{item.icon}</ListItemIcon>
-                                <ListItemText primary={item.label} />
-                                {(item.path === "/notifications" ? unreadNotifications : item.badge) > 0 && (
-                                    <Chip
-                                        label={item.path === "/notifications" ? unreadNotifications : item.badge}
-                                        color={item.path === "/notifications" ? "primary" : "warning"}
-                                        size="small"
-                                        sx={{ height: 20, minWidth: 20, "& .MuiChip-label": { px: 0.75 } }}
-                                    />
-                                )}
-                            </ListItemButton>
-                        </ListItem>
-                    ))}
-                </List>
+            <Box sx={{ overflow: "auto", py: 1 }}>
+                {navSections.map(renderSection)}
             </Box>
         </>
     );
