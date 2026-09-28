@@ -76,6 +76,26 @@ RSpec.describe 'Api::ProgramEnrollments', type: :request do
       expect(json['enrollment_payment_plan']).to include('enrollment_fee_paid' => true)
       expect(json['enrollment_payment_plan']['enrollment_fee_paid_at']).to be_present
     end
+
+    it "includes the family's email history for admins" do
+      application = create(:enrollment_application, family: enrollment.child.family)
+      email = create(:email, :sent, emailable: application, subject: 'Your enrollment fee')
+
+      get "/api/program_enrollments/#{enrollment.id}"
+      emails = JSON.parse(response.body)['family_emails']
+
+      expect(emails.map { |e| e['id'] }).to eq([email.id])
+      expect(emails.first).to include('subject' => 'Your enrollment fee', 'type_label' => 'Inquiry Response', 'status_color' => 'success')
+    end
+
+    it 'leaves out the email history for teachers' do
+      sign_in create(:user, :teacher)
+      create(:email, :sent, emailable: create(:enrollment_application, family: enrollment.child.family))
+
+      get "/api/program_enrollments/#{enrollment.id}"
+      expect(response).to have_http_status(:success)
+      expect(JSON.parse(response.body)).not_to have_key('family_emails')
+    end
   end
 
   describe 'POST /api/program_enrollments' do

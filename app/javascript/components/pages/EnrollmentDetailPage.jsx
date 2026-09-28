@@ -35,6 +35,7 @@ import PageHeader from "../shared/PageHeader";
 import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentPlansApi } from "../../utils/api";
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
+import EmailTimeline from "../enrollment/EmailTimeline";
 
 const money = (v) => `$${parseFloat(v || 0).toFixed(2)}`;
 
@@ -600,6 +601,30 @@ export default function EnrollmentDetailPage() {
                     emptyMessage="No payments recorded yet."
                 />
             </Paper>
+
+            {isAdmin && enrollment.family_emails && (
+                <Paper sx={{ p: 3, mt: 3 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                        <Typography variant="h6">Communications</Typography>
+                        {enrollment.enrollment_application_id && (
+                            <Button
+                                size="small"
+                                startIcon={<EmailIcon />}
+                                onClick={() =>
+                                    navigate(`/enrollment-applications/${enrollment.enrollment_application_id}?tab=communications`)
+                                }
+                            >
+                                Send Email
+                            </Button>
+                        )}
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        Every email sent to this family: enrollment emails for all programs, invoices, receipts, and manual emails.
+                    </Typography>
+                    {/* Read-only here: no application/onSendEmail, so the timeline hides its send buttons. */}
+                    <EmailTimeline emails={enrollment.family_emails} />
+                </Paper>
+            )}
 
             <FormDialog
                 open={showPaymentForm}
