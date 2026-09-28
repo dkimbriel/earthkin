@@ -14,6 +14,11 @@ import {
     ListItem,
     ListItemText,
     Alert,
+    Table,
+    TableHead,
+    TableBody,
+    TableRow,
+    TableCell,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -31,11 +36,106 @@ import { programEnrollmentsApi, paymentsApi, paymentPlansApi, enrollmentPaymentP
 import { useAuth } from "../../contexts/AuthContext";
 import EarthkinLoader from "../shared/EarthkinLoader";
 
+const money = (v) => `$${parseFloat(v || 0).toFixed(2)}`;
+
+// Parse date-only strings ("2026-08-24") in local time. new Date(str)
+// treats them as UTC and shifts the displayed day in western timezones.
+const parseDateOnly = (dateStr) => {
+    const [y, m, d] = String(dateStr).split("T")[0].split("-");
+    return new Date(y, m - 1, d);
+};
+
+const formatDate = (dateStr) => (dateStr ? parseDateOnly(dateStr).toLocaleDateString() : "—");
+
+const startOfToday = () => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const installmentStatus = (inst, isNext) => {
+    if (inst.status === "completed") return { label: "Paid", color: "success" };
+    if (parseDateOnly(inst.due_date) < startOfToday()) return { label: "Overdue", color: "error" };
+    if (isNext) return { label: "Due next", color: "warning" };
+    return { label: "Upcoming", color: "default" };
+};
+
+// Upcoming and past installments for an enrollment on a payment plan, plus the
+// enrollment fee when there is one. Mirrors the parent Payments page schedule.
+function PaymentSchedule({ plan }) {
+    const installments = plan.installments || [];
+    const nextIdx = installments.findIndex((inst) => inst.status !== "completed");
+    const unpaid = installments.filter((inst) => inst.status !== "completed");
+    const scheduledTotal = unpaid.reduce((sum, inst) => sum + parseFloat(inst.amount || 0), 0);
+    const hasFee = parseFloat(plan.enrollment_fee || 0) > 0;
+
+    return (
+        <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+                Payment Schedule
+            </Typography>
+            <Table size="small">
+                <TableHead>
+                    <TableRow>
+                        <TableCell>#</TableCell>
+                        <TableCell>Due Date</TableCell>
+                        <TableCell>Amount</TableCell>
+                        <TableCell>Status</TableCell>
+                        <TableCell>Paid On</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {hasFee && (
+                        <TableRow>
+                            <TableCell>Enrollment fee</TableCell>
+                            <TableCell>—</TableCell>
+                            <TableCell>{money(plan.enrollment_fee)}</TableCell>
+                            <TableCell>
+                                <Chip
+                                    size="small"
+                                    label={plan.enrollment_fee_paid ? "Paid" : "Unpaid"}
+                                    color={plan.enrollment_fee_paid ? "success" : "default"}
+                                />
+                            </TableCell>
+                            <TableCell>
+                                {plan.enrollment_fee_paid_at
+                                    ? new Date(plan.enrollment_fee_paid_at).toLocaleDateString()
+                                    : "—"}
+                            </TableCell>
+                        </TableRow>
+                    )}
+                    {installments.map((inst, i) => {
+                        const status = installmentStatus(inst, i === nextIdx);
+                        return (
+                            <TableRow
+                                key={i}
+                                sx={i === nextIdx ? { backgroundColor: "action.selected", "& td": { fontWeight: 700 } } : undefined}
+                            >
+                                <TableCell>{i + 1} of {installments.length}</TableCell>
+                                <TableCell>{formatDate(inst.due_date)}</TableCell>
+                                <TableCell>{money(inst.amount)}</TableCell>
+                                <TableCell>
+                                    <Chip size="small" label={status.label} color={status.color} />
+                                </TableCell>
+                                <TableCell>{formatDate(inst.paid_at)}</TableCell>
+                            </TableRow>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                {unpaid.length === 0
+                    ? "All installments paid."
+                    : `${unpaid.length} remaining, ${money(scheduledTotal)} still scheduled`}
+            </Typography>
+        </Paper>
+    );
+}
+
 const getPaymentColumns = (onSendInvoice, onCopyPayLink) => [
     {
         key: "payment_date",
         label: "Date",
-        render: (row) => new Date(row.payment_date).toLocaleDateString(),
+        render: (row) => formatDate(row.payment_date),
     },
     {
         key: "amount",
@@ -469,6 +569,10 @@ export default function EnrollmentDetailPage() {
                     </Card>
                 </Grid>
             </Grid>
+
+            {enrollment.enrollment_payment_plan?.installments?.length > 0 && (
+                <PaymentSchedule plan={enrollment.enrollment_payment_plan} />
+            )}
 
             <Paper sx={{ p: 3 }}>
                 <PageHeader
