@@ -11,12 +11,19 @@
   <li><strong>Type:</strong> Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %></li>
 </ul>
 
+<% if @autopay_label %>
+<p style="background-color: #e8f5e9; border-radius: 6px; padding: 14px 18px;">
+  <strong>Autopay is on.</strong> Your <%= @autopay_label %> will be charged <%= number_to_currency(@payment.amount) %> on <%= @payment.payment_date.strftime('%B %d') %>. There's nothing you need to do, and a receipt is emailed to you once it goes through.
+</p>
+<p style="font-size: 13px; color: #666;">Prefer to pay now instead? <a href="<%= @pay_url %>">Pay securely here</a>. You can change or turn off autopay on the Payments page of the family portal.</p>
+<% else %>
 <p style="margin: 24px 0;">
   <a href="<%= @pay_url %>" style="background-color: #2e7d32; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; display: inline-block;">
     Pay <%= number_to_currency(@payment.amount) %> Securely
   </a>
 </p>
 <p style="font-size: 13px; color: #666;">Pay by card through our secure Stripe page — a receipt is emailed to you automatically. If the button doesn't work, paste this link into your browser:<br><%= @pay_url %></p>
+<% end %>
 
 <h3>Payment Plan Status</h3>
 <ul>

@@ -9,8 +9,15 @@ Amount: $<%= sprintf('%.2f', @payment.amount) %>
 Due Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
 Type: Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %>
 
+<% if @autopay_label -%>
+AUTOPAY IS ON: your <%= @autopay_label %> will be charged $<%= sprintf('%.2f', @payment.amount) %> on <%= @payment.payment_date.strftime('%B %d') %>. There's nothing you need to do; a receipt is emailed once it goes through.
+
+Prefer to pay now instead? <%= @pay_url %>
+You can change or turn off autopay on the Payments page of the family portal.
+<% else -%>
 Pay securely by card (a receipt is emailed automatically):
 <%= @pay_url %>
+<% end -%>
 
 PAYMENT PLAN STATUS
 Plan: <%= @plan.payment_plan.name %>

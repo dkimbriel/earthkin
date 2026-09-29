@@ -56,6 +56,22 @@ class AdminNotifier
       )
     end
 
+    # An automatic tuition charge failed twice; the parent has been emailed a
+    # Pay Now link and the installment is outstanding until they use it.
+    def autopay_failed(payment)
+      enrollment = payment.program_enrollment
+      child_name = enrollment&.child&.full_name.presence || 'a family'
+      amount = format('%.2f', payment.amount.to_d)
+      notify(
+        event_type: 'autopay_failed',
+        title: "Automatic payment failed — #{child_name} ($#{amount})",
+        body: "Autopay couldn't collect tuition installment ##{payment.installment_number} ($#{amount}) for " \
+              "#{child_name} after #{AutopayCharger::MAX_ATTEMPTS} tries (#{payment.autopay_error}). " \
+              'The family has been emailed a Pay Now link.',
+        enrollment_application: enrollment&.enrollment_application
+      )
+    end
+
     # Fired the first time a parent signs in to the portal — a cue that the
     # family is set up and their enrollment forms can be issued.
     def family_first_login(user)

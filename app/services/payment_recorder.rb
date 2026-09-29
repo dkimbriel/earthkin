@@ -32,6 +32,28 @@ module PaymentRecorder
 		payment
 	end
 
+	# Settles an existing pending invoice (an emailed invoice paid through
+	# Checkout, or an autopay charge) and, when it belongs to an installment,
+	# flips that installment to completed. Returns nil if it was already paid.
+	def complete_invoice(payment, payment_method: 'stripe', stripe: {})
+		return nil if payment.status == 'completed'
+
+		ActiveRecord::Base.transaction do
+			payment.update!(
+				{ status: 'completed', payment_method: payment_method, payment_date: Date.current,
+				  autopay_retry_on: nil, autopay_error: nil }.merge(stripe_attrs(stripe))
+			)
+
+			plan = payment.enrollment_payment_plan
+			if plan && payment.installment_number
+				index = payment.installment_number - 1
+				plan.mark_installment_paid!(index, payment) if plan.installments[index]
+			end
+		end
+
+		payment
+	end
+
 	# Maps the stripe metadata hash onto Payment's stripe_* columns. Accepts
 	# symbol keys; drops blanks so non-Stripe payments stay clean.
 	def stripe_attrs(stripe)

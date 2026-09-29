@@ -13,14 +13,24 @@ module Webhooks
 		# signature check in verified_event, not the session.
 		skip_forgery_protection
 
-		# checkout.session.completed is the only event we act on today; others are
-		# acknowledged with 200 so Stripe stops retrying them.
+		# Events we act on: checkout.session.completed (payments, and autopay
+		# setup), and payment_intent.succeeded / payment_failed (autopay charges,
+		# which for bank accounts settle days later). Others are acknowledged with
+		# 200 so Stripe stops retrying them.
 		def create
 			event = verified_event
 			return head(:bad_request) if event.nil?
 
-			if event.type == 'checkout.session.completed'
-				handle_checkout_completed(event.data.object)
+			case event.type
+			when 'checkout.session.completed'
+				session = event.data.object
+				if (session.metadata || {})['kind'] == 'autopay_setup'
+					handle_autopay_setup(session)
+				else
+					handle_checkout_completed(session)
+				end
+			when 'payment_intent.succeeded', 'payment_intent.payment_failed'
+				handle_autopay_intent(event.type, event.data.object)
 			end
 
 			head :ok
@@ -39,6 +49,50 @@ module Webhooks
 		rescue JSON::ParserError, Stripe::SignatureVerificationError => e
 			Rails.logger.warn("[stripe webhook] rejected: #{e.class}: #{e.message}")
 			nil
+		end
+
+		# A parent saved a card or bank account for autopay (setup-mode Checkout).
+		def handle_autopay_setup(session)
+			metadata = session.metadata || {}
+			plan = EnrollmentPaymentPlan.includes(program_enrollment: { child: :family })
+			                            .find_by(id: metadata['enrollment_payment_plan_id'])
+			return if plan.nil?
+
+			# The session must belong to this plan's family (we created it with the
+			# family's customer); anything else is ignored rather than trusted.
+			family = plan.program_enrollment&.child&.family
+			return if family.nil? || family.stripe_customer_id.blank? || session.customer != family.stripe_customer_id
+
+			setup_intent = Stripe::SetupIntent.retrieve(id: session.setup_intent, expand: ['payment_method'])
+			return unless setup_intent.status == 'succeeded'
+
+			method = StripeAutopay.method_details(setup_intent.payment_method)
+			return if plan.autopay_payment_method_id == method[:id]
+
+			plan.enable_autopay!(method: method, enabled_by: metadata['enabled_by'], mandate_id: setup_intent.mandate)
+		end
+
+		# An autopay charge settled. Card charges usually settle while
+		# AutopayCharger waits, so this mostly finishes bank payments; it's
+		# idempotent either way.
+		def handle_autopay_intent(event_type, intent)
+			metadata = intent.metadata || {}
+			return unless metadata['kind'] == 'autopay'
+
+			payment = Payment.find_by(id: metadata['payment_id'])
+			return if payment.nil? || payment.status == 'completed'
+
+			if event_type == 'payment_intent.succeeded'
+				completed = PaymentRecorder.complete_invoice(
+					payment, stripe: { payment_intent_id: intent.id, receipt_url: receipt_url_for(intent.id) }
+				)
+				AdminNotifier.payment_completed(completed) if completed
+			elsif payment.stripe_payment_intent_id == intent.id
+				# Only a charge we left processing (bank). A card decline was already
+				# handled inline by AutopayCharger, which clears the intent id.
+				message = intent.last_payment_error&.message.presence || 'The bank payment was not completed.'
+				AutopayCharger.record_failure(payment, payment.autopay_attempts, Date.current, message)
+			end
 		end
 
 		def handle_checkout_completed(session)
@@ -108,26 +162,9 @@ module Webhooks
 		# and, if it belongs to an installment schedule, flip the installment too.
 		def record_invoice(metadata, stripe_ids)
 			payment = Payment.find_by(id: metadata['payment_id'])
-			return if payment.nil? || payment.status == 'completed'
+			return if payment.nil?
 
-			ActiveRecord::Base.transaction do
-				payment.update!(
-					status: 'completed',
-					payment_method: 'stripe',
-					payment_date: Date.current,
-					stripe_checkout_session_id: stripe_ids[:session_id],
-					stripe_payment_intent_id: stripe_ids[:payment_intent_id],
-					stripe_receipt_url: stripe_ids[:receipt_url]
-				)
-
-				plan = payment.enrollment_payment_plan
-				if plan && payment.installment_number
-					index = payment.installment_number - 1
-					plan.mark_installment_paid!(index, payment) if plan.installments[index]
-				end
-			end
-
-			payment
+			PaymentRecorder.complete_invoice(payment, stripe: stripe_ids)
 		end
 
 		# The hosted receipt lives on the charge behind the payment intent.

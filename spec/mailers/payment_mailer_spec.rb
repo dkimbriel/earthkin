@@ -97,10 +97,30 @@ RSpec.describe PaymentMailer, type: :mailer do
       expect(mail.body.encoded).to include('$2,520.00')
     end
 
+    it 'tells an autopay family the charge happens on its own' do
+      enrollment_payment_plan.enable_autopay!(method: { id: 'pm_1', type: 'card', label: 'Visa ending 4242' },
+                                              enabled_by: 'parent@example.com')
+
+      expect(mail.body.encoded).to include('Autopay is on')
+      expect(mail.body.encoded).to include('Visa ending 4242')
+      expect(mail.body.encoded).not_to match(/Pay .*Securely/)
+    end
+
     it 'links past invoices in the payment history' do
       expect(mail.body.encoded).to include('Payment History')
       expect(mail.body.encoded).to include('Enrollment Fee')
       expect(mail.body.encoded).to include("/pay/#{paid_installment.reload.payment_token}")
+    end
+
+    describe 'autopay_failed' do
+      let(:failed_mail) { PaymentMailer.autopay_failed(due_payment.id) }
+
+      it 'sends the parent a pay link for the installment autopay could not collect' do
+        expect(failed_mail.subject).to include("Automatic payment didn't go through")
+        expect(failed_mail.to).to eq(['parent@example.com'])
+        expect(failed_mail.body.encoded).to include('$280.00')
+        expect(failed_mail.body.encoded).to include("/pay/#{due_payment.reload.payment_token}")
+      end
     end
   end
 end

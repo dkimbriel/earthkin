@@ -25,7 +25,9 @@ module Api
 					child: { include: { family: { only: %i[id name] } } },
 					program: {},
 					payments: {},
-					enrollment_payment_plan: { include: :payment_plan }
+					# The page shows autopay's label and dates; the raw Stripe ids stay server-side.
+					enrollment_payment_plan: { include: :payment_plan, except: %i[autopay_payment_method_id autopay_mandate_id],
+					                           methods: :autopay? }
 				},
 				methods: %i[total_owed total_paid balance_due]
 			).merge(billable_classes: enrollment.billable_classes.as_json).merge(family_emails_json(enrollment))

@@ -221,6 +221,11 @@ export const portalApi = {
 			enrollment_payment_plan_id: enrollmentPaymentPlanId,
 			installment_index: installmentIndex,
 		}),
+	// Returns a Stripe URL where the parent saves a card or bank account.
+	setupAutopay: (enrollmentPaymentPlanId, consent) =>
+		api.post("/api/portal/autopay/setup", { enrollment_payment_plan_id: enrollmentPaymentPlanId, consent }),
+	disableAutopay: (enrollmentPaymentPlanId) =>
+		api.post("/api/portal/autopay/disable", { enrollment_payment_plan_id: enrollmentPaymentPlanId }),
 	forms: () => api.get("/api/portal/forms"),
 	signForm: (id, signedByName, responseText, formFields) =>
 		api.post(`/api/portal/forms/${id}/sign`, {
@@ -351,4 +356,5 @@ export const enrollmentPaymentPlansApi = {
 	update: (id, data) => api.patch(`/api/enrollment_payment_plans/${id}`, { enrollment_payment_plan: data }),
 	recordEnrollmentFee: (id, data) => api.post(`/api/enrollment_payment_plans/${id}/record_enrollment_fee`, data),
 	recordInstallmentPayment: (id, data) => api.post(`/api/enrollment_payment_plans/${id}/record_installment_payment`, data),
+	disableAutopay: (id) => api.post(`/api/enrollment_payment_plans/${id}/disable_autopay`),
 };
