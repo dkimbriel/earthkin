@@ -89,6 +89,20 @@ RSpec.describe AutopayCharger do
     expect(Stripe::PaymentIntent).to have_received(:create).twice
   end
 
+  it 'charges the new card on the next run when the parent changes it after a decline' do
+    allow(Stripe::PaymentIntent).to receive(:create)
+      .and_raise(Stripe::CardError.new('Your card was declined.', nil, code: 'card_declined'))
+    described_class.run(date: today)
+    expect(invoice_for(1).autopay_retry_on).to eq(today + 3)
+
+    plan.enable_autopay!(method: { id: 'pm_new', type: 'card', label: 'Visa ending 9999' }, enabled_by: 'mom@example.com')
+    expect(plan.reload.autopay_enabled_at.to_date).to eq(Date.new(2026, 10, 1))
+
+    allow(Stripe::PaymentIntent).to receive(:create).and_return(intent('succeeded'))
+    expect(described_class.run(date: today + 1)[:charged]).to eq(1)
+    expect(Stripe::PaymentIntent).to have_received(:create).with(hash_including(payment_method: 'pm_new'), anything)
+  end
+
   it "doesn't count our own errors as a failed attempt" do
     plan
     allow(Stripe::PaymentIntent).to receive(:create).and_raise(Stripe::InvalidRequestError.new('No such customer', 'customer'))
