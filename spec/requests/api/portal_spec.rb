@@ -133,4 +133,55 @@ RSpec.describe 'Api::Portal', type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
   end
+
+  describe 'autopay' do
+    let!(:plan) { create(:enrollment_payment_plan, :with_monthly_plan, program_enrollment: enrollment) }
+
+    before { sign_in parent_user }
+
+    it 'shows each plan autopay status and the terms to agree to' do
+      get '/api/portal/payments'
+      row = JSON.parse(response.body).first
+
+      expect(row.dig('plan', 'autopay', 'enabled')).to be(false)
+      expect(row.dig('plan', 'autopay_terms')).to include('I authorize Earthkin Nature School')
+    end
+
+    it 'starts a setup session once the parent agrees to the terms' do
+      expect(StripeAutopay).to receive(:setup_session)
+        .with(an_instance_of(EnrollmentPaymentPlan), parent_email: parent.email)
+        .and_return(double(url: 'https://checkout.stripe.com/c/setup/cs_1'))
+
+      post '/api/portal/autopay/setup', params: { enrollment_payment_plan_id: plan.id, consent: true }
+
+      expect(JSON.parse(response.body)['url']).to eq('https://checkout.stripe.com/c/setup/cs_1')
+    end
+
+    it 'refuses without consent' do
+      expect(StripeAutopay).not_to receive(:setup_session)
+      post '/api/portal/autopay/setup', params: { enrollment_payment_plan_id: plan.id }
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "can't touch another family's plan" do
+      other = create(:enrollment_payment_plan, :with_monthly_plan)
+      other.enable_autopay!(method: { id: 'pm_x', type: 'card', label: 'Visa ending 1111' }, enabled_by: 'x@example.com')
+
+      post '/api/portal/autopay/setup', params: { enrollment_payment_plan_id: other.id, consent: true }
+      expect(response).to have_http_status(:not_found)
+
+      post '/api/portal/autopay/disable', params: { enrollment_payment_plan_id: other.id }
+      expect(response).to have_http_status(:not_found)
+      expect(other.reload).to be_autopay
+    end
+
+    it 'turns autopay off' do
+      plan.enable_autopay!(method: { id: 'pm_1', type: 'card', label: 'Visa ending 4242' }, enabled_by: parent.email)
+
+      post '/api/portal/autopay/disable', params: { enrollment_payment_plan_id: plan.id }
+
+      expect(JSON.parse(response.body).dig('autopay', 'enabled')).to be(false)
+      expect(plan.reload).not_to be_autopay
+    end
+  end
 end

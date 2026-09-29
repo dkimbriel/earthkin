@@ -1,6 +1,6 @@
 module Api
   class EnrollmentPaymentPlansController < BaseController
-    before_action :require_admin!, only: :update
+    before_action :require_admin!, only: %i[update disable_autopay]
 
     def index
       plans = EnrollmentPaymentPlan.includes(:payment_plan, :program_enrollment, :payments)
@@ -61,6 +61,14 @@ module Api
       render json: plan.reload.as_json(include: :payments)
     rescue EnrollmentPaymentPlan::ScheduleError => e
       render json: { error: e.message }, status: :unprocessable_entity
+    end
+
+    # Admins can turn autopay off (e.g. at a parent's request) but never on:
+    # that needs the parent's own consent, given in the portal.
+    def disable_autopay
+      plan = EnrollmentPaymentPlan.find(params[:id])
+      plan.disable_autopay!
+      render json: { autopay: plan.autopay_summary }
     end
 
     def record_enrollment_fee

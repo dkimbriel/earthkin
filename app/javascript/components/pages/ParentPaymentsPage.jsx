@@ -14,7 +14,14 @@ import {
     TableCell,
     Button,
     Link,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Checkbox,
+    FormControlLabel,
 } from "@mui/material";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import { portalApi } from "../../utils/api";
 import EarthkinLoader from "../shared/EarthkinLoader";
 
@@ -34,6 +41,97 @@ const formatDue = (dateStr) =>
 const nextPendingInstallment = (row) =>
     row.plan?.installments?.find((inst) => inst.status !== "completed");
 
+// Turn automatic payments on, change the saved method, or turn them off for
+// one enrollment. Saving a method happens on Stripe's hosted page after the
+// parent agrees to the terms here; autopay switches on when Stripe confirms.
+function AutopayPanel({ plan, onChanged }) {
+    const autopay = plan.autopay || {};
+    const [open, setOpen] = useState(false);
+    const [agreed, setAgreed] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
+
+    const startSetup = async () => {
+        setBusy(true);
+        setError(null);
+        try {
+            const { url } = await portalApi.setupAutopay(plan.id, true);
+            window.location.assign(url);
+        } catch (err) {
+            setError(err.message);
+            setBusy(false);
+        }
+    };
+
+    const turnOff = async () => {
+        if (!window.confirm("Turn off automatic payments? You'll pay each installment yourself from this page or the reminder email.")) return;
+        setBusy(true);
+        setError(null);
+        try {
+            await portalApi.disableAutopay(plan.id);
+            onChanged();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <Box sx={{ my: 2, p: 2, borderRadius: 2, border: 1, borderColor: autopay.enabled ? "success.main" : "divider" }}>
+            {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
+            {autopay.enabled ? (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} justifyContent="space-between">
+                    <Box>
+                        <Typography sx={{ fontWeight: 600, display: "flex", alignItems: "center", gap: 0.5 }}>
+                            <AutorenewIcon fontSize="small" color="success" /> Autopay is on
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Each installment is charged to your {autopay.method_label} on its due date.
+                        </Typography>
+                    </Box>
+                    <Stack direction="row" spacing={1}>
+                        <Button size="small" disabled={busy} onClick={() => setOpen(true)}>Change payment method</Button>
+                        <Button size="small" color="error" disabled={busy} onClick={turnOff}>Turn off</Button>
+                    </Stack>
+                </Stack>
+            ) : (
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }} justifyContent="space-between">
+                    <Box>
+                        <Typography sx={{ fontWeight: 600 }}>Pay automatically</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                            Save a card or bank account and each installment is paid on its due date. You can turn it off anytime.
+                        </Typography>
+                    </Box>
+                    <Button variant="contained" disabled={busy} onClick={() => setOpen(true)} sx={{ flexShrink: 0 }}>
+                        Set up autopay
+                    </Button>
+                </Stack>
+            )}
+
+            <Dialog open={open} onClose={() => !busy && setOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>{autopay.enabled ? "Change your autopay payment method" : "Set up automatic payments"}</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" sx={{ mb: 2 }}>{plan.autopay_terms}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Next you'll enter a card or bank account on Stripe's secure page. Nothing is charged until an installment is due.
+                    </Typography>
+                    <FormControlLabel
+                        control={<Checkbox checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />}
+                        label="I agree to these automatic payment terms"
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+                    <Button variant="contained" onClick={startSetup} disabled={!agreed || busy}>
+                        {busy ? "Starting…" : "Continue to Stripe"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
+    );
+}
+
 export default function ParentPaymentsPage() {
     const [rows, setRows] = useState(null);
     const [error, setError] = useState(null);
@@ -41,12 +139,23 @@ export default function ParentPaymentsPage() {
     const [payError, setPayError] = useState(null);
     const [paying, setPaying] = useState(false);
 
-    useEffect(() => {
+    // Stripe sends the parent back with ?autopay=1 after saving a method; the
+    // webhook that turns autopay on may land a moment later, so look again.
+    const [autopayReturned] = useState(() => new URLSearchParams(window.location.search).get("autopay") === "1");
+
+    const loadPayments = () =>
         portalApi
             .payments()
             .then(setRows)
             .catch((err) => setError(err.message))
             .finally(() => setLoading(false));
+
+    useEffect(() => {
+        loadPayments();
+        if (!autopayReturned) return undefined;
+        const timer = setTimeout(loadPayments, 4000);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     // Kick off a Stripe Checkout for one installment, then hand off to Stripe's
@@ -83,6 +192,12 @@ export default function ParentPaymentsPage() {
             </Typography>
 
             {rows.length === 0 && <Alert severity="info">No enrollments with payments yet.</Alert>}
+
+            {autopayReturned && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                    Thanks! Your payment method is saved. Autopay shows as on below once Stripe confirms, usually within a minute.
+                </Alert>
+            )}
 
             {payError && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setPayError(null)}>
@@ -146,6 +261,10 @@ export default function ParentPaymentsPage() {
                                 }
                                 return null;
                             })()}
+
+                            {row.plan?.id && nextPendingInstallment(row) && (
+                                <AutopayPanel plan={row.plan} onChanged={loadPayments} />
+                            )}
 
                             <Stack direction="row" spacing={3} sx={{ my: 1, flexWrap: "wrap" }}>
                                 <Typography variant="body2">Total: {money(row.total_owed)}</Typography>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_09_28_000001) do
+ActiveRecord::Schema[7.2].define(version: 2026_09_29_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pgcrypto"
   enable_extension "plpgsql"
@@ -202,6 +202,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_28_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "deleted_at"
+    t.string "autopay_payment_method_id"
+    t.string "autopay_method_type"
+    t.string "autopay_method_label"
+    t.string "autopay_mandate_id"
+    t.datetime "autopay_enabled_at"
+    t.string "autopay_enabled_by"
+    t.text "autopay_consent_text"
     t.index ["deleted_at"], name: "index_enrollment_payment_plans_on_deleted_at"
     t.index ["payment_plan_id"], name: "index_enrollment_payment_plans_on_payment_plan_id"
     t.index ["program_enrollment_id"], name: "index_enrollment_payment_plans_on_program_enrollment_id", unique: true, where: "(deleted_at IS NULL)"
@@ -243,7 +250,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_28_000001) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "deleted_at"
+    t.string "stripe_customer_id"
     t.index ["deleted_at"], name: "index_families_on_deleted_at"
+    t.index ["stripe_customer_id"], name: "index_families_on_stripe_customer_id", unique: true
   end
 
   create_table "form_templates", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -353,6 +362,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_09_28_000001) do
     t.string "stripe_payment_intent_id"
     t.string "stripe_receipt_url"
     t.string "payment_token"
+    t.integer "autopay_attempts", default: 0, null: false
+    t.date "autopay_retry_on"
+    t.string "autopay_error"
     t.index ["deleted_at"], name: "index_payments_on_deleted_at"
     t.index ["enrollment_payment_plan_id"], name: "index_payments_on_enrollment_payment_plan_id"
     t.index ["payment_token"], name: "index_payments_on_payment_token", unique: true, where: "(payment_token IS NOT NULL)"

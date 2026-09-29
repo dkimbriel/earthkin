@@ -66,7 +66,10 @@ module Api
 						name: e.payment_plan&.name,
 						enrollment_fee: plan.enrollment_fee,
 						enrollment_fee_paid: plan.enrollment_fee_paid,
-						installments: plan.installments
+						installments: plan.installments,
+						autopay: plan.autopay_summary,
+						# Shown for the parent to agree to before saving a method.
+						autopay_terms: AutopayTerms.text(plan)
 					},
 					payments: e.payments.sort_by(&:payment_date).reverse.map do |p|
 						{
@@ -104,6 +107,32 @@ module Api
 		rescue Stripe::StripeError => e
 			Rails.logger.error("[stripe checkout] #{e.class}: #{e.message}")
 			render json: { error: 'Could not start the payment. Please try again.' }, status: :bad_gateway
+		end
+
+		# Starts a setup-mode Stripe Checkout to save a card or bank account for
+		# one enrollment's autopay. The parent must have agreed to the terms
+		# (AutopayTerms) on our page first. Autopay turns on when Stripe confirms,
+		# via the webhook. Also used to change the saved method.
+		def create_autopay_setup
+			plan = family_plan(params[:enrollment_payment_plan_id])
+			return render json: { error: 'Payment plan not found' }, status: :not_found if plan.nil?
+			unless ActiveModel::Type::Boolean.new.cast(params[:consent])
+				return render json: { error: 'Please agree to the automatic payment terms first.' }, status: :unprocessable_entity
+			end
+
+			session = StripeAutopay.setup_session(plan, parent_email: current_user.parent.email)
+			render json: { url: session.url }
+		rescue Stripe::StripeError => e
+			Rails.logger.error("[stripe autopay setup] #{e.class}: #{e.message}")
+			render json: { error: 'Could not start autopay setup. Please try again.' }, status: :bad_gateway
+		end
+
+		def disable_autopay
+			plan = family_plan(params[:enrollment_payment_plan_id])
+			return render json: { error: 'Payment plan not found' }, status: :not_found if plan.nil?
+
+			plan.disable_autopay!
+			render json: { autopay: plan.autopay_summary }
 		end
 
 		def content
@@ -180,6 +209,11 @@ module Api
 
 		def family_enrollments
 			ProgramEnrollment.where(child_id: family.children.select(:id))
+		end
+
+		# A payment plan on one of this family's enrollments, or nil.
+		def family_plan(id)
+			EnrollmentPaymentPlan.where(program_enrollment_id: family_enrollments.select(:id)).find_by(id: id)
 		end
 
 		def family_form_signatures

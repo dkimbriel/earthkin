@@ -1,4 +1,20 @@
 class PaymentMailer < ApplicationMailer
+  # An automatic charge failed twice (AutopayCharger). The installment is
+  # still owed, so the parent gets a Pay Now link for it.
+  def autopay_failed(payment_id)
+    @payment = Payment.includes(program_enrollment: { child: { family: :parents }, program: {} }).find(payment_id)
+    @child = @payment.program_enrollment.child
+    @family = @child.family
+    @program = @payment.program_enrollment.program
+    @plan = @payment.enrollment_payment_plan
+    @pay_url = @payment.pay_url
+
+    mail(
+      to: @family.parents.pluck(:email).compact,
+      subject: "Automatic payment didn't go through - #{@child.first_name} #{@child.last_name}"
+    )
+  end
+
   def invoice(payment_id)
     @payment = Payment.includes(
       program_enrollment: {
@@ -42,6 +58,8 @@ class PaymentMailer < ApplicationMailer
     @program = @payment.program_enrollment.program
     @plan = @payment.enrollment_payment_plan || @payment.program_enrollment.enrollment_payment_plan
     @pay_url = @payment.pay_url
+    # Autopay families are told the charge will happen on its own.
+    @autopay_label = @plan.autopay_method_label if @plan.autopay?
 
     @total_paid = @plan.total_paid
     # Tuition still owed plus the fee if it hasn't been paid. Computed from the

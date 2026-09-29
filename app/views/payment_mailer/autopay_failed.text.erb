@@ -1,0 +1,19 @@
+Your automatic payment didn't go through
+
+Dear <%= @family.name %>,
+
+We tried to collect <%= @child.first_name %>'s tuition installment for <%= @program.name %> automatically<%= " from your #{@plan.autopay_method_label}" if @plan&.autopay_method_label %>, but the payment didn't go through, including a second try a few days later.
+
+Amount: $<%= sprintf('%.2f', @payment.amount) %>
+Due Date: <%= @payment.payment_date.strftime('%B %d, %Y') %>
+Type: Tuition Payment<%= " - Installment ##{@payment.installment_number}" if @payment.installment_number %>
+
+Pay securely here:
+<%= @pay_url %>
+
+Common reasons are an expired card, a new card number, or a bank that needs you to re-approve the payment. To keep future payments automatic, update your payment method on the Payments page of the family portal.
+
+If you have any questions, just reply to this email.
+
+Warmly,
+The Earthkin Team

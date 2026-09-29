@@ -96,6 +96,7 @@ Rails.application.routes.draw do
 			member do
 				post :record_enrollment_fee
 				post :record_installment_payment
+				post :disable_autopay
 			end
 		end
 
@@ -133,6 +134,8 @@ Rails.application.routes.draw do
 		get 'portal/events', to: 'portal#events'
 		get 'portal/payments', to: 'portal#payments'
 		post 'portal/payments/checkout', to: 'portal#create_payment_checkout'
+		post 'portal/autopay/setup', to: 'portal#create_autopay_setup'
+		post 'portal/autopay/disable', to: 'portal#disable_autopay'
 		get 'portal/content', to: 'portal#content'
 		get 'portal/forms', to: 'portal#forms'
 		post 'portal/forms/:id/sign', to: 'portal#sign_form'

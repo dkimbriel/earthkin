@@ -77,6 +77,37 @@ class EnrollmentPaymentPlan < ApplicationRecord
     end
   end
 
+  def autopay?
+    autopay_payment_method_id.present?
+  end
+
+  # Turn on automatic charging with a payment method the parent just saved,
+  # recording who agreed and the exact terms (AutopayTerms) they agreed to.
+  def enable_autopay!(method:, enabled_by:, mandate_id: nil)
+    update!(
+      autopay_payment_method_id: method[:id],
+      autopay_method_type: method[:type],
+      autopay_method_label: method[:label],
+      autopay_mandate_id: mandate_id,
+      autopay_enabled_at: Time.current,
+      autopay_enabled_by: enabled_by,
+      autopay_consent_text: AutopayTerms.text(self)
+    )
+  end
+
+  # Stop automatic charging. The saved method stays on Stripe (the parent can
+  # turn autopay back on); nothing already in progress is cancelled.
+  def disable_autopay!
+    update!(autopay_payment_method_id: nil, autopay_method_type: nil, autopay_method_label: nil,
+            autopay_mandate_id: nil, autopay_enabled_at: nil, autopay_enabled_by: nil)
+  end
+
+  # What the portal and admin pages show about autopay.
+  def autopay_summary
+    { enabled: autopay?, method_label: autopay_method_label, method_type: autopay_method_type,
+      enabled_at: autopay_enabled_at, enabled_by: autopay_enabled_by }
+  end
+
   def mark_enrollment_fee_paid!
     update!(
       enrollment_fee_paid: true,

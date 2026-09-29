@@ -102,6 +102,29 @@ RSpec.describe 'Api::EnrollmentPaymentPlans', type: :request do
     end
   end
 
+  describe 'POST /api/enrollment_payment_plans/:id/disable_autopay' do
+    let(:plan) do
+      create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: payment_plan).tap do |p|
+        p.enable_autopay!(method: { id: 'pm_1', type: 'card', label: 'Visa ending 4242' }, enabled_by: 'mom@example.com')
+      end
+    end
+
+    it 'lets an admin turn autopay off' do
+      post "/api/enrollment_payment_plans/#{plan.id}/disable_autopay"
+
+      expect(response).to have_http_status(:ok)
+      expect(plan.reload).not_to be_autopay
+    end
+
+    it 'is admin-only' do
+      sign_in create(:user, :teacher)
+      post "/api/enrollment_payment_plans/#{plan.id}/disable_autopay"
+
+      expect(response).to have_http_status(:forbidden)
+      expect(plan.reload).to be_autopay
+    end
+  end
+
   describe 'POST /api/enrollment_payment_plans/:id/record_enrollment_fee' do
     let(:enrollment_payment_plan) { create(:enrollment_payment_plan, program_enrollment: enrollment, payment_plan: payment_plan) }
 

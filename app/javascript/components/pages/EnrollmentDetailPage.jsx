@@ -20,6 +20,7 @@ import {
     TableRow,
     TableCell,
     Tabs,
+    Tooltip,
     Tab,
 } from "@mui/material";
 import Grid from "@mui/material/Grid";
@@ -30,6 +31,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EmailIcon from "@mui/icons-material/Email";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import AutorenewIcon from "@mui/icons-material/Autorenew";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import DescriptionIcon from "@mui/icons-material/Description";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -307,6 +309,18 @@ export default function EnrollmentDetailPage() {
         }
     };
 
+    // Admins can turn autopay off (e.g. at a parent's request) but not on:
+    // that takes the parent's own consent in the portal.
+    const handleDisableAutopay = async () => {
+        if (!window.confirm("Turn off autopay for this enrollment? The family will pay each installment by link, and can turn autopay back on in the portal.")) return;
+        try {
+            await enrollmentPaymentPlansApi.disableAutopay(enrollment.enrollment_payment_plan.id);
+            loadEnrollment();
+        } catch (err) {
+            setInvoiceMessage(`Error: ${err.message}`);
+        }
+    };
+
     const handleCopyPayLink = async (paymentId) => {
         try {
             const { url } = await paymentsApi.payLink(paymentId);
@@ -477,6 +491,27 @@ export default function EnrollmentDetailPage() {
                         color="primary"
                         variant="outlined"
                     />
+                )}
+                {enrollment.enrollment_payment_plan && (
+                    <Tooltip
+                        title={
+                            enrollment.enrollment_payment_plan["autopay?"]
+                                ? `Turned on ${new Date(enrollment.enrollment_payment_plan.autopay_enabled_at).toLocaleDateString()} by ${enrollment.enrollment_payment_plan.autopay_enabled_by || "the parent"}. Installments are charged on their due dates.`
+                                : "The parent pays each installment by link. Parents can turn autopay on from the portal's Payments page."
+                        }
+                    >
+                        <Chip
+                            icon={<AutorenewIcon />}
+                            label={
+                                enrollment.enrollment_payment_plan["autopay?"]
+                                    ? `Autopay · ${enrollment.enrollment_payment_plan.autopay_method_label}`
+                                    : "Autopay off"
+                            }
+                            color={enrollment.enrollment_payment_plan["autopay?"] ? "success" : "default"}
+                            variant="outlined"
+                            onDelete={isAdmin && enrollment.enrollment_payment_plan["autopay?"] ? handleDisableAutopay : undefined}
+                        />
+                    </Tooltip>
                 )}
                 {isAdmin && (
                     <Button
