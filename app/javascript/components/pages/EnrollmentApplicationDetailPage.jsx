@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import {
     Box,
     Typography,
@@ -36,6 +36,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import NotificationsOffIcon from "@mui/icons-material/NotificationsOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
+import GroupsIcon from "@mui/icons-material/Groups";
 import IconButton from "@mui/material/IconButton";
 import {
     enrollmentApplicationsApi,
@@ -49,6 +50,7 @@ import ComposeEmailDialog from "../shared/ComposeEmailDialog";
 import ActionButtonWithEmail from "../enrollment/ActionButtonWithEmail";
 import ApplicationFormsTab from "../enrollment/ApplicationFormsTab";
 import EarthkinLoader from "../shared/EarthkinLoader";
+import RelatedLinks from "../shared/RelatedLinks";
 import { useAuth } from "../../contexts/AuthContext";
 
 const formatStatusLabel = (status) => {
@@ -84,6 +86,8 @@ const TAB_NAMES = [
 export default function EnrollmentApplicationDetailPage() {
     const { id } = useParams();
     const navigate = useNavigate();
+    // Set when arriving from a related page (e.g. the enrollment), so Back returns there.
+    const backTo = useLocation().state?.from;
     const { user } = useAuth();
     const isAdmin = user?.role === "admin";
     const [searchParams, setSearchParams] = useSearchParams();
@@ -495,10 +499,14 @@ export default function EnrollmentApplicationDetailPage() {
         <Box>
             <Button
                 startIcon={<ArrowBackIcon />}
-                onClick={() => navigate("/enrollment-applications")}
+                onClick={() => navigate(backTo || "/enrollment-applications")}
                 sx={{ mb: 2 }}
             >
-                Back to Applications
+                {backTo?.startsWith("/enrollments/")
+                    ? "Back to Enrollment"
+                    : backTo?.startsWith("/families/")
+                    ? "Back to Family"
+                    : "Back to Applications"}
             </Button>
 
             {error && (
@@ -531,6 +539,25 @@ export default function EnrollmentApplicationDetailPage() {
                                 application.created_at,
                             ).toLocaleDateString()}
                         </Typography>
+                        <RelatedLinks
+                            links={[
+                                application.program_enrollment && {
+                                    label: "Enrollment & payments",
+                                    to: `/enrollments/${application.program_enrollment.id}`,
+                                    icon: <PaymentIcon />,
+                                },
+                                application.family && {
+                                    label: `${application.family.name} family`,
+                                    to: `/families/${application.family.id}`,
+                                    icon: <GroupsIcon />,
+                                },
+                            ].filter(Boolean)}
+                            note={
+                                application.program_enrollment || application.status === "declined"
+                                    ? null
+                                    : "Enrollment is created when the fee is paid."
+                            }
+                        />
                     </Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Chip
