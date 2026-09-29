@@ -12,61 +12,70 @@ import {
 	TableRow,
 	Collapse,
 	IconButton,
+	Chip,
+	Grid,
+	Alert,
 } from "@mui/material";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import { reportsApi } from "../../utils/api";
 import EarthkinLoader from "../shared/EarthkinLoader";
 
+const money = (v) => `$${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+// Parse date-only strings ("2026-08-24") in local time; new Date(str) reads
+// them as UTC and shifts the day in western timezones.
+const parseDateOnly = (dateStr) => {
+	const [y, m, d] = String(dateStr).split("T")[0].split("-");
+	return new Date(y, m - 1, d);
+};
+
+const formatDate = (dateStr) =>
+	dateStr ? parseDateOnly(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+
+const STATUS_CHIPS = {
+	paid: { label: "Paid", color: "success" },
+	due: { label: "Due", color: "default" },
+	overdue: { label: "Overdue", color: "error" },
+};
+
 function WeekRow({ week, navigate }) {
 	const [open, setOpen] = useState(false);
-
-	const formatDate = (dateStr) => {
-		if (!dateStr) return "";
-		const [year, month, day] = dateStr.split("-");
-		return new Date(year, month - 1, day).toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-		});
-	};
-
-	const formatWeekRange = (start, end) => {
-		const startDate = formatDate(start);
-		const endDate = formatDate(end);
-		return `${startDate} - ${endDate}`;
-	};
-
-	const isCurrentWeek = () => {
-		const today = new Date();
-		const weekStart = new Date(week.week_start);
-		const weekEnd = new Date(week.week_end);
-		weekEnd.setHours(23, 59, 59);
-		return today >= weekStart && today <= weekEnd;
-	};
+	const isPast = !week.current && parseDateOnly(week.week_end) < new Date();
+	const hasLines = week.lines.length > 0;
 
 	return (
 		<>
 			<TableRow
 				sx={{
 					"& > *": { borderBottom: "unset" },
-					backgroundColor: isCurrentWeek() ? "action.selected" : "inherit",
+					backgroundColor: week.current ? "action.selected" : "inherit",
 				}}
 			>
 				<TableCell>
-					<IconButton size="small" onClick={() => setOpen(!open)}>
-						{open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-					</IconButton>
+					{hasLines && (
+						<IconButton size="small" onClick={() => setOpen(!open)} aria-label={open ? "Hide details" : "Show details"}>
+							{open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+						</IconButton>
+					)}
 				</TableCell>
 				<TableCell>
-					<Typography fontWeight={isCurrentWeek() ? "bold" : "normal"}>
-						{formatWeekRange(week.week_start, week.week_end)}
-						{isCurrentWeek() && " (This Week)"}
+					<Typography fontWeight={week.current ? "bold" : "normal"}>
+						{formatDate(week.week_start)} - {formatDate(week.week_end)}
+						{week.current && " (This Week)"}
 					</Typography>
 				</TableCell>
-				<TableCell align="center">{week.class_count}</TableCell>
 				<TableCell align="right">
-					<Typography fontWeight="medium" color="success.main">
-						${parseFloat(week.revenue).toFixed(2)}
+					<Typography color={week.collected > 0 ? "success.main" : "text.secondary"}>
+						{money(week.collected)}
+					</Typography>
+				</TableCell>
+				<TableCell align="right">
+					<Typography
+						fontWeight="medium"
+						color={week.outstanding > 0 ? (isPast ? "error.main" : "text.primary") : "text.secondary"}
+					>
+						{money(week.outstanding)}
 					</Typography>
 				</TableCell>
 			</TableRow>
@@ -74,34 +83,38 @@ function WeekRow({ week, navigate }) {
 				<TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
 					<Collapse in={open} timeout="auto" unmountOnExit>
 						<Box sx={{ margin: 2 }}>
-							<Typography variant="subtitle2" gutterBottom>
-								Classes
-							</Typography>
 							<Table size="small">
 								<TableHead>
 									<TableRow>
 										<TableCell>Date</TableCell>
-										<TableCell>Class</TableCell>
+										<TableCell>Child</TableCell>
 										<TableCell>Program</TableCell>
-										<TableCell align="right">Revenue</TableCell>
+										<TableCell>For</TableCell>
+										<TableCell align="right">Amount</TableCell>
+										<TableCell>Status</TableCell>
 									</TableRow>
 								</TableHead>
 								<TableBody>
-									{week.classes.map((cls) => (
-										<TableRow
-											key={cls.id}
-											hover
-											sx={{ cursor: "pointer" }}
-											onClick={() => navigate(`/programs/${cls.program_id}`)}
-										>
-											<TableCell>{formatDate(cls.date)}</TableCell>
-											<TableCell>{cls.name}</TableCell>
-											<TableCell>{cls.program_name}</TableCell>
-											<TableCell align="right">
-												${parseFloat(cls.revenue).toFixed(2)}
-											</TableCell>
-										</TableRow>
-									))}
+									{week.lines.map((line, i) => {
+										const chip = STATUS_CHIPS[line.status] || STATUS_CHIPS.due;
+										return (
+											<TableRow
+												key={`${line.enrollment_id}-${line.date}-${i}`}
+												hover
+												sx={{ cursor: "pointer" }}
+												onClick={() => navigate(`/enrollments/${line.enrollment_id}`)}
+											>
+												<TableCell>{formatDate(line.date)}</TableCell>
+												<TableCell>{line.child_name || "—"}</TableCell>
+												<TableCell>{line.program_name || "—"}</TableCell>
+												<TableCell>{line.label}</TableCell>
+												<TableCell align="right">{money(line.amount)}</TableCell>
+												<TableCell>
+													<Chip size="small" label={chip.label} color={chip.color} />
+												</TableCell>
+											</TableRow>
+										);
+									})}
 								</TableBody>
 							</Table>
 						</Box>
@@ -112,28 +125,37 @@ function WeekRow({ week, navigate }) {
 	);
 }
 
+function Stat({ label, value, color, caption }) {
+	return (
+		<Box>
+			<Typography variant="body2" color="text.secondary">
+				{label}
+			</Typography>
+			<Typography variant="h6" color={color}>
+				{value}
+			</Typography>
+			{caption && (
+				<Typography variant="caption" color="text.secondary">
+					{caption}
+				</Typography>
+			)}
+		</Box>
+	);
+}
+
 export default function DashboardPage() {
 	const navigate = useNavigate();
-	const [weeklyData, setWeeklyData] = useState([]);
+	const [forecast, setForecast] = useState(null);
+	const [error, setError] = useState(null);
 	const [loading, setLoading] = useState(true);
 
 	useEffect(() => {
-		const loadData = async () => {
-			setLoading(true);
-			try {
-				const data = await reportsApi.weeklyRevenue();
-				setWeeklyData(data);
-			} finally {
-				setLoading(false);
-			}
-		};
-		loadData();
+		reportsApi
+			.weeklyRevenue()
+			.then(setForecast)
+			.catch((err) => setError(err.message))
+			.finally(() => setLoading(false));
 	}, []);
-
-	const totalRevenue = weeklyData.reduce(
-		(sum, week) => sum + parseFloat(week.revenue || 0),
-		0
-	);
 
 	if (loading) {
 		return (
@@ -143,6 +165,10 @@ export default function DashboardPage() {
 		);
 	}
 
+	const totals = forecast?.totals;
+	const weeks = forecast?.weeks || [];
+	const hasActivity = weeks.some((w) => w.lines.length > 0);
+
 	return (
 		<Box>
 			<Typography variant="h4" gutterBottom>
@@ -150,39 +176,61 @@ export default function DashboardPage() {
 			</Typography>
 
 			<Paper sx={{ p: 3, mb: 3 }}>
-				<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-					<Typography variant="h6">Weekly Revenue Forecast</Typography>
-					<Typography variant="h6" color="success.main">
-						Total: ${totalRevenue.toFixed(2)}
-					</Typography>
-				</Box>
+				<Typography variant="h6" gutterBottom>
+					Weekly Revenue Forecast
+				</Typography>
+				<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+					Payments collected, and tuition installments and invoices coming due, by week.
+				</Typography>
 
-				{weeklyData.length === 0 ? (
-					<Typography color="text.secondary">
-						No scheduled classes found in the next 12 weeks.
-					</Typography>
+				{error && <Alert severity="error">{error}</Alert>}
+
+				{totals && (
+					<Grid container spacing={3} sx={{ mb: 2 }}>
+						<Grid size={{ xs: 12, sm: 4 }}>
+							<Stat label="Expected, next 12 weeks" value={money(totals.expected_upcoming)} />
+						</Grid>
+						<Grid size={{ xs: 12, sm: 4 }}>
+							<Stat
+								label="Collected"
+								value={money(totals.collected_recent)}
+								color="success.main"
+								caption={`Since ${formatDate(totals.collected_since)}`}
+							/>
+						</Grid>
+						<Grid size={{ xs: 12, sm: 4 }}>
+							<Stat
+								label="Overdue"
+								value={money(totals.overdue)}
+								color={totals.overdue > 0 ? "error.main" : undefined}
+								caption="Unpaid and past due"
+							/>
+						</Grid>
+					</Grid>
+				)}
+
+				{forecast && !hasActivity ? (
+					<Typography color="text.secondary">No payments collected or coming due in this period.</Typography>
 				) : (
-					<TableContainer>
-						<Table>
-							<TableHead>
-								<TableRow>
-									<TableCell width={50} />
-									<TableCell>Week</TableCell>
-									<TableCell align="center">Classes</TableCell>
-									<TableCell align="right">Revenue</TableCell>
-								</TableRow>
-							</TableHead>
-							<TableBody>
-								{weeklyData.map((week) => (
-									<WeekRow
-										key={week.week_start}
-										week={week}
-										navigate={navigate}
-									/>
-								))}
-							</TableBody>
-						</Table>
-					</TableContainer>
+					forecast && (
+						<TableContainer>
+							<Table>
+								<TableHead>
+									<TableRow>
+										<TableCell width={50} />
+										<TableCell>Week</TableCell>
+										<TableCell align="right">Collected</TableCell>
+										<TableCell align="right">Outstanding</TableCell>
+									</TableRow>
+								</TableHead>
+								<TableBody>
+									{weeks.map((week) => (
+										<WeekRow key={week.week_start} week={week} navigate={navigate} />
+									))}
+								</TableBody>
+							</Table>
+						</TableContainer>
+					)
 				)}
 			</Paper>
 		</Box>
