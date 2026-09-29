@@ -31,7 +31,10 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import EmailIcon from "@mui/icons-material/Email";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import PaymentsIcon from "@mui/icons-material/Payments";
+import DescriptionIcon from "@mui/icons-material/Description";
+import GroupsIcon from "@mui/icons-material/Groups";
 import DataTable from "../shared/DataTable";
+import RelatedLinks from "../shared/RelatedLinks";
 import FormDialog from "../shared/FormDialog";
 import ConfirmDialog from "../shared/ConfirmDialog";
 import PageHeader from "../shared/PageHeader";
@@ -416,8 +419,10 @@ export default function EnrollmentDetailPage() {
                 }
                 sx={{ mb: 2 }}
             >
-                {backTo?.includes("/families/")
+                {backTo?.startsWith("/families/")
                     ? "Back to Family"
+                    : backTo?.startsWith("/enrollment-applications/")
+                    ? "Back to Application"
                     : "Back to Program"}
             </Button>
 
@@ -426,9 +431,26 @@ export default function EnrollmentDetailPage() {
                 {enrollment.child?.last_name}
             </Typography>
 
-            <Typography variant="h6" color="text.secondary" gutterBottom>
+            <Typography variant="h6" color="text.secondary">
                 {enrollment.program?.name}
             </Typography>
+
+            <Box sx={{ mb: 2 }}>
+                <RelatedLinks
+                    links={[
+                        enrollment.enrollment_application_id && {
+                            label: "Application",
+                            to: `/enrollment-applications/${enrollment.enrollment_application_id}`,
+                            icon: <DescriptionIcon />,
+                        },
+                        enrollment.child?.family && {
+                            label: `${enrollment.child.family.name} family`,
+                            to: `/families/${enrollment.child.family.id}`,
+                            icon: <GroupsIcon />,
+                        },
+                    ].filter(Boolean)}
+                />
+            </Box>
 
             <Box sx={{ display: "flex", gap: 1, mb: 3, alignItems: "center" }}>
                 <Chip

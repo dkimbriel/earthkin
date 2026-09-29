@@ -77,6 +77,13 @@ RSpec.describe 'Api::ProgramEnrollments', type: :request do
       expect(json['enrollment_payment_plan']['enrollment_fee_paid_at']).to be_present
     end
 
+    it "includes the child's family, which the page links to" do
+      get "/api/program_enrollments/#{enrollment.id}"
+      family = enrollment.child.family
+
+      expect(JSON.parse(response.body).dig('child', 'family')).to eq('id' => family.id, 'name' => family.name)
+    end
+
     it "includes the family's email history for admins" do
       application = create(:enrollment_application, family: enrollment.child.family)
       email = create(:email, :sent, emailable: application, subject: 'Your enrollment fee')

@@ -18,10 +18,11 @@ module Api
 		end
 
 		def show
-			enrollment = ProgramEnrollment.includes(:child, :program, :payments, enrollment_payment_plan: :payment_plan).find(params[:id])
+			enrollment = ProgramEnrollment.includes({ child: :family }, :program, :payments, enrollment_payment_plan: :payment_plan).find(params[:id])
 			render json: enrollment.as_json(
 				include: {
-					child: {},
+					# The family's name labels the page's link to it.
+					child: { include: { family: { only: %i[id name] } } },
 					program: {},
 					payments: {},
 					enrollment_payment_plan: { include: :payment_plan }
