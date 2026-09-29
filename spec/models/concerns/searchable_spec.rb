@@ -5,7 +5,8 @@ RSpec.describe Searchable do
   let!(:quillon) do
     create(:family, name: 'Quillon').tap do |family|
       create(:parent, family: family, first_name: 'Zéphyrine', last_name: 'Quillon', email: 'zeph@example.com')
-      create(:parent, family: family, first_name: 'Orsolo', last_name: 'Quillon')
+      # Fixed email: a Faker one can contain "_", which the literal-% test searches for.
+      create(:parent, family: family, first_name: 'Orsolo', last_name: 'Quillon', email: 'orsolo@example.com')
       create(:child, family: family, first_name: 'Theodric', last_name: 'Quillon')
     end
   end
