@@ -45,14 +45,16 @@ class WeeklyCashForecast
   private
 
   def totals(lines)
-    upcoming = lines.select { |l| l[:kind] == :outstanding && l[:date] >= @this_week && l[:date] <= @last_day }
+    # Same line as the Due/Overdue status: due today or later is expected,
+    # anything earlier and unpaid is overdue.
+    upcoming = lines.select { |l| l[:kind] == :outstanding && l[:date] >= @today && l[:date] <= @last_day }
     collected = lines.select { |l| l[:kind] == :collected && l[:date] <= @today }
 
     {
       expected_upcoming: upcoming.sum { |l| l[:amount] }.round(2),
       collected_recent: collected.sum { |l| l[:amount] }.round(2),
       collected_since: @first_week,
-      # Everything unpaid from before this week, not just the weeks shown.
+      # Everything unpaid and past due, not just the weeks shown.
       overdue: overdue_lines.sum { |l| l[:amount] }.round(2)
     }
   end
@@ -81,7 +83,7 @@ class WeeklyCashForecast
   end
 
   def overdue_lines
-    all_outstanding_lines.select { |l| l[:date] < @this_week }
+    all_outstanding_lines.select { |l| l[:date] < @today }
   end
 
   def installment_lines

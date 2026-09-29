@@ -33,7 +33,9 @@ RSpec.describe WeeklyCashForecast do
     expect(week('2026-09-28')).to include(outstanding: 273.36, collected: 0)
     expect(week('2026-10-19')[:lines].first).to include(label: 'Installment 2 of 2', status: 'due', child_name: 'Theo McLean',
                                                         program_name: 'Nature Preschool', enrollment_id: enrollment.id)
-    expect(forecast[:totals][:expected_upcoming]).to eq(546.69)
+    # 9/28 is earlier this week, so it's overdue rather than expected.
+    expect(forecast[:totals]).to include(expected_upcoming: 273.33, overdue: 273.36)
+    expect(week('2026-09-28')[:lines].first[:status]).to eq('overdue')
   end
 
   it 'counts completed payments as collected on their payment date, whatever the type' do

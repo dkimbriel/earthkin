@@ -203,7 +203,7 @@ export default function DashboardPage() {
 								label="Overdue"
 								value={money(totals.overdue)}
 								color={totals.overdue > 0 ? "error.main" : undefined}
-								caption="Unpaid and due before this week"
+								caption="Unpaid and past due"
 							/>
 						</Grid>
 					</Grid>
